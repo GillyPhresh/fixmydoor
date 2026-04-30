@@ -334,7 +334,7 @@ export default function Home() {
               <a href="tel:+148383471823" className="btn-primary">
                 Schedule Now
               </a>
-              <a href="mailto:ampofor55@gmail.com" className="btn-secondary">
+              <a href="mailto:info.fixmydoor@gmail.com" className="btn-secondary">
                 Send Email
               </a>
             </div>
@@ -438,10 +438,21 @@ export default function Home() {
                     <Mail className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <p className="font-semibold text-secondary mb-1">Email</p>
-                    <a href="mailto:ampofor55@gmail.com" className="text-lg text-primary hover:underline">
-                      ampofor55@gmail.com
-                    </a>
+                    <p className="font-semibold text-secondary mb-2">Email</p>
+                    <div className="space-y-1">
+                      <div>
+                        <span className="text-sm text-foreground/60">Business:</span>
+                        <a href="mailto:info.fixmydoor@gmail.com" className="text-lg text-primary hover:underline ml-1">
+                          info.fixmydoor@gmail.com
+                        </a>
+                      </div>
+                      <div>
+                        <span className="text-sm text-foreground/60">Personal:</span>
+                        <a href="mailto:ampofor55@gmail.com" className="text-lg text-primary hover:underline ml-1">
+                          ampofor55@gmail.com
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -670,7 +681,12 @@ export default function Home() {
               <ul className="space-y-2 text-white/80">
                 <li><a href="tel:+148383471823" className="hover:text-white transition">+1 (483) 834-7182</a></li>
                 <li><a href="https://wa.me/233242011305" className="hover:text-white transition">WhatsApp: +233 24 201 1305</a></li>
-                <li><a href="mailto:ampofor55@gmail.com" className="hover:text-white transition">ampofor55@gmail.com</a></li>
+                <li>
+                  <div className="space-y-1">
+                    <div><a href="mailto:info.fixmydoor@gmail.com" className="hover:text-white transition">info.fixmydoor@gmail.com</a></div>
+                    <div><a href="mailto:ampofor55@gmail.com" className="hover:text-white transition">ampofor55@gmail.com</a></div>
+                  </div>
+                </li>
                 <li>Montreal, QC</li>
               </ul>
               <div className="flex gap-3 mt-4">
