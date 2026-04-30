@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Wrench, Lock, Home as HomeIcon, Users, Phone, Mail, MapPin, CheckCircle2, Zap, DollarSign } from "lucide-react";
+import { Wrench, Lock, Home as HomeIcon, Users, Phone, Mail, MapPin, CheckCircle2, Zap, DollarSign, MessageCircle, Instagram, Twitter, Facebook } from "lucide-react";
 import { toast } from "sonner";
 import type { BookingRequest } from "@shared/types";
 
@@ -87,7 +87,7 @@ export default function Home() {
             <a href="#testimonials" className="hover:text-primary transition">Testimonials</a>
             <a href="#contact" className="hover:text-primary transition">Contact</a>
           </div>
-          <a href="tel:+14383471823" className="btn-primary text-sm">
+          <a href="tel:+148383471823" className="btn-primary text-sm">
             Call Now
           </a>
         </div>
@@ -109,7 +109,7 @@ export default function Home() {
               
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mb-12">
-                <a href="tel:+14383471823" className="btn-primary text-center">
+                <a href="tel:+148383471823" className="btn-primary text-center">
                   <Phone className="inline mr-2 w-5 h-5" />
                   Call Now
                 </a>
@@ -275,7 +275,7 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-semibold text-secondary mb-3">Contact Us</h3>
               <p className="text-foreground/70 leading-relaxed">
-                Call us at <a href="tel:+14383471823" className="font-semibold text-primary hover:underline">+1 (438) 347-1823</a> or fill out our booking form with details about your repair.
+                Call us at <a href="tel:+148383471823" className="font-semibold text-primary hover:underline">+1 (483) 834-7182</a> or fill out our booking form with details about your repair.
               </p>
             </div>
 
@@ -331,7 +331,7 @@ export default function Home() {
               FixMyDoor is built on the principle that quality repairs should be accessible, affordable, and convenient. We come to you so you don't have to worry about transporting your furniture or dealing with complex repairs yourself.
             </p>
             <div className="flex gap-4">
-              <a href="tel:+14383471823" className="btn-primary">
+              <a href="tel:+148383471823" className="btn-primary">
                 Schedule Now
               </a>
               <a href="mailto:ampofor55@gmail.com" className="btn-secondary">
@@ -413,8 +413,21 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="font-semibold text-secondary mb-1">Phone</p>
-                    <a href="tel:+14383471823" className="text-lg text-primary hover:underline">
-                      +1 (438) 347-1823
+                    <a href="tel:+148383471823" className="text-lg text-primary hover:underline">
+                      +1 (483) 834-7182
+                    </a>
+                  </div>
+                </div>
+
+                {/* WhatsApp */}
+                <div className="flex gap-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <MessageCircle className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-secondary mb-1">WhatsApp</p>
+                    <a href="https://wa.me/233242011305" className="text-lg text-primary hover:underline">
+                      +233 24 201 1305
                     </a>
                   </div>
                 </div>
@@ -429,6 +442,27 @@ export default function Home() {
                     <a href="mailto:ampofor55@gmail.com" className="text-lg text-primary hover:underline">
                       ampofor55@gmail.com
                     </a>
+                  </div>
+                </div>
+
+                {/* Social Media */}
+                <div className="flex gap-4">
+                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Instagram className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-secondary mb-1">Follow Us</p>
+                    <div className="flex gap-4">
+                      <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="text-primary hover:text-primary/80 transition" aria-label="Instagram">
+                        <Instagram className="w-5 h-5" />
+                      </a>
+                      <a href="https://x.com/fixmydoor?s=11" className="text-primary hover:text-primary/80 transition" aria-label="X (Twitter)">
+                        <Twitter className="w-5 h-5" />
+                      </a>
+                      <a href="#" className="text-primary hover:text-primary/80 transition opacity-50" aria-label="Facebook (Coming Soon)">
+                        <Facebook className="w-5 h-5" />
+                      </a>
+                    </div>
                   </div>
                 </div>
 
@@ -587,7 +621,7 @@ export default function Home() {
 
       {/* Sticky Mobile CTA */}
       <div className="fixed bottom-4 left-4 right-4 md:hidden z-40 flex gap-2">
-        <a href="tel:+14383471823" className="flex-1 btn-primary text-center text-sm">
+        <a href="tel:+148383471823" className="flex-1 btn-primary text-center text-sm">
           Call
         </a>
         <a href="#contact" className="flex-1 btn-secondary text-center text-sm">
@@ -634,10 +668,22 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-white/80">
-                <li><a href="tel:+14383471823" className="hover:text-white transition">+1 (438) 347-1823</a></li>
+                <li><a href="tel:+148383471823" className="hover:text-white transition">+1 (483) 834-7182</a></li>
+                <li><a href="https://wa.me/233242011305" className="hover:text-white transition">WhatsApp: +233 24 201 1305</a></li>
                 <li><a href="mailto:ampofor55@gmail.com" className="hover:text-white transition">ampofor55@gmail.com</a></li>
                 <li>Montreal, QC</li>
               </ul>
+              <div className="flex gap-3 mt-4">
+                <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="text-white/80 hover:text-white transition" aria-label="Instagram">
+                  <Instagram className="w-5 h-5" />
+                </a>
+                <a href="https://x.com/fixmydoor?s=11" className="text-white/80 hover:text-white transition" aria-label="X (Twitter)">
+                  <Twitter className="w-5 h-5" />
+                </a>
+                <a href="#" className="text-white/80 hover:text-white transition opacity-50" aria-label="Facebook (Coming Soon)">
+                  <Facebook className="w-5 h-5" />
+                </a>
+              </div>
             </div>
           </div>
 
