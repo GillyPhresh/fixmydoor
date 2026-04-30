@@ -26,12 +26,16 @@ export default function Admin() {
   const [loginData, setLoginData] = useState({ username: "", password: "" });
   const [loginLoading, setLoginLoading] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   useEffect(() => {
     checkAuthStatus();
@@ -39,9 +43,26 @@ export default function Admin() {
 
   useEffect(() => {
     if (authenticated) {
+      fetchStats();
       fetchBookings();
     }
-  }, [authenticated, search, statusFilter]);
+  }, [authenticated]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    if (authenticated && debouncedSearch !== undefined) {
+      fetchBookings();
+    }
+  }, [authenticated, debouncedSearch, statusFilter, currentPage]);
 
   const checkAuthStatus = async () => {
     try {
@@ -77,15 +98,27 @@ export default function Admin() {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      const response = await axios.get("/api/stats");
+      setStats(response.data);
+    } catch (err) {
+      console.error("Failed to fetch stats:", err);
+    }
+  };
+
   const fetchBookings = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.append("search", search);
+      if (debouncedSearch) params.append("search", debouncedSearch);
       if (statusFilter !== "ALL") params.append("status", statusFilter);
+      params.append("page", currentPage.toString());
+      params.append("limit", "20");
 
       const response = await axios.get(`/api/bookings?${params.toString()}`);
-      setBookings(response.data);
+      setBookings(response.data.bookings);
+      setTotalPages(response.data.pagination.pages);
     } catch (err) {
       setError("Failed to load bookings");
       console.error("Error fetching bookings:", err);
@@ -195,6 +228,68 @@ export default function Admin() {
             Logout
           </Button>
         </div>
+
+        {/* Stats Dashboard */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Bookings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalBookings}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">{stats.pendingBookings}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">This Week</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">{stats.thisWeekBookings}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{stats.completedBookings}</div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Recent Bookings */}
+        {stats?.recentBookings && stats.recentBookings.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Recent Bookings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {stats.recentBookings.map((booking: any) => (
+                  <div key={booking.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                    <div>
+                      <p className="font-medium">{booking.name}</p>
+                      <p className="text-sm text-muted-foreground">{booking.repairType}</p>
+                    </div>
+                    <Badge variant={booking.status === "PENDING" ? "secondary" : booking.status === "COMPLETED" ? "default" : "outline"}>
+                      {booking.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex gap-4 mb-6">
           <div className="flex-1">
@@ -405,6 +500,29 @@ export default function Admin() {
             )}
           </CardContent>
         </Card>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
