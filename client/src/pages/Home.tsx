@@ -13,14 +13,14 @@ import { toast } from "sonner";
 import type { BookingRequest } from "@shared/types";
 
 import logoPng from "./Images/FixMyDoor_Logo.PNG";
-import heroImage from "./Images/Step into the glow.jpg";
-import aboutImage from "./Images/Entry door replacement_ #diy #remodeling #construction #ad #dewalttough #door.jpg";
-import gallery1 from "./Images/Kicked down doors.jpg";
-import gallery2 from "./Images/Severely Broken Wooden Door After Forced Entry #wood #broken #carpentry.jpg";
-import gallery3 from "./Images/White Internal Doors _ Classic White Interior Doors.jpg";
-import gallery4 from "./Images/Your One-Stop Solution for Home Services!.jpg";
-import gallery5 from "./Images/How Do Furniture Movers And Packers In Abu Dhabi Work_.jpg";
-import gallery6 from "./Images/A desk with a monitor and a plant on it _ Premium AI-generated image.jpg";
+import heroImage from "./Images/step-into-the-glow.jpg";
+import aboutImage from "./Images/entry-door-replacement.jpg";
+import gallery1 from "./Images/kicked-down-doors.jpg";
+import gallery2 from "./Images/severely-broken-wooden-door-after-forced-entry.jpg";
+import gallery3 from "./Images/white-internal-doors.jpg";
+import gallery4 from "./Images/one-stop-home-services.jpg";
+import gallery5 from "./Images/furniture-movers-packers-abu-dhabi.jpg";
+import gallery6 from "./Images/desk-monitor-plant-ai-generated.jpg";
 
 /**
  * FixMyDoor MVP Website
