@@ -1,4 +1,4 @@
-import { BookingRequest, BookingStatus } from "../shared/types";
+import { BookingRequest, Booking, BookingStatus } from "../shared/types";
 import { prisma } from "./prisma";
 
 const VALID_STATUSES: BookingStatus[] = ["PENDING", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
@@ -32,7 +32,7 @@ export function validateBookingStatus(status: any): status is BookingStatus {
   return typeof status === "string" && VALID_STATUSES.includes(status as BookingStatus);
 }
 
-export async function saveBooking(booking: BookingRequest) {
+export async function saveBooking(booking: BookingRequest): Promise<Booking> {
   // Sanitize inputs
   const sanitizedBooking = {
     name: booking.name.trim(),
@@ -44,7 +44,9 @@ export async function saveBooking(booking: BookingRequest) {
     message: booking.message?.trim() || null,
   };
 
-  return await prisma.booking.create({
+  const result = await prisma.booking.create({
     data: sanitizedBooking,
   });
+
+  return result as unknown as Booking;
 }

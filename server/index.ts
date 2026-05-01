@@ -7,10 +7,17 @@ import { execSync } from "child_process";
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { saveBooking, validateBooking } from "./bookings";
+import { saveBooking, validateBooking, validateBookingStatus } from "./bookings";
 import { prisma } from "./prisma";
 import { findAdminByUsername, initializeAdminUser, verifyPassword, hashPassword } from "./auth";
 import { emailService } from "./email";
+import type { Booking } from "@shared/types";
+
+declare module "express-session" {
+  interface SessionData {
+    adminId?: string;
+  }
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -91,7 +98,7 @@ async function startServer() {
   // Session configuration
   const isProduction = process.env.NODE_ENV === "production";
   app.use(session({
-    secret: sessionSecret,
+    secret: sessionSecret as string,
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -104,6 +111,14 @@ async function startServer() {
   }));
 
   app.use(express.json({ limit: "10mb" })); // Limit request body size
+
+  // Auth middleware
+  function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+    if (req.session.adminId) {
+      return next();
+    }
+    res.status(401).json({ success: false, error: "Authentication required" });
+  }
 
   // Health check endpoint
   app.get("/api/health", async (req, res) => {
@@ -215,7 +230,7 @@ async function startServer() {
     }
 
     try {
-      const savedBooking = await saveBooking(booking);
+      const savedBooking = await saveBooking(booking) as Booking;
 
       // Send confirmation email to customer (async, don't wait)
       emailService.sendBookingConfirmation(savedBooking).catch(err =>

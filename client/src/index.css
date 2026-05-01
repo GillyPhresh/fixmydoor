@@ -211,6 +211,22 @@
     @apply bg-white rounded-lg p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2;
   }
 
+  .gallery-card {
+    @apply overflow-hidden rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.08)] bg-white transition-all duration-300 hover:-translate-y-2;
+  }
+
+  .gallery-image {
+    @apply w-full h-[320px] object-cover;
+  }
+
+  .logo-mark {
+    @apply inline-flex items-center justify-center rounded-xl bg-secondary text-white w-10 h-10;
+  }
+
+  .logo-text {
+    @apply font-display text-xl font-bold text-secondary;
+  }
+
   .trust-badge {
     @apply flex flex-col items-center gap-2 text-center;
   }

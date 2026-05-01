@@ -12,6 +12,16 @@ import { Wrench, Lock, Home as HomeIcon, Users, Phone, Mail, MapPin, CheckCircle
 import { toast } from "sonner";
 import type { BookingRequest } from "@shared/types";
 
+import logoPng from "./Images/FixMyDoor_Logo.PNG";
+import heroImage from "./Images/Step into the glow.jpg";
+import aboutImage from "./Images/Entry door replacement_ #diy #remodeling #construction #ad #dewalttough #door.jpg";
+import gallery1 from "./Images/Kicked down doors.jpg";
+import gallery2 from "./Images/Severely Broken Wooden Door After Forced Entry #wood #broken #carpentry.jpg";
+import gallery3 from "./Images/White Internal Doors _ Classic White Interior Doors.jpg";
+import gallery4 from "./Images/Your One-Stop Solution for Home Services!.jpg";
+import gallery5 from "./Images/How Do Furniture Movers And Packers In Abu Dhabi Work_.jpg";
+import gallery6 from "./Images/A desk with a monitor and a plant on it _ Premium AI-generated image.jpg";
+
 /**
  * FixMyDoor MVP Website
  * Design: Warm Craft & Reliability
@@ -33,6 +43,15 @@ const bookingSchema = z.object({
 });
 
 type BookingFormData = z.infer<typeof bookingSchema>;
+
+const galleryImages = [
+  { src: gallery1, alt: "Door repair and frame restoration" },
+  { src: gallery2, alt: "Repair after forced entry damage" },
+  { src: gallery3, alt: "Interior door and lock servicing" },
+  { src: gallery4, alt: "Reliable home service and furniture repairs" },
+  { src: gallery5, alt: "Professional furniture moving and repair" },
+  { src: gallery6, alt: "Finished repair project with clean setup" },
+];
 
 export default function Home() {
   const form = useForm<BookingFormData>({
@@ -74,12 +93,13 @@ export default function Home() {
       {/* Navigation */}
       <nav className="sticky top-0 z-50 bg-white shadow-md">
         <div className="container flex items-center justify-between py-4">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-secondary rounded-lg flex items-center justify-center">
-              <Wrench className="w-6 h-6 text-white" />
+          <a href="/" className="flex items-center gap-3">
+            <img src={logoPng} alt="FixMyDoor logo" className="w-12 h-12 rounded-lg bg-secondary p-1 object-contain" />
+            <div>
+              <p className="text-sm uppercase tracking-[0.24em] text-primary font-semibold">FixMyDoor</p>
+              <h1 className="text-2xl font-display font-bold text-secondary">Door & Furniture Repair</h1>
             </div>
-            <h1 className="text-2xl font-display font-bold text-secondary">FixMyDoor</h1>
-          </div>
+          </a>
           <div className="hidden md:flex gap-8 text-sm font-medium">
             <a href="#services" className="hover:text-primary transition">Services</a>
             <a href="#how-it-works" className="hover:text-primary transition">How It Works</a>
@@ -145,7 +165,7 @@ export default function Home() {
           {/* Right: Hero Image */}
           <div className="order-1 md:order-2 h-96 md:h-full md:min-h-screen relative">
             <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663613267557/GWvF54GYKre39h7gSYtVFi/fixmydoor-hero-door-repair-Eudn4HAV8QqUbP4m3HMWKj.webp"
+              src={heroImage}
               alt="Professional door repair service"
               className="w-full h-full object-cover"
             />
@@ -260,6 +280,32 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Work Gallery Section */}
+      <section id="work" className="section-divider bg-slate-50">
+        <div className="container">
+          <div className="text-center mb-12">
+            <p className="text-sm uppercase tracking-[0.4em] text-primary font-semibold mb-4">Our Work</p>
+            <h2 className="text-4xl md:text-5xl font-display font-bold text-secondary">
+              Recent Repairs & Installations
+            </h2>
+            <p className="text-lg text-foreground/70 max-w-2xl mx-auto mt-4">
+              A selection of door, lock, and furniture repair projects completed for homes and businesses.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            {galleryImages.map((image) => (
+              <div key={image.src} className="gallery-card">
+                <img src={image.src} alt={image.alt} className="gallery-image" />
+                <div className="p-4 bg-white">
+                  <p className="text-sm text-secondary font-semibold">{image.alt}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* How It Works Section */}
       <section id="how-it-works" className="section-divider">
         <div className="container">
@@ -310,7 +356,7 @@ export default function Home() {
           {/* Image */}
           <div className="h-96 md:h-full md:min-h-96">
             <img
-              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663613267557/GWvF54GYKre39h7gSYtVFi/fixmydoor-technician-portrait-9gwm4Hysz9FXp4Bp8sgcpC.webp"
+              src={aboutImage}
               alt="Richard Ampofo, FixMyDoor Technician"
               className="w-full h-full object-cover rounded-lg"
             />

@@ -13,7 +13,7 @@ interface EmailConfig {
 }
 
 class EmailService {
-  private transporter: nodemailer.Transporter | null = null;
+  private transporter: any | null = null;
   private config: EmailConfig | null = null;
 
   initialize() {
@@ -36,7 +36,7 @@ class EmailService {
       from,
     };
 
-    this.transporter = nodemailer.createTransporter(this.config);
+    this.transporter = nodemailer.createTransport(this.config);
     return true;
   }
 
