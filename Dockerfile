@@ -18,14 +18,14 @@ USER nextjs
 RUN npm install -g pnpm
 
 # Copy package files and patch files required by pnpm
-COPY --chown=nextjs:nodejs package.json pnpm-lock.yaml ./
-COPY --chown=nextjs:nodejs patches ./patches
+COPY package.json pnpm-lock.yaml ./
+COPY patches ./patches
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy source code
-COPY --chown=nextjs:nodejs . .
+COPY . .
 
 # Generate Prisma client
 RUN pnpm prisma:generate
