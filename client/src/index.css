@@ -1,13 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-sans: 'Inter', sans-serif;
-  --font-display: 'Playfair Display', serif;
+  --font-display: 'Montserrat', sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -47,16 +47,16 @@
 }
 
 :root {
-  /* Warm Craft Design - FixMyDoor */
-  --primary: oklch(0.45 0.18 30);  /* Burnt Orange #D97706 */
+  /* Luxury Brown & Gold Design - FixMyDoor */
+  --primary: oklch(0.55 0.24 40);  /* Elegant Gold #D4A574 */
   --primary-foreground: oklch(1 0 0);  /* White */
-  --sidebar-primary: oklch(0.45 0.18 30);
+  --sidebar-primary: oklch(0.55 0.24 40);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --chart-1: oklch(0.45 0.18 30);
-  --chart-2: oklch(0.50 0.15 35);
-  --chart-3: oklch(0.55 0.12 40);
-  --chart-4: oklch(0.60 0.10 45);
-  --chart-5: oklch(0.65 0.08 50);
+  --chart-1: oklch(0.55 0.24 40);
+  --chart-2: oklch(0.60 0.20 40);
+  --chart-3: oklch(0.65 0.16 40);
+  --chart-4: oklch(0.70 0.12 40);
+  --chart-5: oklch(0.75 0.08 40);
   --radius: 0.5rem;
   --background: oklch(0.98 0.001 286.375);  /* Warm Cream #F5F1E8 */
   --foreground: oklch(0.15 0.02 30);  /* Deep Charcoal #1F2937 */
@@ -64,20 +64,20 @@
   --card-foreground: oklch(0.15 0.02 30);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.02 30);
-  --secondary: oklch(0.40 0.15 30);  /* Walnut Brown #6B4423 */
+  --secondary: oklch(0.35 0.12 30);  /* Rich Brown #6B4423 */
   --secondary-foreground: oklch(1 0 0);
   --muted: oklch(0.92 0.002 286.375);
   --muted-foreground: oklch(0.50 0.01 30);
-  --accent: oklch(0.45 0.18 30);  /* Burnt Orange */
+  --accent: oklch(0.55 0.24 40);  /* Gold */
   --accent-foreground: oklch(1 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.90 0.005 30);
   --input: oklch(0.95 0.002 286.375);
-  --ring: oklch(0.45 0.18 30);
+  --ring: oklch(0.55 0.24 40);
   --sidebar: oklch(0.98 0.001 286.375);
   --sidebar-foreground: oklch(0.15 0.02 30);
-  --sidebar-accent: oklch(0.45 0.18 30);
+  --sidebar-accent: oklch(0.55 0.24 40);
   --sidebar-accent-foreground: oklch(1 0 0);
   --sidebar-border: oklch(0.90 0.005 30);
   --sidebar-ring: oklch(0.45 0.18 30);
