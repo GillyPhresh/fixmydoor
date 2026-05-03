@@ -13,6 +13,8 @@ import { findAdminByUsername, initializeAdminUser, verifyPassword, hashPassword 
 import { emailService } from "./email";
 import type { Booking } from "@shared/types";
 
+process.loadEnvFile?.();
+
 declare module "express-session" {
   interface SessionData {
     adminId?: string;
@@ -22,10 +24,15 @@ declare module "express-session" {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Validate Database URL for production
+if (!process.env.DATABASE_URL) {
+  console.error("[ERROR] DATABASE_URL environment variable is missing.");
+}
+
 // Validate critical environment variables
 const sessionSecret = process.env.SESSION_SECRET;
 if (!sessionSecret || sessionSecret.length < 32) {
-  console.error("❌ SESSION_SECRET must be set and at least 32 characters long");
+  console.error("[ERROR] SESSION_SECRET must be set and at least 32 characters long");
   console.error("Generate a secure secret with: openssl rand -base64 32");
   process.exit(1);
 }
@@ -185,8 +192,13 @@ async function startServer() {
       if (err) {
         return res.status(500).json({ success: false, error: "Logout failed" });
       }
+      res.clearCookie("fixmydoor.sid");
       res.json({ success: true });
     });
+  });
+
+  app.get("/api/auth/status", (req, res) => {
+    res.json({ authenticated: !!req.session.adminId });
   });
 
   app.post("/api/auth/change-password", requireAuth, async (req, res) => {
@@ -319,6 +331,24 @@ async function startServer() {
     } catch (error) {
       console.error("Error updating booking:", error);
       res.status(500).json({ success: false, error: "Failed to update booking" });
+    }
+  });
+
+  app.delete("/api/bookings/:id", requireAuth, async (req, res) => {
+    const { id } = req.params;
+
+    if (!id || typeof id !== "string" || id.length > 50) {
+      return res.status(400).json({ success: false, error: "Invalid booking ID" });
+    }
+
+    try {
+      await prisma.booking.delete({
+        where: { id },
+      });
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting booking:", error);
+      return res.status(500).json({ success: false, error: "Failed to delete booking" });
     }
   });
 

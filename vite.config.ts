@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
-import { saveBooking, validateBooking } from "./server/bookings";
+import { saveBooking, validateBooking, validateBookingStatus } from "./server/bookings";
 import { prisma } from "./server/prisma";
 import { findAdminByUsername, verifyPassword } from "./server/auth";
 
@@ -210,98 +210,183 @@ function vitePluginBookingApi(): Plugin {
   return {
     name: "fixmydoor-booking-api",
     configureServer(server: ViteDevServer) {
-      // Mock session storage for dev
       const sessions: Record<string, { adminId: string }> = {};
 
+      const writeJson = (res: any, statusCode: number, payload: unknown) => {
+        res.writeHead(statusCode, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(payload));
+      };
+
+      const readJsonBody = (req: any) =>
+        new Promise<any>((resolve, reject) => {
+          let body = "";
+          req.on("data", (chunk: Buffer | string) => {
+            body += chunk.toString();
+          });
+          req.on("end", () => {
+            try {
+              resolve(body ? JSON.parse(body) : {});
+            } catch (error) {
+              reject(error);
+            }
+          });
+          req.on("error", reject);
+        });
+
+      const getStats = async () => {
+        const [
+          totalBookings,
+          pendingBookings,
+          confirmedBookings,
+          completedBookings,
+          todayBookings,
+          thisWeekBookings,
+          thisMonthBookings,
+        ] = await Promise.all([
+          prisma.booking.count(),
+          prisma.booking.count({ where: { status: "PENDING" } }),
+          prisma.booking.count({ where: { status: "CONFIRMED" } }),
+          prisma.booking.count({ where: { status: "COMPLETED" } }),
+          prisma.booking.count({
+            where: {
+              createdAt: {
+                gte: new Date(new Date().setHours(0, 0, 0, 0)),
+              },
+            },
+          }),
+          prisma.booking.count({
+            where: {
+              createdAt: {
+                gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+              },
+            },
+          }),
+          prisma.booking.count({
+            where: {
+              createdAt: {
+                gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+              },
+            },
+          }),
+        ]);
+
+        const recentBookings = await prisma.booking.findMany({
+          take: 5,
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            status: true,
+            createdAt: true,
+            repairType: true,
+          },
+        });
+
+        return {
+          totalBookings,
+          pendingBookings,
+          confirmedBookings,
+          completedBookings,
+          todayBookings,
+          thisWeekBookings,
+          thisMonthBookings,
+          recentBookings,
+        };
+      };
+
       server.middlewares.use("/api", async (req, res, next) => {
-        // Simple session handling for dev
+        const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
+        const request = req as typeof req & { session?: { adminId: string } };
         const sessionId = req.headers.cookie?.match(/sessionId=([^;]+)/)?.[1];
-        if (sessionId) {
-          (req as any).session = sessions[sessionId];
+
+        if (sessionId && sessions[sessionId]) {
+          request.session = sessions[sessionId];
         }
 
-        if (req.method === "POST" && req.url === "/api/auth/login") {
-          let body = "";
-          req.on("data", (chunk) => {
-            body += chunk.toString();
-          });
+        if (req.method === "POST" && pathname === "/auth/login") {
+          try {
+            const { username, password } = await readJsonBody(req);
 
-          req.on("end", async () => {
-            try {
-              const { username, password } = JSON.parse(body);
-
-              if (username === "admin" && password === "admin123") {
-                const sessionId = Math.random().toString(36);
-                sessions[sessionId] = { adminId: "dev-admin" };
-                res.setHeader("Set-Cookie", `sessionId=${sessionId}; Path=/; HttpOnly`);
-                res.writeHead(200, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ success: true }));
-              } else {
-                res.writeHead(401, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ success: false, error: "Invalid credentials" }));
-              }
-            } catch (error) {
-              res.writeHead(500, { "Content-Type": "application/json" });
-              res.end(JSON.stringify({ success: false, error: String(error) }));
+            if (
+              typeof username !== "string" ||
+              typeof password !== "string" ||
+              username.length === 0 ||
+              password.length === 0 ||
+              username.length > 50 ||
+              password.length > 100
+            ) {
+              writeJson(res, 400, { success: false, error: "Invalid credentials" });
+              return;
             }
-          });
+
+            const admin = await findAdminByUsername(username);
+            const isValidPassword = admin
+              ? await verifyPassword(password, admin.password)
+              : username === "admin" && password === "admin123";
+
+            if (!isValidPassword) {
+              writeJson(res, 401, { success: false, error: "Invalid credentials" });
+              return;
+            }
+
+            const nextSessionId = Math.random().toString(36);
+            sessions[nextSessionId] = { adminId: admin?.id ?? "dev-admin" };
+            res.setHeader("Set-Cookie", `sessionId=${nextSessionId}; Path=/; HttpOnly; SameSite=Lax`);
+            writeJson(res, 200, { success: true });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
           return;
         }
 
-        if (req.method === "POST" && req.url === "/api/auth/logout") {
+        if (req.method === "POST" && pathname === "/auth/logout") {
+          if (sessionId) {
+            delete sessions[sessionId];
+          }
+
           res.setHeader("Set-Cookie", "sessionId=; Path=/; HttpOnly; Max-Age=0");
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ success: true }));
+          writeJson(res, 200, { success: true });
           return;
         }
 
-        if (req.method === "GET" && req.url === "/api/auth/status") {
-          const authenticated = !!(req as any).session?.adminId;
-          res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ authenticated }));
+        if (req.method === "GET" && pathname === "/auth/status") {
+          writeJson(res, 200, { authenticated: !!request.session?.adminId });
           return;
         }
 
-        if (req.method === "POST" && req.url === "/api/bookings") {
-          let body = "";
-          req.on("data", (chunk) => {
-            body += chunk.toString();
-          });
-
-          req.on("end", async () => {
-            try {
-              const payload = JSON.parse(body);
-              if (!validateBooking(payload)) {
-                res.writeHead(400, { "Content-Type": "application/json" });
-                res.end(JSON.stringify({ success: false, error: "Invalid booking payload" }));
-                return;
-              }
-
-              await saveBooking(payload);
-              res.writeHead(201, { "Content-Type": "application/json" });
-              res.end(JSON.stringify({ success: true }));
-            } catch (error) {
-              res.writeHead(500, { "Content-Type": "application/json" });
-              res.end(JSON.stringify({ success: false, error: String(error) }));
+        if (req.method === "POST" && pathname === "/bookings") {
+          try {
+            const payload = await readJsonBody(req);
+            if (!validateBooking(payload)) {
+              writeJson(res, 400, { success: false, error: "Invalid booking payload" });
+              return;
             }
-          });
+
+            await saveBooking(payload);
+            writeJson(res, 201, { success: true });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
           return;
         }
 
-        if (req.method === "GET" && req.url?.startsWith("/api/bookings")) {
-          // Simple auth check for dev
-          if (!(req as any).session?.adminId) {
-            res.writeHead(401, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: false, error: "Authentication required" }));
+        if (req.method === "GET" && pathname === "/bookings") {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
             return;
           }
 
           try {
-            const url = new URL(req.url, `http://${req.headers.host}`);
+            const url = new URL(req.url ?? "/", "http://localhost");
             const search = url.searchParams.get("search");
             const status = url.searchParams.get("status");
+            const page = url.searchParams.get("page") ?? "1";
+            const limit = url.searchParams.get("limit") ?? "50";
 
-            let where: any = {};
+            const pageNum = Math.max(1, parseInt(page, 10) || 1);
+            const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+
+            const where: any = {};
 
             if (search) {
               where.OR = [
@@ -312,70 +397,98 @@ function vitePluginBookingApi(): Plugin {
               ];
             }
 
-            if (status && status !== "ALL") {
+            if (status && status !== "ALL" && validateBookingStatus(status)) {
               where.status = status;
             }
 
-            const bookings = await prisma.booking.findMany({
-              where,
-              orderBy: { createdAt: "desc" },
+            const [bookings, totalCount] = await Promise.all([
+              prisma.booking.findMany({
+                where,
+                orderBy: { createdAt: "desc" },
+                skip: (pageNum - 1) * limitNum,
+                take: limitNum,
+              }),
+              prisma.booking.count({ where }),
+            ]);
+
+            writeJson(res, 200, {
+              bookings,
+              pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total: totalCount,
+                pages: Math.ceil(totalCount / limitNum),
+              },
             });
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(JSON.stringify(bookings));
           } catch (error) {
-            res.writeHead(500, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: false, error: String(error) }));
+            writeJson(res, 500, { success: false, error: String(error) });
           }
           return;
         }
 
-        if (req.method === "PATCH" && req.url?.startsWith("/api/bookings/")) {
-          if (!(req as any).session?.adminId) {
-            res.writeHead(401, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: false, error: "Authentication required" }));
+        if (req.method === "GET" && pathname === "/stats") {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
             return;
           }
 
-          const id = req.url.split("/api/bookings/")[1];
-          let body = "";
-          req.on("data", (chunk) => {
-            body += chunk.toString();
-          });
+          try {
+            writeJson(res, 200, await getStats());
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
+          return;
+        }
 
-          req.on("end", async () => {
-            try {
-              const { status } = JSON.parse(body);
-              const booking = await prisma.booking.update({
-                where: { id },
-                data: { status },
-              });
-              res.writeHead(200, { "Content-Type": "application/json" });
-              res.end(JSON.stringify(booking));
-            } catch (error) {
-              res.writeHead(500, { "Content-Type": "application/json" });
-              res.end(JSON.stringify({ success: false, error: "Failed to update booking" }));
+        if (req.method === "PATCH" && pathname.startsWith("/bookings/")) {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
+            return;
+          }
+
+          const id = pathname.slice("/bookings/".length);
+          if (!id || id.length > 50) {
+            writeJson(res, 400, { success: false, error: "Invalid booking ID" });
+            return;
+          }
+
+          try {
+            const { status } = await readJsonBody(req);
+            if (!validateBookingStatus(status)) {
+              writeJson(res, 400, { success: false, error: "Invalid status" });
+              return;
             }
-          });
+
+            const booking = await prisma.booking.update({
+              where: { id },
+              data: { status },
+            });
+            writeJson(res, 200, booking);
+          } catch {
+            writeJson(res, 500, { success: false, error: "Failed to update booking" });
+          }
           return;
         }
 
-        if (req.method === "DELETE" && req.url?.startsWith("/api/bookings/")) {
-          if (!(req as any).session?.adminId) {
-            res.writeHead(401, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: false, error: "Authentication required" }));
+        if (req.method === "DELETE" && pathname.startsWith("/bookings/")) {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
             return;
           }
 
-          const id = req.url.split("/api/bookings/")[1];
+          const id = pathname.slice("/bookings/".length);
+          if (!id || id.length > 50) {
+            writeJson(res, 400, { success: false, error: "Invalid booking ID" });
+            return;
+          }
+
           try {
             await prisma.booking.delete({
               where: { id },
             });
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: true }));
-          } catch (error) {
-            res.writeHead(500, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ success: false, error: "Failed to delete booking" }));
+            writeJson(res, 200, { success: true });
+          } catch {
+            writeJson(res, 500, { success: false, error: "Failed to delete booking" });
           }
           return;
         }
@@ -414,6 +527,7 @@ export default defineConfig({
   server: {
     port: 3000,
     strictPort: false, // Will find next available port if 3000 is busy
+    open: true,
     host: true,
     allowedHosts: [
       ".manuspre.computer",

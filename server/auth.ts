@@ -50,7 +50,7 @@ export async function initializeAdminUser() {
 
         await createAdminUser(defaultUsername, defaultPassword);
         console.log(`Default admin user created: ${defaultUsername}`);
-        console.log("⚠️  IMPORTANT: Change the default password immediately after first login!");
+        console.log("[WARNING] Change the default password immediately after first login.");
       } else {
         console.log("No admin user exists. Set CREATE_DEFAULT_ADMIN=true and provide DEFAULT_ADMIN_PASSWORD to create one.");
       }

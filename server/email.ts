@@ -18,7 +18,7 @@ class EmailService {
 
   initialize() {
     const host = process.env.SMTP_HOST;
-    const port = parseInt(process.env.SMTP_PORT || "587");
+    const port = parseInt(process.env.SMTP_PORT || "587", 10);
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
     const from = process.env.FROM_EMAIL || "noreply@fixmydoor.com";
@@ -64,8 +64,8 @@ class EmailService {
         </div>
 
         <p>Richard will contact you soon to confirm the appointment time. You can reach us at:</p>
-        <p>📞 +1 (483) 834-7182</p>
-        <p>📧 info.fixmydoor@gmail.com</p>
+        <p><strong>Phone:</strong> +1 (483) 834-7182</p>
+        <p><strong>Email:</strong> info.fixmydoor@gmail.com</p>
 
         <p>Thank you for trusting FixMyDoor with your repair needs!</p>
         <p>Best regards,<br>Richard Ampofo<br>FixMyDoor Services</p>
@@ -111,7 +111,7 @@ class EmailService {
         </div>
 
         <p>Please log in to the admin dashboard to manage this booking.</p>
-        <p><a href="${process.env.ADMIN_URL || 'https://your-app-url.com/admin'}" style="background: #D97706; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View in Admin Dashboard</a></p>
+        <p><a href="${process.env.ADMIN_URL || "https://your-app-url.com/admin"}" style="background: #D97706; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View in Admin Dashboard</a></p>
       </div>
     `;
 

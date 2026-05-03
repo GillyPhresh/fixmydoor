@@ -21,6 +21,19 @@ const statusColors = {
   CANCELLED: "bg-red-100 text-red-800",
 };
 
+function formatPreferredDate(dateString?: string | null) {
+  if (!dateString) {
+    return "Not specified";
+  }
+
+  const [year, month, day] = dateString.split("-").map(Number);
+  if ([year, month, day].some(Number.isNaN)) {
+    return dateString;
+  }
+
+  return new Date(year, month - 1, day).toLocaleDateString();
+}
+
 export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
   const [loginData, setLoginData] = useState({ username: "", password: "" });
@@ -44,7 +57,6 @@ export default function Admin() {
   useEffect(() => {
     if (authenticated) {
       fetchStats();
-      fetchBookings();
     }
   }, [authenticated]);
 
@@ -70,6 +82,8 @@ export default function Admin() {
       setAuthenticated(response.data.authenticated);
     } catch (err) {
       setAuthenticated(false);
+      setBookings([]);
+      setStats(null);
     }
   };
 
@@ -92,6 +106,10 @@ export default function Admin() {
       await axios.post("/api/auth/logout");
       setAuthenticated(false);
       setBookings([]);
+      setStats(null);
+      setError(null);
+      setSelectedBooking(null);
+      setCurrentPage(1);
       toast.success("Logged out successfully");
     } catch (err) {
       toast.error("Failed to logout");
@@ -109,6 +127,7 @@ export default function Admin() {
 
   const fetchBookings = async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (debouncedSearch) params.append("search", debouncedSearch);
@@ -118,7 +137,8 @@ export default function Admin() {
 
       const response = await axios.get(`/api/bookings?${params.toString()}`);
       setBookings(response.data.bookings);
-      setTotalPages(response.data.pagination.pages);
+      setTotalPages(response.data.pagination.pages || 1);
+      setError(null);
     } catch (err) {
       setError("Failed to load bookings");
       console.error("Error fetching bookings:", err);
@@ -131,7 +151,12 @@ export default function Admin() {
     setStatusUpdateLoading(id);
     try {
       await axios.patch(`/api/bookings/${id}`, { status });
-      setBookings(bookings.map(b => b.id === id ? { ...b, status } : b));
+      setBookings((currentBookings) =>
+        currentBookings.map((booking) => (booking.id === id ? { ...booking, status } : booking)),
+      );
+      setSelectedBooking((currentBooking) =>
+        currentBooking?.id === id ? { ...currentBooking, status } : currentBooking,
+      );
       toast.success("Status updated successfully");
     } catch (err) {
       toast.error("Failed to update status");
@@ -143,7 +168,8 @@ export default function Admin() {
   const deleteBooking = async (id: string) => {
     try {
       await axios.delete(`/api/bookings/${id}`);
-      setBookings(bookings.filter(b => b.id !== id));
+      setSelectedBooking((currentBooking) => (currentBooking?.id === id ? null : currentBooking));
+      await Promise.all([fetchStats(), fetchBookings()]);
       toast.success("Booking deleted successfully");
     } catch (err) {
       toast.error("Failed to delete booking");
@@ -396,7 +422,7 @@ export default function Admin() {
                           {booking.preferredDate ? (
                             <div className="flex items-center gap-1">
                               <Calendar className="w-3 h-3 text-muted-foreground" />
-                              {new Date(booking.preferredDate).toLocaleDateString()}
+                              {formatPreferredDate(booking.preferredDate)}
                             </div>
                           ) : (
                             <span className="text-muted-foreground">No date</span>
@@ -444,9 +470,7 @@ export default function Admin() {
                                     <div>
                                       <Label>Preferred Date</Label>
                                       <p className="font-medium">
-                                        {selectedBooking.preferredDate
-                                          ? new Date(selectedBooking.preferredDate).toLocaleDateString()
-                                          : "Not specified"}
+                                        {formatPreferredDate(selectedBooking.preferredDate)}
                                       </p>
                                     </div>
                                     <div>
