@@ -2,35 +2,32 @@ import axios from "axios";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Wrench, Lock, Home as HomeIcon, Users, Phone, Mail, MapPin, CheckCircle2, Zap, DollarSign, MessageCircle, Instagram, Twitter, Facebook, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Facebook,
+  Globe2,
+  Home as HomeIcon,
+  Instagram,
+  Lock,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+  ShieldCheck,
+  Star,
+  Twitter,
+  Wrench,
+  Zap,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { BookingRequest } from "@shared/types";
-
-import logoPng from "./Images/FixMyDoor_Logo.PNG";
-import heroImage from "./Images/step-into-the-glow.jpg";
-import aboutImage from "./Images/entry-door-replacement.jpg";
-import gallery1 from "./Images/kicked-down-doors.jpg";
-import gallery2 from "./Images/severely-broken-wooden-door-after-forced-entry.jpg";
-import gallery3 from "./Images/white-internal-doors.jpg";
-import gallery4 from "./Images/one-stop-home-services.jpg";
-import gallery5 from "./Images/furniture-movers-packers-abu-dhabi.jpg";
-import gallery6 from "./Images/desk-monitor-plant-ai-generated.jpg";
-
-/**
- * FixMyDoor MVP Website - Enhanced Design
- * Design: Luxury Craft Experience
- * - Rich Brown (#6B4423) + Elegant Gold (#D4A574) + Warm Cream (#F5F1E8)
- * - Montserrat Modern for clean, upscale typography
- * - Premium imagery with elegant spacing
- * - Services blend with lifestyle imagery
- */
+import { customerReviews, heroImage, projectGallery, quickHighlights, serviceShowcase, technicianImage } from "./homeContent";
 
 const bookingSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -44,27 +41,7 @@ const bookingSchema = z.object({
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
-const serviceImages = [
-  { src: gallery1, alt: "Door Repair & Alignment", title: "Door Repair & Alignment", desc: "Fix stuck, squeaky, or misaligned doors with professional expertise" },
-  { src: gallery2, alt: "Lock & Hinge Fixing", title: "Lock & Hinge Fixing", desc: "Repair or replace broken locks, hinges, and handles with quality parts" },
-  { src: gallery3, alt: "Chair Repair", title: "Chair Repair", desc: "Restore your chairs to like-new condition with expert repairs" },
-  { src: gallery4, alt: "Table Repair", title: "Table Repair", desc: "Repair wobbly tables, damaged surfaces, and broken supports" },
-  { src: gallery5, alt: "General Furniture Repairs", title: "General Furniture Repairs", desc: "Fix drawers, cabinets, shelves, and all furniture issues" },
-  { src: gallery6, alt: "Emergency Service", title: "Emergency Service", desc: "Same-day or next-day emergency repair services available" },
-];
-
-const galleryImages = serviceImages;
-
-const beforeAfterImages = [
-  { before: gallery1, after: gallery2, title: "Door Frame Restoration", desc: "Complete door and frame inspection and repair" },
-  { before: gallery3, after: gallery4, title: "Interior Door Refinishing", desc: "Aesthetic and functional door repairs" },
-  { before: gallery5, after: gallery6, title: "Furniture Transformation", desc: "Professional furniture restoration and repair" },
-];
-
 export default function Home() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [serviceSlide, setServiceSlide] = useState(0);
-
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -99,725 +76,378 @@ export default function Home() {
     }
   };
 
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % beforeAfterImages.length);
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + beforeAfterImages.length) % beforeAfterImages.length);
-  const nextService = () => setServiceSlide((prev) => (prev + 1) % serviceImages.length);
-  const prevService = () => setServiceSlide((prev) => (prev - 1 + serviceImages.length) % serviceImages.length);
-
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white shadow-lg border-b-4 border-primary">
-        <div className="container flex items-center justify-between py-3">
-          <a href="/" className="flex items-center gap-2">
-            <img src={logoPng} alt="FixMyDoor logo" className="w-16 h-16 object-contain" />
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-primary font-bold">FixMyDoor</p>
-              <h1 className="text-xl font-bold text-secondary" style={{ fontFamily: 'Montserrat' }}>Door & Furniture Repair</h1>
+      <nav className="sticky top-0 z-50 border-b border-primary/15 bg-white/90 backdrop-blur">
+        <div className="container flex items-center justify-between gap-4 py-3">
+          <div className="flex items-center gap-4 md:gap-5">
+            <a href="/" className="flex items-center justify-center rounded-2xl bg-background p-2 shadow-sm">
+              <img src="/logo.svg" alt="FixMyDoor mark" className="h-10 w-10 object-contain md:h-14 md:w-14" />
+            </a>
+            <div className="min-w-0">
+              <p className="font-display text-base font-bold leading-tight text-secondary sm:text-lg md:text-2xl">
+                FixMyDoor<span className="hidden md:inline"> | Door & Furniture Repairs</span>
+              </p>
+              <p className="hidden text-[0.68rem] uppercase tracking-[0.26em] text-secondary/65 sm:block md:text-[0.72rem]">Montreal-based, serving clients across Canada</p>
             </div>
-          </a>
-          <div className="hidden md:flex gap-8 text-sm font-semibold">
-            <a href="#services" className="hover:text-primary transition">Services</a>
-            <a href="#before-after" className="hover:text-primary transition">Gallery</a>
-            <a href="#about" className="hover:text-primary transition">About</a>
-            <a href="#testimonials" className="hover:text-primary transition">Reviews</a>
-            <a href="#contact" className="hover:text-primary transition">Contact</a>
           </div>
-          <a href="tel:+148383471823" className="bg-primary hover:bg-primary/90 text-white font-bold py-2 px-4 rounded-lg transition">
+          <div className="hidden gap-8 text-sm font-semibold md:flex">
+            <a href="#services" className="transition hover:text-primary">Services</a>
+            <a href="#before-after" className="transition hover:text-primary">Projects</a>
+            <a href="#about" className="transition hover:text-primary">About</a>
+            <a href="#testimonials" className="transition hover:text-primary">Reviews</a>
+            <a href="#contact" className="transition hover:text-primary">Contact</a>
+          </div>
+          <a href="tel:+148383471823" className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-white transition hover:bg-primary/90 md:px-5">
             Call Now
           </a>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-background to-white">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          {/* Left: Text Content */}
-          <div className="container py-16 md:py-32 order-2 md:order-1">
-            <div className="max-w-lg">
-              <h1 className="text-5xl md:text-7xl font-bold text-secondary mb-6" style={{ fontFamily: 'Montserrat' }}>
-                Expert Repairs,<br />Delivered to You
-              </h1>
-              <p className="text-xl text-foreground/80 mb-2 font-semibold">Premium Service in Montreal</p>
-              <p className="text-lg text-foreground/70 mb-8 leading-relaxed">
-                Professional door and furniture repair services with Richard Ampofo. Fast, affordable, and reliable solutions for your home.
-              </p>
-              
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-12">
-                <a href="tel:+148383471823" className="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-lg text-center transform transition hover:scale-105">
-                  <Phone className="inline mr-2 w-5 h-5" />
-                  Call Now
-                </a>
-                <a href="#contact" className="bg-secondary hover:bg-secondary/90 text-white font-bold py-3 px-6 rounded-lg text-center transform transition hover:scale-105">
-                  Book a Repair
-                </a>
-              </div>
-
-              {/* Trust Badges */}
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white p-4 rounded-lg shadow-md text-center">
-                  <Zap className="w-6 h-6 text-primary mx-auto mb-2" />
-                  <p className="text-sm font-bold text-secondary">Fast Service</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow-md text-center">
-                  <DollarSign className="w-6 h-6 text-primary mx-auto mb-2" />
-                  <p className="text-sm font-bold text-secondary">Affordable</p>
-                </div>
-                <div className="bg-white p-4 rounded-lg shadow-md text-center">
-                  <CheckCircle2 className="w-6 h-6 text-primary mx-auto mb-2" />
-                  <p className="text-sm font-bold text-secondary">Expert Work</p>
-                </div>
-              </div>
+      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(212,165,116,0.18),_transparent_38%),linear-gradient(to_bottom,_#f8f3ea,_#ffffff)]">
+        <div className="container grid items-center gap-10 py-12 md:grid-cols-[0.95fr_1.05fr] md:py-20">
+          <div className="max-w-xl">
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-secondary shadow-sm">
+              <Globe2 className="h-4 w-4 text-primary" />
+              Serving all of Canada
             </div>
-          </div>
-
-          {/* Right: Hero Image */}
-          <div className="order-1 md:order-2 h-96 md:h-full md:min-h-screen relative">
-            <img
-              src={heroImage}
-              alt="Professional door repair service"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-transparent opacity-40"></div>
-          </div>
-        </div>
-      </section>
-
-      {/* Services Section with Images */}
-      <section id="services" className="bg-gradient-to-b from-white to-background py-20">
-        <div className="container">
-          <div className="text-center mb-16">
-            <p className="text-sm uppercase tracking-[0.4em] text-primary font-bold mb-4">Our Expertise</p>
-            <h2 className="text-4xl md:text-5xl font-bold text-secondary mb-6" style={{ fontFamily: 'Montserrat' }}>
-              Complete Repair Solutions
-            </h2>
-            <p className="text-lg text-foreground/70 max-w-2xl mx-auto">
-              From door alignment to furniture restoration, we deliver exceptional craftsmanship for every project.
+            <h1 className="font-display text-4xl font-bold leading-tight text-secondary md:text-6xl">
+              Stronger Doors. Smoother Locks. Cleaner Repairs That Instantly Feel Better.
+            </h1>
+            <p className="mt-5 text-lg leading-relaxed text-foreground/75 md:text-xl">
+              FixMyDoor brings sharp, dependable repair work from Montreal to clients across Canada,
+              with secure lock service, better-fitting doors, and a finish that looks intentionally done.
             </p>
-          </div>
-
-          {/* Image Carousel for Services */}
-          <div className="relative mb-16">
-            <div className="relative h-96 md:h-96 rounded-2xl overflow-hidden shadow-2xl">
-              <img 
-                src={serviceImages[serviceSlide].src} 
-                alt={serviceImages[serviceSlide].alt}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-                <h3 className="text-2xl md:text-3xl font-bold mb-2" style={{ fontFamily: 'Montserrat' }}>
-                  {serviceImages[serviceSlide].title}
-                </h3>
-                <p className="text-white/90">{serviceImages[serviceSlide].desc}</p>
+            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+              <a href="#contact" className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary/90">
+                Book a Repair
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <a href="tel:+148383471823" className="inline-flex items-center justify-center gap-2 rounded-full bg-secondary px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-secondary/90">
+                <Phone className="h-4 w-4" />
+                Call +1 (483) 834-7182
+              </a>
+            </div>
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl bg-white p-4 shadow-lg shadow-primary/5">
+                <Zap className="mb-3 h-6 w-6 text-primary" />
+                <p className="font-bold text-secondary">Fast Scheduling</p>
+                <p className="mt-1 text-sm text-foreground/65">Quick replies, clear next steps, and practical timing.</p>
               </div>
-
-              {/* Navigation Buttons */}
-              <button
-                onClick={prevService}
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-primary/80 hover:bg-primary text-white p-3 rounded-full transition"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <button
-                onClick={nextService}
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-primary/80 hover:bg-primary text-white p-3 rounded-full transition"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-
-              {/* Slide Indicators */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                {serviceImages.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setServiceSlide(i)}
-                    className={`w-3 h-3 rounded-full transition ${
-                      i === serviceSlide ? 'bg-primary' : 'bg-white/50'
-                    }`}
-                  />
-                ))}
+              <div className="rounded-2xl bg-white p-4 shadow-lg shadow-primary/5">
+                <div className="mb-3 text-2xl font-black text-primary">C$</div>
+                <p className="font-bold text-secondary">Practical Pricing</p>
+                <p className="mt-1 text-sm text-foreground/65">Smart value for repair, replacement, and installation work.</p>
+              </div>
+              <div className="rounded-2xl bg-white p-4 shadow-lg shadow-primary/5">
+                <CheckCircle2 className="mb-3 h-6 w-6 text-primary" />
+                <p className="font-bold text-secondary">Neat Finish</p>
+                <p className="mt-1 text-sm text-foreground/65">Repairs that look cleaner, tighter, and fully resolved.</p>
               </div>
             </div>
-
-            {/* Service Grid Below */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-              {[
-                { icon: HomeIcon, title: "Door Repair", desc: "Professional alignment and repair" },
-                { icon: Lock, title: "Lock & Hinges", desc: "Quality part replacements" },
-                { icon: Users, title: "Furniture Repair", desc: "Complete restoration services" },
-              ].map((service, i) => (
-                <div key={i} className="bg-white p-6 rounded-xl shadow-lg hover:shadow-2xl transition border-l-4 border-primary">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                    <service.icon className="w-6 h-6 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-bold text-secondary mb-2">{service.title}</h3>
-                  <p className="text-foreground/70">{service.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Before & After Carousel */}
-      <section id="before-after" className="bg-white py-20">
-        <div className="container">
-          <div className="text-center mb-16">
-            <p className="text-sm uppercase tracking-[0.4em] text-primary font-bold mb-4">Our Work</p>
-            <h2 className="text-4xl md:text-5xl font-bold text-secondary mb-6" style={{ fontFamily: 'Montserrat' }}>
-              Repairs & Installations
-            </h2>
-            <p className="text-lg text-foreground/70 max-w-2xl mx-auto">
-              See how we transform damaged doors and furniture into fully restored pieces.
-            </p>
           </div>
 
           <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-              {/* Before Image */}
-              <div className="relative h-96 rounded-xl overflow-hidden shadow-xl">
-                <img 
-                  src={beforeAfterImages[currentSlide].before} 
-                  alt="Before"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-4 left-4 bg-primary text-white px-4 py-2 rounded-full font-bold text-sm">
-                  Before
-                </div>
+            <div className="absolute -left-5 top-8 h-32 w-32 rounded-full bg-primary/18 blur-3xl" />
+            <div className="absolute -right-6 bottom-10 h-40 w-40 rounded-full bg-secondary/15 blur-3xl" />
+            <div className="relative overflow-hidden rounded-[32px] border border-white/60 bg-white p-3 shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
+              <img src={heroImage} alt="Lock rekeying service at a front door" className="h-[360px] w-full rounded-[24px] object-cover object-center md:h-[560px]" />
+              <div className="absolute bottom-8 left-8 right-8 rounded-[24px] bg-white/88 p-5 shadow-lg backdrop-blur md:max-w-sm">
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
+                <h2 className="mt-2 text-2xl font-bold text-secondary">Front Door Rekeying & Security Care</h2>
+                <p className="mt-2 text-sm leading-relaxed text-foreground/70">
+                  Make your entry feel safer and more polished with smoother lock action, cleaner hardware, and better daily confidence.
+                </p>
               </div>
-
-              {/* After Image */}
-              <div className="relative h-96 rounded-xl overflow-hidden shadow-xl">
-                <img 
-                  src={beforeAfterImages[currentSlide].after} 
-                  alt="After"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-4 left-4 bg-primary text-white px-4 py-2 rounded-full font-bold text-sm">
-                  After
-                </div>
-              </div>
-            </div>
-
-            {/* Navigation */}
-            <div className="flex items-center justify-between mt-8">
-              <button
-                onClick={prevSlide}
-                className="bg-secondary hover:bg-secondary/90 text-white p-3 rounded-full transition transform hover:scale-110"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-
-              <div className="text-center">
-                <h3 className="text-2xl font-bold text-secondary mb-2" style={{ fontFamily: 'Montserrat' }}>
-                  {beforeAfterImages[currentSlide].title}
-                </h3>
-                <p className="text-foreground/70">{beforeAfterImages[currentSlide].desc}</p>
-                <div className="flex gap-2 justify-center mt-4">
-                  {beforeAfterImages.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentSlide(i)}
-                      className={`w-3 h-3 rounded-full transition ${
-                        i === currentSlide ? 'bg-secondary' : 'bg-gray-400'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <button
-                onClick={nextSlide}
-                className="bg-secondary hover:bg-secondary/90 text-white p-3 rounded-full transition transform hover:scale-110"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* About Section */}
-      <section id="about" className="bg-gradient-to-b from-background to-white py-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          {/* Image */}
-          <div className="h-96 md:h-96 md:min-h-96 order-2 md:order-1">
-            <img
-              src={aboutImage}
-              alt="Richard Ampofo, FixMyDoor Technician"
-              className="w-full h-full object-cover rounded-2xl shadow-2xl"
-            />
-          </div>
-
-          {/* Content */}
-          <div className="container py-8 md:py-0 order-1 md:order-2">
-            <p className="text-sm uppercase tracking-[0.4em] text-primary font-bold mb-4">Meet the Expert</p>
-            <h2 className="text-4xl md:text-5xl font-bold text-secondary mb-6" style={{ fontFamily: 'Montserrat' }}>
-              Richard Ampofo
-            </h2>
-            <p className="text-lg text-foreground/70 mb-6 leading-relaxed">
-              Richard is a skilled technician with years of hands-on experience in door and furniture repair. Based in Montreal, Quebec, he's committed to delivering professional, high-quality workmanship on every job.
-            </p>
-            <p className="text-lg text-foreground/70 mb-6 leading-relaxed">
-              Whether it's a stuck door, broken hinge, wobbly chair, or damaged table, Richard brings expertise, precision, and a commitment to customer satisfaction to every repair.
-            </p>
-            <p className="text-lg text-foreground/70 mb-8 leading-relaxed">
-              FixMyDoor is built on the principle that quality repairs should be accessible, affordable, and convenient. We come to you so you don't have to worry about transporting your furniture or dealing with complex repairs yourself.
-            </p>
-            <div className="flex gap-4">
-              <a href="tel:+148383471823" className="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-lg transform transition hover:scale-105">
-                Schedule Now
-              </a>
-              <a href="mailto:info.fixmydoor@gmail.com" className="bg-secondary hover:bg-secondary/90 text-white font-bold py-3 px-6 rounded-lg transform transition hover:scale-105">
-                Send Email
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" className="bg-white py-20">
+      <section id="services" className="bg-white py-20">
         <div className="container">
-          <div className="text-center mb-16">
-            <p className="text-sm uppercase tracking-[0.4em] text-primary font-bold mb-4">Client Reviews</p>
-            <h2 className="text-4xl md:text-5xl font-bold text-secondary mb-6" style={{ fontFamily: 'Montserrat' }}>
-              What Our Customers Say
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Testimonial 1 */}
-            <div className="bg-gradient-to-br from-background to-white p-8 rounded-xl shadow-lg border-l-4 border-primary">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-primary text-2xl">★</span>
-                ))}
-              </div>
-              <p className="text-foreground/80 mb-6 leading-relaxed italic">
-                "Richard fixed my stuck front door in less than an hour. Professional, friendly, and fair pricing. Highly recommend!"
-              </p>
-              <p className="font-bold text-secondary">Sarah M.</p>
-              <p className="text-sm text-foreground/60">Montreal, QC</p>
-            </div>
-
-            {/* Testimonial 2 */}
-            <div className="bg-gradient-to-br from-background to-white p-8 rounded-xl shadow-lg border-l-4 border-primary">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-primary text-2xl">★</span>
-                ))}
-              </div>
-              <p className="text-foreground/80 mb-6 leading-relaxed italic">
-                "My dining chairs were falling apart. Richard repaired all four beautifully. They look brand new!"
-              </p>
-              <p className="font-bold text-secondary">James T.</p>
-              <p className="text-sm text-foreground/60">Montreal, QC</p>
-            </div>
-
-            {/* Testimonial 3 */}
-            <div className="bg-gradient-to-br from-background to-white p-8 rounded-xl shadow-lg border-l-4 border-primary">
-              <div className="flex gap-1 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-primary text-2xl">★</span>
-                ))}
-              </div>
-              <p className="text-foreground/80 mb-6 leading-relaxed italic">
-                "Quick response, professional service, and reasonable rates. Richard is exactly what I needed for my home repairs."
-              </p>
-              <p className="font-bold text-secondary">Lisa R.</p>
-              <p className="text-sm text-foreground/60">Montreal, QC</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Work Gallery Section */}
-      <section id="work" className="section-divider bg-slate-50">
-        <div className="container">
-          <div className="text-center mb-12">
-            <p className="text-sm uppercase tracking-[0.4em] text-primary font-semibold mb-4">Our Work</p>
-            <h2 className="text-4xl md:text-5xl font-display font-bold text-secondary">
-              Recent Repairs & Installations
-            </h2>
-            <p className="text-lg text-foreground/70 max-w-2xl mx-auto mt-4">
-              A selection of door, lock, and furniture repair projects completed for homes and businesses.
+          <div className="mb-14 text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Our Expertise</p>
+            <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Complete Repair Solutions</h2>
+            <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-foreground/70">
+              A smarter, more focused mix of door and lock projects arranged to match the service story clearly and keep the interface lean.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-            {galleryImages.map((image) => (
-              <div key={image.src} className="gallery-card">
-                <img src={image.src} alt={image.alt} className="gallery-image" />
-                <div className="p-4 bg-white">
-                  <p className="text-sm text-secondary font-semibold">{image.alt}</p>
+          <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+            <article className="relative overflow-hidden rounded-[32px] bg-secondary text-white shadow-[0_22px_60px_rgba(66,40,18,0.2)]">
+              <img src={serviceShowcase[0].src} alt={serviceShowcase[0].title} className="h-[520px] w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/25 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-8">
+                <span className="inline-flex rounded-full bg-white/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90">{serviceShowcase[0].tag}</span>
+                <h3 className="mt-4 font-display text-3xl font-bold">{serviceShowcase[0].title}</h3>
+                <p className="mt-3 max-w-xl text-white/85">{serviceShowcase[0].desc}</p>
+              </div>
+            </article>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              {serviceShowcase.slice(1).map((service) => (
+                <article key={service.title} className="overflow-hidden rounded-[28px] border border-primary/12 bg-background shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1">
+                  <img src={service.src} alt={service.title} className="h-52 w-full object-cover" />
+                  <div className="p-5">
+                    <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{service.tag}</span>
+                    <h3 className="mt-3 text-xl font-bold text-secondary">{service.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-foreground/70">{service.desc}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            {[
+              { icon: HomeIcon, title: "Door Repairs", desc: "Swing correction, frame repair, sealing, and hardware fixes that make doors feel right again." },
+              { icon: Lock, title: "Lock & Hinge Care", desc: "Rekeying, handle replacement, hinge adjustments, and tighter day-to-day security." },
+              { icon: Wrench, title: "Furniture Repairs", desc: "Available by booking for practical restoration that improves both use and appearance." },
+            ].map((service) => (
+              <div key={service.title} className="rounded-[24px] bg-white p-6 shadow-lg shadow-primary/5">
+                <div className="mb-4 inline-flex rounded-2xl bg-primary/10 p-3">
+                  <service.icon className="h-6 w-6 text-primary" />
                 </div>
+                <h3 className="text-xl font-bold text-secondary">{service.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-foreground/70">{service.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section id="how-it-works" className="section-divider">
+      <section id="before-after" className="bg-gradient-to-b from-background to-white py-20">
         <div className="container">
-          <h2 className="text-4xl md:text-5xl font-display font-bold text-secondary text-center mb-16">
-            How It Works
-          </h2>
+          <div className="mb-14 text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Our Work</p>
+            <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Recent Repairs & Installations</h2>
+            <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-foreground/70">
+              Each image now follows the right description, so the gallery reads like real project work instead of a mixed image board.
+            </p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-            {/* Step 1 */}
-            <div className="text-center">
-              <div className="w-20 h-20 bg-primary text-white rounded-full flex items-center justify-center text-4xl font-bold mx-auto mb-6">
-                1
-              </div>
-              <h3 className="text-2xl font-semibold text-secondary mb-3">Contact Us</h3>
-              <p className="text-foreground/70 leading-relaxed">
-                Call us at <a href="tel:+148383471823" className="font-semibold text-primary hover:underline">+1 (483) 834-7182</a> or fill out our booking form with details about your repair.
-              </p>
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {projectGallery.map((project) => (
+              <article key={project.title} className="overflow-hidden rounded-[30px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1">
+                <img src={project.src} alt={project.title} className="h-[300px] w-full object-cover" />
+                <div className="p-6">
+                  <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{project.category}</span>
+                  <h3 className="mt-3 text-2xl font-bold text-secondary">{project.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-foreground/70">{project.desc}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="about" className="bg-white py-20">
+        <div className="container grid items-stretch gap-10 md:grid-cols-[0.88fr_1.12fr]">
+          <div className="relative order-2 md:order-1">
+            <div className="absolute -left-4 top-8 h-28 w-28 rounded-full bg-primary/18 blur-3xl" />
+            <div className="relative flex h-full min-h-[620px] items-center justify-center overflow-hidden rounded-[32px] bg-[linear-gradient(180deg,_rgba(245,241,232,0.95),_rgba(255,255,255,0.75))] p-4 shadow-[0_24px_70px_rgba(66,40,18,0.16)]">
+              <img src={technicianImage} alt="Richard Ampofo working on a door repair" className="h-full w-full object-contain object-center" />
             </div>
-
-            {/* Step 2 */}
-            <div className="text-center">
-              <div className="w-20 h-20 bg-secondary text-white rounded-full flex items-center justify-center text-4xl font-bold mx-auto mb-6">
-                2
-              </div>
-              <h3 className="text-2xl font-semibold text-secondary mb-3">Schedule Visit</h3>
-              <p className="text-foreground/70 leading-relaxed">
-                We'll confirm your appointment and schedule a time that works best for you. We serve Montreal and surrounding areas.
-              </p>
+          </div>
+          <div className="order-1 md:order-2">
+            <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Meet the Expert</p>
+            <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Richard Ampofo</h2>
+            <p className="mt-5 text-lg leading-relaxed text-foreground/75">Richard is the hands behind FixMyDoor: a skilled technician trusted for clean repairs, reliable lock work, and practical solutions that immediately improve how a door feels and functions.</p>
+            <p className="mt-4 text-lg leading-relaxed text-foreground/75">Based in Montreal and supporting clients across Canada, he approaches each repair with a simple goal: leave the space safer, smoother, and noticeably better than he found it.</p>
+            <p className="mt-4 text-lg leading-relaxed text-foreground/75">From damaged frames to misaligned doors and tired hardware, the work is handled with care, clear communication, and a finish that feels properly done.</p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              {[
+                { icon: Globe2, title: quickHighlights[0].title, text: quickHighlights[0].text },
+                { icon: ShieldCheck, title: quickHighlights[1].title, text: quickHighlights[1].text },
+                { icon: Zap, title: quickHighlights[2].title, text: quickHighlights[2].text },
+              ].map((highlight) => (
+                <div key={highlight.title} className="rounded-[24px] bg-background p-5 shadow-sm">
+                  <highlight.icon className="h-6 w-6 text-primary" />
+                  <h3 className="mt-3 font-bold text-secondary">{highlight.title}</h3>
+                  <p className="mt-2 text-sm text-foreground/68">{highlight.text}</p>
+                </div>
+              ))}
             </div>
-
-            {/* Step 3 */}
-            <div className="text-center">
-              <div className="w-20 h-20 bg-primary text-white rounded-full flex items-center justify-center text-4xl font-bold mx-auto mb-6">
-                3
-              </div>
-              <h3 className="text-2xl font-semibold text-secondary mb-3">We Fix It</h3>
-              <p className="text-foreground/70 leading-relaxed">
-                Richard arrives with all necessary tools and parts. We complete the repair at your home with minimal disruption.
-              </p>
+            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+              <a href="tel:+148383471823" className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-bold text-white transition hover:bg-primary/90">Schedule Now</a>
+              <a href="mailto:info.fixmydoor@gmail.com" className="inline-flex items-center justify-center rounded-full bg-secondary px-6 py-3 font-bold text-white transition hover:bg-secondary/90">Send Email</a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Contact & Booking Section */}
-      <section id="contact" className="section-divider bg-white">
+      <section id="testimonials" className="bg-gradient-to-b from-background to-white py-20">
         <div className="container">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            {/* Contact Info */}
-            <div>
-              <h2 className="text-4xl md:text-5xl font-display font-bold text-secondary mb-8">
-                Get in Touch
-              </h2>
-
-              <div className="space-y-6">
-                {/* Phone */}
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Phone className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-secondary mb-1">Phone</p>
-                    <a href="tel:+148383471823" className="text-lg text-primary hover:underline">
-                      +1 (483) 834-7182
-                    </a>
-                  </div>
+          <div className="mb-14 text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Client Reviews</p>
+            <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">What Our Customers Say</h2>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {customerReviews.map((review) => (
+              <article key={review.name} className="rounded-[28px] border border-primary/10 bg-white p-8 shadow-[0_16px_44px_rgba(0,0,0,0.06)]">
+                <div className="mb-4 flex gap-1">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star key={index} className="h-5 w-5 fill-primary text-primary" />
+                  ))}
                 </div>
+                <p className="text-base italic leading-relaxed text-foreground/80">"{review.quote}"</p>
+                <p className="mt-6 font-bold text-secondary">{review.name}</p>
+                <p className="text-sm text-foreground/60">{review.location}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
 
-                {/* WhatsApp */}
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MessageCircle className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-secondary mb-1">WhatsApp</p>
-                    <a href="https://wa.me/233242011305" className="text-lg text-primary hover:underline">
-                      +233 24 201 1305
-                    </a>
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Mail className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-secondary mb-2">Email</p>
-                    <div className="space-y-1">
-                      <div>
-                        <span className="text-sm text-foreground/60">Business:</span>
-                        <a href="mailto:info.fixmydoor@gmail.com" className="text-lg text-primary hover:underline ml-1">
-                          info.fixmydoor@gmail.com
-                        </a>
-                      </div>
-                      <div>
-                        <span className="text-sm text-foreground/60">Personal:</span>
-                        <a href="mailto:ampofor55@gmail.com" className="text-lg text-primary hover:underline ml-1">
-                          ampofor55@gmail.com
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Social Media */}
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Instagram className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-secondary mb-1">Follow Us</p>
-                    <div className="flex gap-4">
-                      <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="text-primary hover:text-primary/80 transition" aria-label="Instagram">
-                        <Instagram className="w-5 h-5" />
-                      </a>
-                      <a href="https://x.com/fixmydoor?s=11" className="text-primary hover:text-primary/80 transition" aria-label="X (Twitter)">
-                        <Twitter className="w-5 h-5" />
-                      </a>
-                      <a href="#" className="text-primary hover:text-primary/80 transition opacity-50" aria-label="Facebook (Coming Soon)">
-                        <Facebook className="w-5 h-5" />
-                      </a>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Address */}
-                <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-secondary mb-1">Service Area</p>
-                    <p className="text-foreground/70">
-                      10158 Rue Berri<br />
-                      Montreal, Quebec H3L 2G6<br />
-                      Canada
-                    </p>
-                  </div>
-                </div>
-              </div>
+      <section id="how-it-works" className="section-divider bg-white">
+        <div className="container">
+          <h2 className="text-center font-display text-4xl font-bold text-secondary md:text-5xl">How It Works</h2>
+          <div className="mt-16 grid gap-8 md:grid-cols-3 md:gap-12">
+            <div className="text-center">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-4xl font-bold text-white">1</div>
+              <h3 className="text-2xl font-semibold text-secondary">Contact Us</h3>
+              <p className="mt-3 leading-relaxed text-foreground/70">Call <a href="tel:+148383471823" className="font-semibold text-primary hover:underline">+1 (483) 834-7182</a> or send your repair details through the booking form.</p>
             </div>
-
-            {/* Booking Form */}
-            <div className="bg-background rounded-lg p-8 border border-border">
-              <h3 className="text-2xl font-semibold text-secondary mb-6">Book a Repair</h3>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                  {/* Name */}
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground font-semibold">Name *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Your full name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Phone */}
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground font-semibold">Phone *</FormLabel>
-                        <FormControl>
-                          <Input type="tel" placeholder="+1 (438) 000-0000" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Email */}
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground font-semibold">Email *</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="your.email@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Address */}
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground font-semibold">Address *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Your full address in Montreal" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Service Type */}
-                  <FormField
-                    control={form.control}
-                    name="repairType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground font-semibold">Service Type *</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a service" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="door-repair">Door Repair</SelectItem>
-                            <SelectItem value="door-alignment">Door Alignment</SelectItem>
-                            <SelectItem value="furniture-repair">Furniture Repair</SelectItem>
-                            <SelectItem value="chair-repair">Chair Repair</SelectItem>
-                            <SelectItem value="table-repair">Table Repair</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Preferred Date */}
-                  <FormField
-                    control={form.control}
-                    name="preferredDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground font-semibold">Preferred Date</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Message */}
-                  <FormField
-                    control={form.control}
-                    name="message"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-foreground font-semibold">Message</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Describe your repair needs in detail..."
-                            className="min-h-24"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Submit Button */}
-                  <Button type="submit" className="btn-primary w-full" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? "Submitting..." : "Submit Booking Request"}
-                  </Button>
-                </form>
-              </Form>
+            <div className="text-center">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-secondary text-4xl font-bold text-white">2</div>
+              <h3 className="text-2xl font-semibold text-secondary">Confirm the Plan</h3>
+              <p className="mt-3 leading-relaxed text-foreground/70">We review the issue, confirm the scope, and guide you to the best next step for your location.</p>
+            </div>
+            <div className="text-center">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-4xl font-bold text-white">3</div>
+              <h3 className="text-2xl font-semibold text-secondary">We Fix It</h3>
+              <p className="mt-3 leading-relaxed text-foreground/70">Richard delivers secure, careful workmanship focused on function, finish, and long-term ease of use.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Sticky Mobile CTA */}
-      <div className="fixed bottom-4 left-4 right-4 md:hidden z-40 flex gap-2">
-        <a href="tel:+148383471823" className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold py-2 px-3 rounded-lg text-center text-sm">
-          Call
-        </a>
-        <a href="#contact" className="flex-1 bg-secondary hover:bg-secondary/90 text-white font-bold py-2 px-3 rounded-lg text-center text-sm">
-          Book
-        </a>
+      <section id="contact" className="section-divider bg-background">
+        <div className="container grid gap-12 md:grid-cols-2">
+          <div>
+            <h2 className="font-display text-4xl font-bold text-secondary md:text-5xl">Get in Touch</h2>
+            <div className="mt-8 space-y-6">
+              <div className="flex gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Phone className="h-6 w-6 text-primary" /></div>
+                <div><p className="font-semibold text-secondary">Phone</p><a href="tel:+148383471823" className="text-lg text-primary hover:underline">+1 (483) 834-7182</a></div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><MessageCircle className="h-6 w-6 text-primary" /></div>
+                <div><p className="font-semibold text-secondary">WhatsApp</p><a href="https://wa.me/233242011305" className="text-lg text-primary hover:underline">+233 24 201 1305</a></div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Mail className="h-6 w-6 text-primary" /></div>
+                <div>
+                  <p className="font-semibold text-secondary">Email</p>
+                  <div className="mt-1 space-y-1">
+                    <div><span className="text-sm text-foreground/60">Business:</span><a href="mailto:info.fixmydoor@gmail.com" className="ml-1 text-lg text-primary hover:underline">info.fixmydoor@gmail.com</a></div>
+                    <div><span className="text-sm text-foreground/60">Personal:</span><a href="mailto:ampofor55@gmail.com" className="ml-1 text-lg text-primary hover:underline">ampofor55@gmail.com</a></div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Instagram className="h-6 w-6 text-primary" /></div>
+                <div>
+                  <p className="font-semibold text-secondary">Follow Us</p>
+                  <div className="mt-2 flex gap-4">
+                    <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="text-primary transition hover:text-primary/80" aria-label="Instagram"><Instagram className="h-5 w-5" /></a>
+                    <a href="https://x.com/fixmydoor?s=11" className="text-primary transition hover:text-primary/80" aria-label="X (Twitter)"><Twitter className="h-5 w-5" /></a>
+                    <a href="#" className="text-primary/50 transition hover:text-primary/80" aria-label="Facebook"><Facebook className="h-5 w-5" /></a>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><MapPin className="h-6 w-6 text-primary" /></div>
+                <div>
+                  <p className="font-semibold text-secondary">Head Office</p>
+                  <p className="mt-1 text-foreground/70">10158 Rue Berri<br />Montreal, Quebec H3L 2G6<br />Canada</p>
+                  <p className="mt-3 text-sm font-semibold uppercase tracking-[0.24em] text-primary">Serving clients across Canada</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-primary/12 bg-white p-8 shadow-[0_18px_50px_rgba(0,0,0,0.06)]">
+            <h3 className="text-2xl font-semibold text-secondary">Book a Repair</h3>
+            <p className="mt-2 text-sm leading-relaxed text-foreground/68">Tell us what needs attention and we will follow up with a clear, practical next step.</p>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 space-y-5">
+                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Name *</FormLabel><FormControl><Input placeholder="Your full name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Phone *</FormLabel><FormControl><Input type="tel" placeholder="+1 (438) 000-0000" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Email *</FormLabel><FormControl><Input type="email" placeholder="your.email@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Address *</FormLabel><FormControl><Input placeholder="Your full address anywhere in Canada" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="repairType" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold text-foreground">Service Type *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select a service" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="door-repair">Door Repair</SelectItem>
+                        <SelectItem value="door-alignment">Door Alignment</SelectItem>
+                        <SelectItem value="lock-rekeying">Lock Rekeying</SelectItem>
+                        <SelectItem value="entry-door-installation">Entry Door Installation</SelectItem>
+                        <SelectItem value="furniture-repair">Furniture Repair</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="preferredDate" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Preferred Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="message" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Message</FormLabel><FormControl><Textarea placeholder="Describe your repair needs in detail..." className="min-h-24" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <Button type="submit" className="btn-primary w-full" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Submitting..." : "Submit Booking Request"}</Button>
+              </form>
+            </Form>
+          </div>
+        </div>
+      </section>
+
+      <div className="fixed bottom-4 left-4 right-4 z-40 flex gap-2 md:hidden">
+        <a href="tel:+148383471823" className="flex-1 rounded-lg bg-primary px-3 py-2 text-center text-sm font-bold text-white">Call</a>
+        <a href="#contact" className="flex-1 rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-white">Book</a>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-secondary text-white py-16">
+      <footer className="bg-secondary py-16 text-white">
         <div className="container">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            {/* Brand */}
+          <div className="mb-12 grid gap-12 md:grid-cols-4">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Wrench className="w-7 h-7" />
-                <h3 className="text-2xl font-bold" style={{ fontFamily: 'Montserrat' }}>FixMyDoor</h3>
-              </div>
-              <p className="text-white/90 leading-relaxed">Professional door and furniture repair services in Montreal, delivered with expertise and care.</p>
+              <img src="/fixmydoor-logo-transparent.png" alt="FixMyDoor logo" className="h-24 w-auto object-contain" />
+              <p className="mt-4 max-w-xs leading-relaxed text-white/85">Professional door and furniture repair services based in Montreal and serving clients across Canada.</p>
             </div>
-
-            {/* Quick Links */}
             <div>
-              <h4 className="font-bold mb-4" style={{ fontFamily: 'Montserrat' }}>Quick Links</h4>
+              <h4 className="mb-4 font-bold" style={{ fontFamily: "Montserrat" }}>Quick Links</h4>
               <ul className="space-y-3 text-white/80">
-                <li><a href="#services" className="hover:text-primary transition">Services</a></li>
-                <li><a href="#before-after" className="hover:text-primary transition">Gallery</a></li>
-                <li><a href="#about" className="hover:text-primary transition">About</a></li>
-                <li><a href="#contact" className="hover:text-primary transition">Contact</a></li>
+                <li><a href="#services" className="transition hover:text-primary">Services</a></li>
+                <li><a href="#before-after" className="transition hover:text-primary">Projects</a></li>
+                <li><a href="#about" className="transition hover:text-primary">About</a></li>
+                <li><a href="#contact" className="transition hover:text-primary">Contact</a></li>
               </ul>
             </div>
-
-            {/* Services */}
             <div>
-              <h4 className="font-bold mb-4" style={{ fontFamily: 'Montserrat' }}>Our Services</h4>
+              <h4 className="mb-4 font-bold" style={{ fontFamily: "Montserrat" }}>Our Services</h4>
               <ul className="space-y-3 text-white/80">
-                <li className="hover:text-primary transition">Door Repair</li>
-                <li className="hover:text-primary transition">Lock & Hinge Fixing</li>
-                <li className="hover:text-primary transition">Chair Repair</li>
-                <li className="hover:text-primary transition">Furniture Repairs</li>
+                <li className="transition hover:text-primary">Door Repair</li>
+                <li className="transition hover:text-primary">Lock Rekeying</li>
+                <li className="transition hover:text-primary">Entry Door Installation</li>
+                <li className="transition hover:text-primary">Furniture Repairs</li>
               </ul>
             </div>
-
-            {/* Contact */}
             <div>
-              <h4 className="font-bold mb-4" style={{ fontFamily: 'Montserrat' }}>Get in Touch</h4>
+              <h4 className="mb-4 font-bold" style={{ fontFamily: "Montserrat" }}>Get in Touch</h4>
               <ul className="space-y-3 text-white/80">
-                <li>
-                  <a href="tel:+148383471823" className="hover:text-primary transition font-semibold">
-                    +1 (483) 834-7182
-                  </a>
-                </li>
-                <li>
-                  <a href="https://wa.me/233242011305" className="hover:text-primary transition text-sm">
-                    WhatsApp: +233 24 201 1305
-                  </a>
-                </li>
-                <li className="text-sm">Montreal, QC</li>
+                <li><a href="tel:+148383471823" className="font-semibold transition hover:text-primary">+1 (483) 834-7182</a></li>
+                <li><a href="https://wa.me/233242011305" className="text-sm transition hover:text-primary">WhatsApp: +233 24 201 1305</a></li>
+                <li className="text-sm">Montreal HQ, serving all of Canada</li>
               </ul>
-              <div className="flex gap-3 mt-4">
-                <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="text-white/80 hover:text-primary transition" aria-label="Instagram">
-                  <Instagram className="w-6 h-6" />
-                </a>
-                <a href="https://x.com/fixmydoor?s=11" className="text-white/80 hover:text-primary transition" aria-label="X (Twitter)">
-                  <Twitter className="w-6 h-6" />
-                </a>
-                <a href="#" className="text-white/80 hover:text-primary transition opacity-50" aria-label="Facebook">
-                  <Facebook className="w-6 h-6" />
-                </a>
+              <div className="mt-4 flex gap-3">
+                <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="text-white/80 transition hover:text-primary" aria-label="Instagram"><Instagram className="h-6 w-6" /></a>
+                <a href="https://x.com/fixmydoor?s=11" className="text-white/80 transition hover:text-primary" aria-label="X (Twitter)"><Twitter className="h-6 w-6" /></a>
+                <a href="#" className="text-white/50 transition hover:text-primary" aria-label="Facebook"><Facebook className="h-6 w-6" /></a>
               </div>
             </div>
           </div>
-
           <div className="border-t border-primary/30 pt-8">
-            <p className="text-center text-white/80 font-medium">
-              &copy; 2026 FixMyDoor. Professional Repair Services in Montreal | All rights reserved.
-            </p>
+            <p className="text-center font-medium text-white/80">&copy; 2026 FixMyDoor. Door & Furniture Repair Services across Canada.</p>
           </div>
         </div>
       </footer>
