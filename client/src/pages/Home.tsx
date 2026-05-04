@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { BookingRequest } from "@shared/types";
-import { customerReviews, heroImage, projectGallery, quickHighlights, serviceShowcase, technicianImage } from "./homeContent";
+import { customerReviews, featuredService, featuredServiceCollage, heroImage, projectGallery, quickHighlights, serviceShowcase, technicianImage } from "./homeContent";
 
 const bookingSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -78,19 +78,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="sticky top-0 z-50 border-b border-primary/15 bg-white/90 backdrop-blur">
+      <nav className="sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/95 backdrop-blur">
         <div className="container flex items-center justify-between gap-4 py-3">
-          <div className="flex items-center gap-4 md:gap-5">
-            <a href="/" className="flex items-center justify-center rounded-2xl bg-background p-2 shadow-sm">
-              <img src="/logo.svg" alt="FixMyDoor mark" className="h-10 w-10 object-contain md:h-14 md:w-14" />
-            </a>
-            <div className="min-w-0">
-              <p className="font-display text-base font-bold leading-tight text-secondary sm:text-lg md:text-2xl">
-                FixMyDoor<span className="hidden md:inline"> | Door & Furniture Repairs</span>
-              </p>
-              <p className="hidden text-[0.68rem] uppercase tracking-[0.26em] text-secondary/65 sm:block md:text-[0.72rem]">Montreal-based, serving clients across Canada</p>
-            </div>
-          </div>
+          <a href="/" className="flex items-center">
+            <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-14 w-auto object-contain sm:h-16 md:h-20" />
+          </a>
           <div className="hidden gap-8 text-sm font-semibold md:flex">
             <a href="#services" className="transition hover:text-primary">Services</a>
             <a href="#before-after" className="transition hover:text-primary">Projects</a>
@@ -112,11 +104,11 @@ export default function Home() {
               Serving all of Canada
             </div>
             <h1 className="font-display text-4xl font-bold leading-tight text-secondary md:text-6xl">
-              Stronger Doors. Smoother Locks. Cleaner Repairs That Instantly Feel Better.
+              Beautiful Doors. Safer Locks. Cleaner Repairs That Make Your Space Feel Right Again.
             </h1>
             <p className="mt-5 text-lg leading-relaxed text-foreground/75 md:text-xl">
               FixMyDoor brings sharp, dependable repair work from Montreal to clients across Canada,
-              with secure lock service, better-fitting doors, and a finish that looks intentionally done.
+              with secure lock service, better-fitting doors, furniture care, and a finish that looks intentionally done.
             </p>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
               <a href="#contact" className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary/90">
@@ -170,25 +162,52 @@ export default function Home() {
             <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Our Expertise</p>
             <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Complete Repair Solutions</h2>
             <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-foreground/70">
-              A smarter, more focused mix of door and lock projects arranged to match the service story clearly and keep the interface lean.
+              A cleaner mix of door, lock, and furniture work arranged so each image supports the right service and the layout stays polished.
             </p>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-            <article className="relative overflow-hidden rounded-[32px] bg-secondary text-white shadow-[0_22px_60px_rgba(66,40,18,0.2)]">
-              <img src={serviceShowcase[0].src} alt={serviceShowcase[0].title} className="h-[520px] w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/25 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-8">
-                <span className="inline-flex rounded-full bg-white/15 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90">{serviceShowcase[0].tag}</span>
-                <h3 className="mt-4 font-display text-3xl font-bold">{serviceShowcase[0].title}</h3>
-                <p className="mt-3 max-w-xl text-white/85">{serviceShowcase[0].desc}</p>
+            <article className="overflow-hidden rounded-[32px] bg-secondary p-8 text-white shadow-[0_22px_60px_rgba(66,40,18,0.2)]">
+              <div className="grid gap-8 xl:grid-cols-[0.88fr_1.12fr] xl:items-center">
+                <div className="max-w-lg">
+                  <span className="inline-flex rounded-full bg-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90">{featuredService.tag}</span>
+                  <h3 className="mt-4 font-display text-3xl font-bold leading-tight">{featuredService.title}</h3>
+                  <p className="mt-4 max-w-xl text-white/82">{featuredService.desc}</p>
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    {["Front entry rekeying", "Wood door care", "Sofa frame repair", "Furniture setup"].map((item) => (
+                      <span key={item} className="rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm font-semibold text-white/90">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {featuredServiceCollage.map((item) => (
+                    <figure key={item.title} className={`group relative overflow-hidden rounded-[24px] border border-white/10 bg-white/5 ${item.featured ? "sm:col-span-2" : ""}`}>
+                      <img
+                        src={item.src}
+                        alt={item.title}
+                        className={`w-full object-cover transition duration-500 group-hover:scale-[1.03] ${item.featured ? "h-48 md:h-52" : "h-40 md:h-44"}`}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-secondary/85 via-secondary/15 to-transparent" />
+                      <figcaption className="absolute inset-x-0 bottom-0 p-4">
+                        <span className="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-white/75">{item.tag}</span>
+                        <p className="mt-2 text-lg font-bold text-white">{item.title}</p>
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
               </div>
             </article>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              {serviceShowcase.slice(1).map((service) => (
-                <article key={service.title} className="overflow-hidden rounded-[28px] border border-primary/12 bg-background shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1">
-                  <img src={service.src} alt={service.title} className="h-52 w-full object-cover" />
+              {serviceShowcase.map((service) => (
+                <article key={service.title} className="overflow-hidden rounded-[28px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1">
+                  <img
+                    src={service.src}
+                    alt={service.title}
+                    className={`h-52 w-full ${service.contain ? "bg-white p-4 object-contain" : "object-cover"}`}
+                  />
                   <div className="p-5">
                     <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{service.tag}</span>
                     <h3 className="mt-3 text-xl font-bold text-secondary">{service.title}</h3>
@@ -243,11 +262,11 @@ export default function Home() {
       </section>
 
       <section id="about" className="bg-white py-20">
-        <div className="container grid items-stretch gap-10 md:grid-cols-[0.88fr_1.12fr]">
+        <div className="container grid gap-10 md:grid-cols-[0.78fr_1.22fr] md:items-center">
           <div className="relative order-2 md:order-1">
             <div className="absolute -left-4 top-8 h-28 w-28 rounded-full bg-primary/18 blur-3xl" />
-            <div className="relative flex h-full min-h-[620px] items-center justify-center overflow-hidden rounded-[32px] bg-[linear-gradient(180deg,_rgba(245,241,232,0.95),_rgba(255,255,255,0.75))] p-4 shadow-[0_24px_70px_rgba(66,40,18,0.16)]">
-              <img src={technicianImage} alt="Richard Ampofo working on a door repair" className="h-full w-full object-contain object-center" />
+            <div className="relative mx-auto flex h-full min-h-[520px] max-w-[440px] items-center justify-center overflow-hidden rounded-[36px] border border-white/70 bg-[linear-gradient(180deg,_rgba(245,241,232,0.96),_rgba(255,255,255,0.82))] p-5 shadow-[0_24px_70px_rgba(66,40,18,0.16)] md:min-h-[560px]">
+              <img src={technicianImage} alt="Richard Ampofo working on a door repair" className="h-full w-full max-h-[560px] object-contain object-center" />
             </div>
           </div>
           <div className="order-1 md:order-2">
@@ -353,7 +372,7 @@ export default function Home() {
                   <div className="mt-2 flex gap-4">
                     <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="text-primary transition hover:text-primary/80" aria-label="Instagram"><Instagram className="h-5 w-5" /></a>
                     <a href="https://x.com/fixmydoor?s=11" className="text-primary transition hover:text-primary/80" aria-label="X (Twitter)"><Twitter className="h-5 w-5" /></a>
-                    <a href="#" className="text-primary/50 transition hover:text-primary/80" aria-label="Facebook"><Facebook className="h-5 w-5" /></a>
+                    <a href="https://www.facebook.com/share/1Mc9zS8fXa/?mibextid=wwXIfr" className="text-primary transition hover:text-primary/80" aria-label="Facebook"><Facebook className="h-5 w-5" /></a>
                   </div>
                 </div>
               </div>
@@ -407,11 +426,11 @@ export default function Home() {
         <a href="#contact" className="flex-1 rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-white">Book</a>
       </div>
 
-      <footer className="bg-secondary py-16 text-white">
+      <footer className="bg-[#2f241c] py-16 text-white">
         <div className="container">
           <div className="mb-12 grid gap-12 md:grid-cols-4">
             <div>
-              <img src="/fixmydoor-logo-transparent.png" alt="FixMyDoor logo" className="h-24 w-auto object-contain" />
+              <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-24 w-auto max-w-full object-contain" />
               <p className="mt-4 max-w-xs leading-relaxed text-white/85">Professional door and furniture repair services based in Montreal and serving clients across Canada.</p>
             </div>
             <div>
@@ -442,7 +461,7 @@ export default function Home() {
               <div className="mt-4 flex gap-3">
                 <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="text-white/80 transition hover:text-primary" aria-label="Instagram"><Instagram className="h-6 w-6" /></a>
                 <a href="https://x.com/fixmydoor?s=11" className="text-white/80 transition hover:text-primary" aria-label="X (Twitter)"><Twitter className="h-6 w-6" /></a>
-                <a href="#" className="text-white/50 transition hover:text-primary" aria-label="Facebook"><Facebook className="h-6 w-6" /></a>
+                <a href="https://www.facebook.com/share/1Mc9zS8fXa/?mibextid=wwXIfr" className="text-white/80 transition hover:text-primary" aria-label="Facebook"><Facebook className="h-6 w-6" /></a>
               </div>
             </div>
           </div>

@@ -8,45 +8,72 @@ import solidWoodDoorImage from "./Images/front-door-envy.jpg";
 import modernDoorImage from "./Images/modern-interior-door-avon.jpg";
 import locksmithImage from "./Images/locksmith-updated-lock.jpg";
 import warmEntryImage from "./Images/warm-entry-glow.jpg";
+import officeDeskRepairImage from "./Images/office-desk-repair.jpg";
+import sofaFrameRepairImage from "./Images/sofa-frame-repair.jpg";
+import furnitureMovingTeamImage from "./Images/furniture-moving-team.jpg";
+import executiveDeskShowcaseImage from "./Images/desk-monitor-plant-ai-generated.jpg";
+import doorHardwareRefreshImage from "./Images/one-stop-home-services.jpg";
+import woodenDoorShowcaseImage from "./Images/wooden-door-showcase.jpg";
 
 export { heroImage, technicianImage };
+
+export const featuredService = {
+  tag: "Security Upgrade",
+  title: "Front Door Rekeying and Repair Highlights",
+  desc: "Restore peace of mind with a smarter lock setup, smoother turn, and a more secure front entry, while the surrounding visuals show the wider care FixMyDoor brings to doors and furniture.",
+};
+
+export const featuredServiceCollage = [
+  {
+    src: doorHardwareRefreshImage,
+    title: "Lock Hardware Refresh",
+    tag: "Entry Care",
+    featured: true,
+  },
+  {
+    src: woodenDoorShowcaseImage,
+    title: "Custom Wood Door Fit",
+    tag: "Door Craft",
+  },
+  {
+    src: sofaFrameRepairImage,
+    title: "Sofa Frame Repair",
+    tag: "Furniture Fix",
+  },
+  {
+    src: furnitureMovingTeamImage,
+    title: "Furniture Setup Support",
+    tag: "Home Support",
+    featured: true,
+  },
+];
 
 export const serviceShowcase = [
   {
     src: heroImage,
     title: "Front Door Rekeying",
-    desc: "Restore peace of mind with a smarter lock setup, smoother turn, and a more secure front entry.",
+    desc: "Restore peace of mind with a smoother turn, cleaner hardware, and a more secure front entry.",
     tag: "Security Upgrade",
-  },
-  {
-    src: locksmithImage,
-    title: "Lock & Cylinder Service",
-    desc: "From spare-key concerns to worn hardware, we tighten security without making the door feel heavy or rough.",
-    tag: "Lock Service",
   },
   {
     src: entryDoorImage,
     title: "Entry Door Replacement",
-    desc: "Refresh tired exterior doors with cleaner alignment, better sealing, and a stronger first impression.",
+    desc: "Refresh worn exterior doors with cleaner alignment, tighter sealing, and a stronger first impression.",
     tag: "Exterior Doors",
   },
   {
-    src: solidWoodDoorImage,
-    title: "Front Door Style Refresh",
-    desc: "Give premium wood doors the right balance of function, finish, and curb appeal.",
-    tag: "Premium Finish",
+    src: officeDeskRepairImage,
+    title: "Desk & Cabinet Repairs",
+    desc: "Tidy loose fittings, scratched surfaces, and tired storage units so workspaces feel sharp again.",
+    tag: "Workspace Care",
+    contain: true,
   },
   {
-    src: whiteDoorImage,
-    title: "Interior Door Alignment",
-    desc: "Fix rubbing, sagging, and noisy swing issues so interior doors feel light, quiet, and precise.",
-    tag: "Interior Doors",
-  },
-  {
-    src: forcedEntryImage,
-    title: "Forced-Entry Repairs",
-    desc: "Rebuild damaged frames, panels, and locking points after impact or break-in damage.",
-    tag: "Emergency Repairs",
+    src: executiveDeskShowcaseImage,
+    title: "Office Furniture Refresh",
+    desc: "Practical touch-ups that give desks and reception pieces a neater, more finished look.",
+    tag: "Commercial Touch-Up",
+    contain: true,
   },
 ];
 
