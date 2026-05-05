@@ -93,12 +93,12 @@ class EmailService {
           <p><strong>Status:</strong> ${booking.status}</p>
         </div>
 
-        <p>Richard will contact you soon to confirm the appointment time. You can reach us at:</p>
+        <p>Our Staff will contact you soon to confirm the appointment time. You can reach us at:</p>
         <p><strong>Phone:</strong> +1 (483) 834-7182</p>
         <p><strong>Email:</strong> <a href="mailto:${escapeHtml(businessEmail)}">${escapeHtml(businessEmail)}</a></p>
 
         <p>Thank you for trusting FixMyDoor with your repair needs!</p>
-        <p>Best regards,<br>Richard Ampofo<br>FixMyDoor Services</p>
+        <p>Best regards,<br>FixMyDoor Services</p>
       </div>
     `;
 

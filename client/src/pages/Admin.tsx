@@ -178,10 +178,18 @@ export default function Admin() {
 
   if (!authenticated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Admin Login</CardTitle>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#f7efe5] via-white to-[#f3dfc7] px-4">
+        <Card className="w-full max-w-md border-[#dec4a3] shadow-xl">
+          <CardHeader className="items-center text-center">
+            <img
+              src="/img5150-transparent.png"
+              alt="FixMyDoor logo"
+              className="mb-3 h-28 w-auto object-contain"
+            />
+            <CardTitle className="text-2xl font-display text-secondary">Admin Login</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              FixMyDoor booking dashboard
+            </p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
@@ -240,16 +248,26 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-display font-bold text-secondary mb-2">
-              Admin Dashboard
-            </h1>
-            <p className="text-foreground/70">
-              View and manage booking requests
-            </p>
+        <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-[#ead8bf] bg-white/85 p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4">
+            <img
+              src="/img5150-transparent.png"
+              alt="FixMyDoor logo"
+              className="h-20 w-auto object-contain"
+            />
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8a5a2d]">
+                FixMyDoor
+              </p>
+              <h1 className="text-3xl font-display font-bold text-secondary md:text-4xl">
+                Admin Dashboard
+              </h1>
+              <p className="text-foreground/70">
+                View and manage customer booking requests
+              </p>
+            </div>
           </div>
-          <Button onClick={handleLogout} variant="outline">
+          <Button onClick={handleLogout} variant="outline" className="self-start md:self-center">
             <LogOut className="w-4 h-4 mr-2" />
             Logout
           </Button>
