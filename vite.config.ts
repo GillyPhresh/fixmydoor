@@ -7,6 +7,7 @@ import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 import { saveBooking, validateBooking, validateBookingStatus } from "./server/bookings";
 import { emailService } from "./server/email";
+import { listReviews, saveReview, validateReview } from "./server/reviews";
 import { prisma } from "./server/prisma";
 import { findAdminByUsername, verifyPassword } from "./server/auth";
 import { serviceCatalog } from "./shared/services";
@@ -361,6 +362,34 @@ function vitePluginBookingApi(): Plugin {
 
         if (req.method === "GET" && pathname === "/services") {
           writeJson(res, 200, { services: serviceCatalog });
+          return;
+        }
+
+        if (req.method === "GET" && pathname === "/reviews") {
+          try {
+            const url = new URL(req.url ?? "/", "http://localhost");
+            const limit = Math.min(30, Math.max(1, parseInt(url.searchParams.get("limit") ?? "12", 10) || 12));
+            const reviews = await listReviews(limit);
+            writeJson(res, 200, { reviews });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
+          return;
+        }
+
+        if (req.method === "POST" && pathname === "/reviews") {
+          try {
+            const payload = await readJsonBody(req);
+            if (!validateReview(payload)) {
+              writeJson(res, 400, { success: false, error: "Invalid review payload" });
+              return;
+            }
+
+            const review = await saveReview(payload);
+            writeJson(res, 201, { success: true, review });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
           return;
         }
 

@@ -27,7 +27,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { BookingRequest } from "@shared/types";
+import type { BookingRequest, Review, ReviewRequest } from "@shared/types";
 import { serviceCatalog as defaultServiceCatalog, type ServiceCatalogItem } from "@shared/services";
 import { customerReviews, featuredService, featuredServiceCollage, heroImage, projectGallery, quickHighlights, serviceShowcase, technicianImage } from "./homeContent";
 
@@ -43,6 +43,15 @@ const bookingSchema = z.object({
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
+const reviewSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters").max(80, "Name is too long"),
+  location: z.string().max(100, "Location is too long").optional(),
+  rating: z.number().int().min(1).max(5),
+  quote: z.string().min(8, "Please write a little more about your experience").max(500, "Review is too long"),
+});
+
+type ReviewFormData = z.infer<typeof reviewSchema>;
+
 const serviceIcons: Record<string, typeof HomeIcon> = {
   "door-repair": HomeIcon,
   "door-alignment": CheckCircle2,
@@ -53,6 +62,7 @@ const serviceIcons: Record<string, typeof HomeIcon> = {
 
 export default function Home() {
   const [services, setServices] = useState<ServiceCatalogItem[]>(defaultServiceCatalog);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -63,6 +73,15 @@ export default function Home() {
       repairType: "",
       preferredDate: "",
       message: "",
+    },
+  });
+  const reviewForm = useForm<ReviewFormData>({
+    resolver: zodResolver(reviewSchema),
+    defaultValues: {
+      name: "",
+      location: "",
+      rating: 5,
+      quote: "",
     },
   });
 
@@ -77,6 +96,24 @@ export default function Home() {
       })
       .catch((error) => {
         console.error("Service catalog load error:", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    axios.get<{ reviews: Review[] }>("/api/reviews?limit=9")
+      .then(({ data }) => {
+        if (active && Array.isArray(data.reviews)) {
+          setReviews(data.reviews);
+        }
+      })
+      .catch((error) => {
+        console.error("Review load error:", error);
       });
 
     return () => {
@@ -108,6 +145,35 @@ export default function Home() {
   const homeServices = services.filter((service) => service.showOnHome);
   const footerServices = services.filter((service) => service.showInFooter);
   const bookingServices = services.filter((service) => service.showInBooking);
+  const displayReviews = reviews.length > 0 ? reviews : customerReviews.map((review, index) => ({
+    id: `default-${index}`,
+    name: review.name,
+    location: review.location,
+    rating: 5,
+    quote: review.quote,
+    createdAt: "",
+  }));
+
+  const onReviewSubmit = async (data: ReviewFormData) => {
+    const payload: ReviewRequest = {
+      name: data.name.trim(),
+      location: data.location?.trim() || undefined,
+      rating: data.rating,
+      quote: data.quote.trim(),
+    };
+
+    try {
+      const response = await axios.post<{ review: Review }>("/api/reviews", payload);
+      if (response.data.review) {
+        setReviews((currentReviews) => [response.data.review, ...currentReviews].slice(0, 9));
+      }
+      reviewForm.reset({ name: "", location: "", rating: 5, quote: "" });
+      toast.success("Thank you. Your review has been added.");
+    } catch (error) {
+      toast.error("Unable to submit review right now. Please try again later.");
+      console.error("Review submission error:", error);
+    }
+  };
 
   const handleServicePick = (service: ServiceCatalogItem) => {
     form.setValue("repairType", service.bookingValue, {
@@ -127,48 +193,59 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <nav className="sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/95 backdrop-blur">
-        <div className="container flex max-w-[1180px] items-center justify-between gap-4 py-2.5">
-          <div className="flex min-w-0 items-center gap-3 md:gap-4">
-            <a href="/" className="flex items-center">
-              <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-20 w-auto object-contain drop-shadow-[0_12px_22px_rgba(66,40,18,0.16)] sm:h-24 md:h-28" />
+        <div className="border-b border-primary/10 bg-[#3a281f] text-white">
+          <div className="container flex max-w-[1180px] flex-wrap items-center justify-center gap-x-5 gap-y-1 py-2 text-center text-[0.72rem] font-semibold sm:justify-between sm:text-xs">
+            <span>Canada-wide door, lock, and furniture repairs</span>
+            <span className="inline-flex items-center gap-2">
+              <Phone className="h-3.5 w-3.5 text-primary" />
+              <a href="tel:+148383471823" className="hover:text-primary">+1 (483) 834-7182</a>
+            </span>
+          </div>
+        </div>
+        <div className="container flex max-w-[1180px] items-center justify-between gap-3 py-2 sm:gap-4 md:py-2.5">
+          <div className="flex min-w-0 items-center gap-2.5 md:gap-4">
+            <a href="/" className="flex shrink-0 items-center">
+              <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-16 w-auto object-contain drop-shadow-[0_12px_22px_rgba(66,40,18,0.16)] sm:h-20 md:h-24" />
             </a>
-            <div className="hidden min-w-0 sm:block">
-              <p className="font-display text-sm font-bold leading-tight text-secondary md:text-xl">
+            <div className="min-w-0">
+              <p className="font-display text-sm font-bold leading-tight text-secondary sm:text-base md:text-xl">
                 FixMyDoor | Door & Furniture Repairs
               </p>
-              <p className="mt-1 text-[0.66rem] uppercase tracking-[0.22em] text-secondary/65 md:text-[0.7rem]">
+              <p className="mt-0.5 hidden text-[0.66rem] uppercase tracking-[0.2em] text-secondary/65 sm:block md:text-[0.7rem]">
                 Montreal-based service across Canada
               </p>
             </div>
           </div>
-          <div className="hidden gap-8 text-sm font-semibold md:flex">
+          <div className="hidden gap-6 text-sm font-semibold lg:flex">
             <a href="#services" className="transition hover:text-primary">Services</a>
             <a href="#before-after" className="transition hover:text-primary">Projects</a>
             <a href="#about" className="transition hover:text-primary">About</a>
             <a href="#testimonials" className="transition hover:text-primary">Reviews</a>
             <a href="#contact" className="transition hover:text-primary">Contact</a>
           </div>
-          <a href="tel:+148383471823" className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-white transition hover:bg-primary/90 md:px-5">
-            Call Now
+          <a href="tel:+148383471823" className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-2 text-xs font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-primary/90 sm:px-4 sm:text-sm md:px-5">
+            <Phone className="h-4 w-4" />
+            <span className="hidden sm:inline">Call Now</span>
+            <span className="sm:hidden">Call</span>
           </a>
         </div>
       </nav>
 
-      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(212,165,116,0.18),_transparent_38%),linear-gradient(to_bottom,_#f8f3ea,_#ffffff)]">
-        <div className="container grid max-w-[1180px] items-center gap-8 py-10 md:grid-cols-[0.88fr_1.02fr] md:py-14 lg:gap-12">
+      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(212,165,116,0.2),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(66,40,18,0.12),_transparent_34%),linear-gradient(to_bottom,_#f8f3ea,_#ffffff)]">
+        <div className="container grid max-w-[1180px] items-center gap-7 py-8 sm:py-10 md:grid-cols-[0.88fr_1.02fr] md:py-12 lg:gap-10">
           <div className="max-w-lg">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-secondary shadow-sm">
               <Globe2 className="h-4 w-4 text-primary" />
               Serving all of Canada
             </div>
-            <h1 className="font-display text-3xl font-bold leading-tight text-secondary sm:text-4xl md:text-5xl xl:text-[3.35rem]">
-              Doors that close right. Locks that feel secure. Repairs you can feel good about.
+            <h1 className="font-display text-[2rem] font-bold leading-tight text-secondary sm:text-4xl md:text-5xl xl:text-[3.2rem]">
+              Smooth doors, secure locks, and repairs that make home feel right again.
             </h1>
-            <p className="mt-4 max-w-[34rem] text-base leading-relaxed text-foreground/75 md:text-lg">
+            <p className="mt-3 max-w-[34rem] text-[0.98rem] leading-relaxed text-foreground/75 md:text-lg">
               If a front door sticks, a lock feels loose, or a piece of furniture is wearing down,
               FixMyDoor handles it neatly and leaves the space looking better than it did before.
             </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <a href="#contact" className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary/90">
                 Book a Repair
                 <ArrowRight className="h-4 w-4" />
@@ -178,7 +255,7 @@ export default function Home() {
                 Call +1 (483) 834-7182
               </a>
             </div>
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl bg-white p-4 shadow-lg shadow-primary/5">
                 <Zap className="mb-3 h-6 w-6 text-primary" />
                 <p className="font-bold text-secondary">Fast Scheduling</p>
@@ -201,7 +278,7 @@ export default function Home() {
             <div className="absolute -left-5 top-8 h-32 w-32 rounded-full bg-primary/18 blur-3xl" />
             <div className="absolute -right-6 bottom-10 h-40 w-40 rounded-full bg-secondary/15 blur-3xl" />
             <div className="relative overflow-hidden rounded-[32px] border border-white/60 bg-white p-3 shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
-              <img src={heroImage} alt="Lock rekeying service at a front door" className="h-[320px] w-full rounded-[24px] object-cover object-center md:h-[500px]" />
+              <img src={heroImage} alt="Lock rekeying service at a front door" className="h-[260px] w-full rounded-[24px] object-cover object-center sm:h-[340px] md:h-[470px]" />
               <div className="absolute bottom-5 left-5 right-5 rounded-[24px] bg-white/90 p-4 shadow-lg backdrop-blur md:bottom-7 md:left-7 md:right-7 md:max-w-sm">
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
                 <h2 className="mt-2 text-2xl font-bold text-secondary">Front Door Rekeying</h2>
@@ -357,7 +434,7 @@ export default function Home() {
             </div>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
               <a href="tel:+148383471823" className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-bold text-white transition hover:bg-primary/90">Schedule Now</a>
-              <a href="mailto:info@fixmydoor.com" className="inline-flex items-center justify-center rounded-full bg-secondary px-6 py-3 font-bold text-white transition hover:bg-secondary/90">Send Email</a>
+              <a href="mailto:info.fixmydoor@gmail.com" className="inline-flex items-center justify-center rounded-full bg-secondary px-6 py-3 font-bold text-white transition hover:bg-secondary/90">Send Email</a>
             </div>
           </div>
         </div>
@@ -365,23 +442,89 @@ export default function Home() {
 
       <section id="testimonials" className="bg-gradient-to-b from-background to-white py-16 md:py-[4.5rem]">
         <div className="container max-w-[1180px]">
-          <div className="mb-12 text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Client Reviews</p>
-            <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">What Our Customers Say</h2>
+          <div className="mb-10 flex flex-col gap-4 text-center md:flex-row md:items-end md:justify-between md:text-left">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Client Reviews</p>
+              <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Real words from customers</h2>
+              <p className="mt-3 max-w-2xl text-foreground/70">
+                Customers can now leave their own review directly on the website after a repair.
+              </p>
+            </div>
+            <a href="#write-review" className="inline-flex items-center justify-center rounded-full bg-secondary px-5 py-3 text-sm font-bold text-white transition hover:bg-secondary/90">
+              Write a Review
+            </a>
           </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {customerReviews.map((review) => (
-              <article key={review.name} className="rounded-[28px] border border-primary/10 bg-white p-8 shadow-[0_16px_44px_rgba(0,0,0,0.06)]">
-                <div className="mb-4 flex gap-1">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <Star key={index} className="h-5 w-5 fill-primary text-primary" />
-                  ))}
-                </div>
-                <p className="text-base italic leading-relaxed text-foreground/80">"{review.quote}"</p>
-                <p className="mt-6 font-bold text-secondary">{review.name}</p>
-                <p className="text-sm text-foreground/60">{review.location}</p>
-              </article>
-            ))}
+
+          <div className="grid gap-8 lg:grid-cols-[1fr_0.72fr] lg:items-start">
+            <div className="grid gap-5 sm:grid-cols-2">
+              {displayReviews.map((review) => (
+                <article key={review.id} className="rounded-[28px] border border-primary/10 bg-white p-6 shadow-[0_16px_44px_rgba(0,0,0,0.06)]">
+                  <div className="mb-4 flex gap-1">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star
+                        key={index}
+                        className={`h-5 w-5 ${index < review.rating ? "fill-primary text-primary" : "text-primary/20"}`}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-base italic leading-relaxed text-foreground/80">"{review.quote}"</p>
+                  <p className="mt-5 font-bold text-secondary">{review.name}</p>
+                  <p className="text-sm text-foreground/60">{review.location || "Canada"}</p>
+                </article>
+              ))}
+            </div>
+
+            <div id="write-review" className="rounded-[28px] border border-primary/12 bg-white p-6 shadow-[0_18px_50px_rgba(0,0,0,0.07)] sm:p-8">
+              <p className="text-sm font-bold uppercase tracking-[0.32em] text-primary">Share Feedback</p>
+              <h3 className="mt-3 text-2xl font-bold text-secondary">Write your review</h3>
+              <p className="mt-2 text-sm leading-relaxed text-foreground/68">
+                Tell future customers what the repair experience was like.
+              </p>
+              <Form {...reviewForm}>
+                <form onSubmit={reviewForm.handleSubmit(onReviewSubmit)} className="mt-6 space-y-4">
+                  <FormField control={reviewForm.control} name="name" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-foreground">Name *</FormLabel>
+                      <FormControl><Input placeholder="Your name" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={reviewForm.control} name="location" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-foreground">City / Province</FormLabel>
+                      <FormControl><Input placeholder="Montreal, QC" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={reviewForm.control} name="rating" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-foreground">Rating *</FormLabel>
+                      <Select onValueChange={(value) => field.onChange(Number(value))} value={String(field.value)}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Choose a rating" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="5">5 stars</SelectItem>
+                          <SelectItem value="4">4 stars</SelectItem>
+                          <SelectItem value="3">3 stars</SelectItem>
+                          <SelectItem value="2">2 stars</SelectItem>
+                          <SelectItem value="1">1 star</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={reviewForm.control} name="quote" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-foreground">Review *</FormLabel>
+                      <FormControl><Textarea placeholder="How did the repair go?" className="min-h-28" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <Button type="submit" className="btn-primary w-full" disabled={reviewForm.formState.isSubmitting}>
+                    {reviewForm.formState.isSubmitting ? "Submitting..." : "Submit Review"}
+                  </Button>
+                </form>
+              </Form>
+            </div>
           </div>
         </div>
       </section>
@@ -427,7 +570,7 @@ export default function Home() {
                 <div>
                   <p className="font-semibold text-secondary">Email</p>
                   <div className="mt-1 space-y-1">
-                    <div><span className="text-sm text-foreground/60">Business:</span><a href="mailto:info@fixmydoor.com" className="ml-1 text-lg text-primary hover:underline">info@fixmydoor.com</a></div>
+                    <div><span className="text-sm text-foreground/60">Business:</span><a href="mailto:info.fixmydoor@gmail.com" className="ml-1 text-lg text-primary hover:underline">info.fixmydoor@gmail.com</a></div>
                     <div><span className="text-sm text-foreground/60">Personal:</span><a href="mailto:ampofor55@gmail.com" className="ml-1 text-lg text-primary hover:underline">ampofor55@gmail.com</a></div>
                   </div>
                 </div>

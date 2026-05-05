@@ -33,3 +33,15 @@ model Admin {
   password  String
   createdAt DateTime @default(now())
 }
+
+model Review {
+  id        String   @id @default(cuid())
+  name      String
+  location  String?
+  rating    Int      @default(5)
+  quote     String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([rating])
+}

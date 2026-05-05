@@ -8,6 +8,7 @@ import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { saveBooking, validateBooking, validateBookingStatus } from "./bookings";
+import { listReviews, saveReview, validateReview } from "./reviews";
 import { prisma } from "./prisma";
 import { findAdminByUsername, initializeAdminUser, verifyPassword, hashPassword } from "./auth";
 import { emailService } from "./email";
@@ -238,6 +239,31 @@ async function startServer() {
   // Booking endpoints
   app.get("/api/services", (_req, res) => {
     res.json({ services: serviceCatalog });
+  });
+
+  app.get("/api/reviews", async (req, res) => {
+    try {
+      const limit = Math.min(30, Math.max(1, parseInt(req.query.limit as string, 10) || 12));
+      const reviews = await listReviews(limit);
+      return res.json({ reviews });
+    } catch (error) {
+      console.error("Review load error:", error);
+      return res.status(500).json({ success: false, error: "Failed to load reviews" });
+    }
+  });
+
+  app.post("/api/reviews", async (req, res) => {
+    if (!validateReview(req.body)) {
+      return res.status(400).json({ success: false, error: "Invalid review data" });
+    }
+
+    try {
+      const review = await saveReview(req.body);
+      return res.status(201).json({ success: true, review });
+    } catch (error) {
+      console.error("Review creation error:", error);
+      return res.status(500).json({ success: false, error: "Failed to save review" });
+    }
   });
 
   app.post("/api/bookings", async (req, res) => {

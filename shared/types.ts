@@ -16,3 +16,15 @@ export interface Booking extends BookingRequest {
 }
 
 export type BookingStatus = "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export interface ReviewRequest {
+  name: string;
+  location?: string;
+  rating: number;
+  quote: string;
+}
+
+export interface Review extends ReviewRequest {
+  id: string;
+  createdAt: string;
+}
