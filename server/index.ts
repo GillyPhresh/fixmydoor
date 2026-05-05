@@ -12,6 +12,7 @@ import { prisma } from "./prisma";
 import { findAdminByUsername, initializeAdminUser, verifyPassword, hashPassword } from "./auth";
 import { emailService } from "./email";
 import type { Booking } from "@shared/types";
+import { serviceCatalog } from "@shared/services";
 
 process.loadEnvFile?.();
 
@@ -235,6 +236,10 @@ async function startServer() {
   });
 
   // Booking endpoints
+  app.get("/api/services", (_req, res) => {
+    res.json({ services: serviceCatalog });
+  });
+
   app.post("/api/bookings", async (req, res) => {
     const booking = req.body;
     if (!validateBooking(booking)) {

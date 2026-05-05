@@ -8,6 +8,7 @@ import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 import { saveBooking, validateBooking, validateBookingStatus } from "./server/bookings";
 import { prisma } from "./server/prisma";
 import { findAdminByUsername, verifyPassword } from "./server/auth";
+import { serviceCatalog } from "./shared/services";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -351,6 +352,11 @@ function vitePluginBookingApi(): Plugin {
 
         if (req.method === "GET" && pathname === "/auth/status") {
           writeJson(res, 200, { authenticated: !!request.session?.adminId });
+          return;
+        }
+
+        if (req.method === "GET" && pathname === "/services") {
+          writeJson(res, 200, { services: serviceCatalog });
           return;
         }
 

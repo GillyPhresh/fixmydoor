@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { BookingRequest } from "@shared/types";
+import { serviceCatalog as defaultServiceCatalog, type ServiceCatalogItem } from "@shared/services";
 import { customerReviews, featuredService, featuredServiceCollage, heroImage, projectGallery, quickHighlights, serviceShowcase, technicianImage } from "./homeContent";
 
 const bookingSchema = z.object({
@@ -41,7 +43,16 @@ const bookingSchema = z.object({
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
+const serviceIcons: Record<string, typeof HomeIcon> = {
+  "door-repair": HomeIcon,
+  "door-alignment": CheckCircle2,
+  "lock-rekeying": Lock,
+  "entry-door-installation": ShieldCheck,
+  "furniture-repair": Wrench,
+};
+
 export default function Home() {
+  const [services, setServices] = useState<ServiceCatalogItem[]>(defaultServiceCatalog);
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -54,6 +65,24 @@ export default function Home() {
       message: "",
     },
   });
+
+  useEffect(() => {
+    let active = true;
+
+    axios.get<{ services: ServiceCatalogItem[] }>("/api/services")
+      .then(({ data }) => {
+        if (active && Array.isArray(data.services) && data.services.length > 0) {
+          setServices(data.services);
+        }
+      })
+      .catch((error) => {
+        console.error("Service catalog load error:", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const onSubmit = async (data: BookingFormData) => {
     const payload: BookingRequest = {
@@ -76,13 +105,42 @@ export default function Home() {
     }
   };
 
+  const homeServices = services.filter((service) => service.showOnHome);
+  const footerServices = services.filter((service) => service.showInFooter);
+  const bookingServices = services.filter((service) => service.showInBooking);
+
+  const handleServicePick = (service: ServiceCatalogItem) => {
+    form.setValue("repairType", service.bookingValue, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+
+    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      document.getElementById("repair-type-trigger")?.focus();
+    }, 350);
+
+    toast.success(`${service.title} selected. Fill in your details and we'll take it from there.`);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <nav className="sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/95 backdrop-blur">
-        <div className="container flex items-center justify-between gap-4 py-3">
-          <a href="/" className="flex items-center">
-            <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-14 w-auto object-contain sm:h-16 md:h-20" />
-          </a>
+        <div className="container flex max-w-[1180px] items-center justify-between gap-4 py-2.5">
+          <div className="flex min-w-0 items-center gap-3 md:gap-4">
+            <a href="/" className="flex items-center">
+              <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-20 w-auto object-contain drop-shadow-[0_12px_22px_rgba(66,40,18,0.16)] sm:h-24 md:h-28" />
+            </a>
+            <div className="hidden min-w-0 sm:block">
+              <p className="font-display text-sm font-bold leading-tight text-secondary md:text-xl">
+                FixMyDoor | Door & Furniture Repairs
+              </p>
+              <p className="mt-1 text-[0.66rem] uppercase tracking-[0.22em] text-secondary/65 md:text-[0.7rem]">
+                Montreal-based service across Canada
+              </p>
+            </div>
+          </div>
           <div className="hidden gap-8 text-sm font-semibold md:flex">
             <a href="#services" className="transition hover:text-primary">Services</a>
             <a href="#before-after" className="transition hover:text-primary">Projects</a>
@@ -97,20 +155,20 @@ export default function Home() {
       </nav>
 
       <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(212,165,116,0.18),_transparent_38%),linear-gradient(to_bottom,_#f8f3ea,_#ffffff)]">
-        <div className="container grid items-center gap-10 py-12 md:grid-cols-[0.95fr_1.05fr] md:py-20">
-          <div className="max-w-xl">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-secondary shadow-sm">
+        <div className="container grid max-w-[1180px] items-center gap-8 py-10 md:grid-cols-[0.88fr_1.02fr] md:py-14 lg:gap-12">
+          <div className="max-w-lg">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-secondary shadow-sm">
               <Globe2 className="h-4 w-4 text-primary" />
               Serving all of Canada
             </div>
-            <h1 className="font-display text-4xl font-bold leading-tight text-secondary md:text-6xl">
-              Beautiful Doors. Safer Locks. Cleaner Repairs That Make Your Space Feel Right Again.
+            <h1 className="font-display text-3xl font-bold leading-tight text-secondary sm:text-4xl md:text-5xl xl:text-[3.35rem]">
+              Doors that close right. Locks that feel secure. Repairs you can feel good about.
             </h1>
-            <p className="mt-5 text-lg leading-relaxed text-foreground/75 md:text-xl">
-              FixMyDoor brings sharp, dependable repair work from Montreal to clients across Canada,
-              with secure lock service, better-fitting doors, furniture care, and a finish that looks intentionally done.
+            <p className="mt-4 max-w-[34rem] text-base leading-relaxed text-foreground/75 md:text-lg">
+              If a front door sticks, a lock feels loose, or a piece of furniture is wearing down,
+              FixMyDoor handles it neatly and leaves the space looking better than it did before.
             </p>
-            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <a href="#contact" className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary/90">
                 Book a Repair
                 <ArrowRight className="h-4 w-4" />
@@ -120,21 +178,21 @@ export default function Home() {
                 Call +1 (483) 834-7182
               </a>
             </div>
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl bg-white p-4 shadow-lg shadow-primary/5">
                 <Zap className="mb-3 h-6 w-6 text-primary" />
                 <p className="font-bold text-secondary">Fast Scheduling</p>
-                <p className="mt-1 text-sm text-foreground/65">Quick replies, clear next steps, and practical timing.</p>
+                <p className="mt-1 text-sm text-foreground/65">Quick replies and simple next steps.</p>
               </div>
               <div className="rounded-2xl bg-white p-4 shadow-lg shadow-primary/5">
                 <div className="mb-3 text-2xl font-black text-primary">C$</div>
                 <p className="font-bold text-secondary">Practical Pricing</p>
-                <p className="mt-1 text-sm text-foreground/65">Smart value for repair, replacement, and installation work.</p>
+                <p className="mt-1 text-sm text-foreground/65">Clear value for repairs, replacements, and installs.</p>
               </div>
               <div className="rounded-2xl bg-white p-4 shadow-lg shadow-primary/5">
                 <CheckCircle2 className="mb-3 h-6 w-6 text-primary" />
                 <p className="font-bold text-secondary">Neat Finish</p>
-                <p className="mt-1 text-sm text-foreground/65">Repairs that look cleaner, tighter, and fully resolved.</p>
+                <p className="mt-1 text-sm text-foreground/65">Work that looks tidy and feels properly finished.</p>
               </div>
             </div>
           </div>
@@ -143,12 +201,12 @@ export default function Home() {
             <div className="absolute -left-5 top-8 h-32 w-32 rounded-full bg-primary/18 blur-3xl" />
             <div className="absolute -right-6 bottom-10 h-40 w-40 rounded-full bg-secondary/15 blur-3xl" />
             <div className="relative overflow-hidden rounded-[32px] border border-white/60 bg-white p-3 shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
-              <img src={heroImage} alt="Lock rekeying service at a front door" className="h-[360px] w-full rounded-[24px] object-cover object-center md:h-[560px]" />
-              <div className="absolute bottom-8 left-8 right-8 rounded-[24px] bg-white/88 p-5 shadow-lg backdrop-blur md:max-w-sm">
+              <img src={heroImage} alt="Lock rekeying service at a front door" className="h-[320px] w-full rounded-[24px] object-cover object-center md:h-[500px]" />
+              <div className="absolute bottom-5 left-5 right-5 rounded-[24px] bg-white/90 p-4 shadow-lg backdrop-blur md:bottom-7 md:left-7 md:right-7 md:max-w-sm">
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
-                <h2 className="mt-2 text-2xl font-bold text-secondary">Front Door Rekeying & Security Care</h2>
+                <h2 className="mt-2 text-2xl font-bold text-secondary">Front Door Rekeying</h2>
                 <p className="mt-2 text-sm leading-relaxed text-foreground/70">
-                  Make your entry feel safer and more polished with smoother lock action, cleaner hardware, and better daily confidence.
+                  If a key has gone missing or the lock no longer feels right, we get the entry secure again and keep the door turning smoothly.
                 </p>
               </div>
             </div>
@@ -156,13 +214,13 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="services" className="bg-white py-20">
-        <div className="container">
-          <div className="mb-14 text-center">
+      <section id="services" className="bg-white py-16 md:py-[4.5rem]">
+        <div className="container max-w-[1180px]">
+          <div className="mb-12 text-center">
             <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Our Expertise</p>
             <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Complete Repair Solutions</h2>
             <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-foreground/70">
-              A cleaner mix of door, lock, and furniture work arranged so each image supports the right service and the layout stays polished.
+              The layout is tighter, the images make more sense, and the service list is easier to understand at a glance.
             </p>
           </div>
 
@@ -218,31 +276,40 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
-            {[
-              { icon: HomeIcon, title: "Door Repairs", desc: "Swing correction, frame repair, sealing, and hardware fixes that make doors feel right again." },
-              { icon: Lock, title: "Lock & Hinge Care", desc: "Rekeying, handle replacement, hinge adjustments, and tighter day-to-day security." },
-              { icon: Wrench, title: "Furniture Repairs", desc: "Available by booking for practical restoration that improves both use and appearance." },
-            ].map((service) => (
-              <div key={service.title} className="rounded-[24px] bg-white p-6 shadow-lg shadow-primary/5">
-                <div className="mb-4 inline-flex rounded-2xl bg-primary/10 p-3">
-                  <service.icon className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold text-secondary">{service.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-foreground/70">{service.desc}</p>
-              </div>
-            ))}
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
+            {homeServices.map((service) => {
+              const Icon = serviceIcons[service.bookingValue] ?? Wrench;
+
+              return (
+                <button
+                  key={service.slug}
+                  type="button"
+                  onClick={() => handleServicePick(service)}
+                  className="group rounded-[24px] bg-white p-6 text-left shadow-lg shadow-primary/5 transition duration-300 hover:-translate-y-1"
+                >
+                  <div className="mb-4 inline-flex rounded-2xl bg-primary/10 p-3">
+                    <Icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-bold text-secondary">{service.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-foreground/70">{service.summary}</p>
+                  <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                    Choose this service
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section id="before-after" className="bg-gradient-to-b from-background to-white py-20">
-        <div className="container">
-          <div className="mb-14 text-center">
+      <section id="before-after" className="bg-gradient-to-b from-background to-white py-16 md:py-[4.5rem]">
+        <div className="container max-w-[1180px]">
+          <div className="mb-12 text-center">
             <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Our Work</p>
             <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Recent Repairs & Installations</h2>
             <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-foreground/70">
-              Each image now follows the right description, so the gallery reads like real project work instead of a mixed image board.
+              A few examples of the kind of work customers call about most often, laid out in a cleaner and more believable way.
             </p>
           </div>
 
@@ -261,20 +328,20 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="about" className="bg-white py-20">
-        <div className="container grid gap-10 md:grid-cols-[0.78fr_1.22fr] md:items-center">
+      <section id="about" className="bg-white py-16 md:py-[4.5rem]">
+        <div className="container grid max-w-[1180px] gap-8 md:grid-cols-[0.78fr_1.22fr] md:items-center">
           <div className="relative order-2 md:order-1">
             <div className="absolute -left-4 top-8 h-28 w-28 rounded-full bg-primary/18 blur-3xl" />
-            <div className="relative mx-auto flex h-full min-h-[520px] max-w-[440px] items-center justify-center overflow-hidden rounded-[36px] border border-white/70 bg-[linear-gradient(180deg,_rgba(245,241,232,0.96),_rgba(255,255,255,0.82))] p-5 shadow-[0_24px_70px_rgba(66,40,18,0.16)] md:min-h-[560px]">
-              <img src={technicianImage} alt="Richard Ampofo working on a door repair" className="h-full w-full max-h-[560px] object-contain object-center" />
+            <div className="relative mx-auto flex h-full min-h-[520px] max-w-[440px] items-center justify-center overflow-hidden rounded-[36px] border border-white/70 bg-[linear-gradient(180deg,_rgba(245,241,232,0.96),_rgba(255,255,255,0.82))] shadow-[0_24px_70px_rgba(66,40,18,0.16)] md:min-h-[560px]">
+              <img src={technicianImage} alt="Richard Ampofo working on a door repair" className="h-full w-full object-cover object-top" />
             </div>
           </div>
           <div className="order-1 md:order-2">
             <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Meet the Expert</p>
             <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Richard Ampofo</h2>
-            <p className="mt-5 text-lg leading-relaxed text-foreground/75">Richard is the hands behind FixMyDoor: a skilled technician trusted for clean repairs, reliable lock work, and practical solutions that immediately improve how a door feels and functions.</p>
-            <p className="mt-4 text-lg leading-relaxed text-foreground/75">Based in Montreal and supporting clients across Canada, he approaches each repair with a simple goal: leave the space safer, smoother, and noticeably better than he found it.</p>
-            <p className="mt-4 text-lg leading-relaxed text-foreground/75">From damaged frames to misaligned doors and tired hardware, the work is handled with care, clear communication, and a finish that feels properly done.</p>
+            <p className="mt-5 text-lg leading-relaxed text-foreground/75">Richard is the person behind FixMyDoor, handling the everyday problems people actually notice: doors that scrape, locks that feel loose, frames that need attention, and furniture that still deserves to be kept.</p>
+            <p className="mt-4 text-lg leading-relaxed text-foreground/75">Based in Montreal and working with clients across Canada, he keeps the process simple: understand the issue, explain the fix clearly, and leave the job looking clean.</p>
+            <p className="mt-4 text-lg leading-relaxed text-foreground/75">The goal is not just to patch the problem, but to make the space feel secure, tidy, and easy to live with again.</p>
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {[
                 { icon: Globe2, title: quickHighlights[0].title, text: quickHighlights[0].text },
@@ -296,9 +363,9 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="testimonials" className="bg-gradient-to-b from-background to-white py-20">
-        <div className="container">
-          <div className="mb-14 text-center">
+      <section id="testimonials" className="bg-gradient-to-b from-background to-white py-16 md:py-[4.5rem]">
+        <div className="container max-w-[1180px]">
+          <div className="mb-12 text-center">
             <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Client Reviews</p>
             <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">What Our Customers Say</h2>
           </div>
@@ -319,10 +386,10 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="how-it-works" className="section-divider bg-white">
-        <div className="container">
+      <section id="how-it-works" className="section-divider bg-white py-16 md:py-20">
+        <div className="container max-w-[1180px]">
           <h2 className="text-center font-display text-4xl font-bold text-secondary md:text-5xl">How It Works</h2>
-          <div className="mt-16 grid gap-8 md:grid-cols-3 md:gap-12">
+          <div className="mt-12 grid gap-8 md:grid-cols-3 md:gap-10">
             <div className="text-center">
               <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-4xl font-bold text-white">1</div>
               <h3 className="text-2xl font-semibold text-secondary">Contact Us</h3>
@@ -342,8 +409,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="contact" className="section-divider bg-background">
-        <div className="container grid gap-12 md:grid-cols-2">
+      <section id="contact" className="section-divider bg-background py-16 md:py-20">
+        <div className="container grid max-w-[1180px] gap-10 md:grid-cols-2">
           <div>
             <h2 className="font-display text-4xl font-bold text-secondary md:text-5xl">Get in Touch</h2>
             <div className="mt-8 space-y-6">
@@ -400,13 +467,11 @@ export default function Home() {
                   <FormItem>
                     <FormLabel className="font-semibold text-foreground">Service Type *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || undefined}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select a service" /></SelectTrigger></FormControl>
+                      <FormControl><SelectTrigger id="repair-type-trigger"><SelectValue placeholder="Select a service" /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="door-repair">Door Repair</SelectItem>
-                        <SelectItem value="door-alignment">Door Alignment</SelectItem>
-                        <SelectItem value="lock-rekeying">Lock Rekeying</SelectItem>
-                        <SelectItem value="entry-door-installation">Entry Door Installation</SelectItem>
-                        <SelectItem value="furniture-repair">Furniture Repair</SelectItem>
+                        {bookingServices.map((service) => (
+                          <SelectItem key={service.slug} value={service.bookingValue}>{service.title}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -427,11 +492,11 @@ export default function Home() {
       </div>
 
       <footer className="bg-[#2f241c] py-16 text-white">
-        <div className="container">
+        <div className="container max-w-[1180px]">
           <div className="mb-12 grid gap-12 md:grid-cols-4">
             <div>
               <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-24 w-auto max-w-full object-contain" />
-              <p className="mt-4 max-w-xs leading-relaxed text-white/85">Professional door and furniture repair services based in Montreal and serving clients across Canada.</p>
+              <p className="mt-4 max-w-xs leading-relaxed text-white/85">Door and furniture repairs handled with care from Montreal for homes and businesses across Canada.</p>
             </div>
             <div>
               <h4 className="mb-4 font-bold" style={{ fontFamily: "Montserrat" }}>Quick Links</h4>
@@ -445,10 +510,17 @@ export default function Home() {
             <div>
               <h4 className="mb-4 font-bold" style={{ fontFamily: "Montserrat" }}>Our Services</h4>
               <ul className="space-y-3 text-white/80">
-                <li className="transition hover:text-primary">Door Repair</li>
-                <li className="transition hover:text-primary">Lock Rekeying</li>
-                <li className="transition hover:text-primary">Entry Door Installation</li>
-                <li className="transition hover:text-primary">Furniture Repairs</li>
+                {footerServices.map((service) => (
+                  <li key={service.slug}>
+                    <button
+                      type="button"
+                      onClick={() => handleServicePick(service)}
+                      className="transition hover:text-primary"
+                    >
+                      {service.title}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
             <div>

@@ -19,8 +19,8 @@ export { heroImage, technicianImage };
 
 export const featuredService = {
   tag: "Security Upgrade",
-  title: "Front Door Rekeying and Repair Highlights",
-  desc: "Restore peace of mind with a smarter lock setup, smoother turn, and a more secure front entry, while the surrounding visuals show the wider care FixMyDoor brings to doors and furniture.",
+  title: "Front Door Rekeying and the kind of repair work people call about every day.",
+  desc: "The main focus here is front-door security, while the supporting images show the wider mix of door and furniture jobs handled on a normal week.",
 };
 
 export const featuredServiceCollage = [
@@ -52,26 +52,26 @@ export const serviceShowcase = [
   {
     src: heroImage,
     title: "Front Door Rekeying",
-    desc: "Restore peace of mind with a smoother turn, cleaner hardware, and a more secure front entry.",
+    desc: "A sensible security refresh when you want the lock to feel safer, smoother, and easier to trust.",
     tag: "Security Upgrade",
   },
   {
     src: entryDoorImage,
     title: "Entry Door Replacement",
-    desc: "Refresh worn exterior doors with cleaner alignment, tighter sealing, and a stronger first impression.",
+    desc: "A cleaner front-door upgrade with better fit, better swing, and a stronger first impression.",
     tag: "Exterior Doors",
   },
   {
     src: officeDeskRepairImage,
     title: "Desk & Cabinet Repairs",
-    desc: "Tidy loose fittings, scratched surfaces, and tired storage units so workspaces feel sharp again.",
+    desc: "Useful repairs for desks and cabinets that need to look tidier and work properly again.",
     tag: "Workspace Care",
     contain: true,
   },
   {
     src: executiveDeskShowcaseImage,
     title: "Office Furniture Refresh",
-    desc: "Practical touch-ups that give desks and reception pieces a neater, more finished look.",
+    desc: "Simple touch-ups that help office furniture feel more presentable without overcomplicating the job.",
     tag: "Commercial Touch-Up",
     contain: true,
   },
@@ -137,14 +137,14 @@ export const customerReviews = [
 export const quickHighlights = [
   {
     title: "Canada-Wide Coverage",
-    text: "Montreal-based service with booking support for homes and businesses across Canada.",
+    text: "Montreal-based, serving homes and businesses across Canada.",
   },
   {
     title: "Trusted Workmanship",
-    text: "Door, lock, hinge, and furniture repairs handled with care and practical precision.",
+    text: "Careful door, lock, hinge, and furniture repair.",
   },
   {
     title: "Fast Response",
-    text: "Clear communication, sensible scheduling, and dependable follow-up from start to finish.",
+    text: "Quick replies, clear timing, and dependable follow-up.",
   },
 ];
