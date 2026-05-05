@@ -357,7 +357,7 @@ export default function Home() {
             </div>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
               <a href="tel:+148383471823" className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-bold text-white transition hover:bg-primary/90">Schedule Now</a>
-              <a href="mailto:info.fixmydoor@gmail.com" className="inline-flex items-center justify-center rounded-full bg-secondary px-6 py-3 font-bold text-white transition hover:bg-secondary/90">Send Email</a>
+              <a href="mailto:info@fixmydoor.com" className="inline-flex items-center justify-center rounded-full bg-secondary px-6 py-3 font-bold text-white transition hover:bg-secondary/90">Send Email</a>
             </div>
           </div>
         </div>
@@ -427,7 +427,7 @@ export default function Home() {
                 <div>
                   <p className="font-semibold text-secondary">Email</p>
                   <div className="mt-1 space-y-1">
-                    <div><span className="text-sm text-foreground/60">Business:</span><a href="mailto:info.fixmydoor@gmail.com" className="ml-1 text-lg text-primary hover:underline">info.fixmydoor@gmail.com</a></div>
+                    <div><span className="text-sm text-foreground/60">Business:</span><a href="mailto:info@fixmydoor.com" className="ml-1 text-lg text-primary hover:underline">info@fixmydoor.com</a></div>
                     <div><span className="text-sm text-foreground/60">Personal:</span><a href="mailto:ampofor55@gmail.com" className="ml-1 text-lg text-primary hover:underline">ampofor55@gmail.com</a></div>
                   </div>
                 </div>

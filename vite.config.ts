@@ -6,9 +6,12 @@ import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 import { saveBooking, validateBooking, validateBookingStatus } from "./server/bookings";
+import { emailService } from "./server/email";
 import { prisma } from "./server/prisma";
 import { findAdminByUsername, verifyPassword } from "./server/auth";
 import { serviceCatalog } from "./shared/services";
+
+process.loadEnvFile?.();
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -212,6 +215,7 @@ function vitePluginBookingApi(): Plugin {
     name: "fixmydoor-booking-api",
     configureServer(server: ViteDevServer) {
       const sessions: Record<string, { adminId: string }> = {};
+      emailService.initialize();
 
       const writeJson = (res: any, statusCode: number, payload: unknown) => {
         res.writeHead(statusCode, { "Content-Type": "application/json" });
@@ -368,7 +372,16 @@ function vitePluginBookingApi(): Plugin {
               return;
             }
 
-            await saveBooking(payload);
+            const savedBooking = await saveBooking(payload);
+
+            emailService.sendBookingConfirmation(savedBooking).catch((error) => {
+              console.error("Failed to send customer confirmation:", error);
+            });
+
+            emailService.sendAdminNotification(savedBooking).catch((error) => {
+              console.error("Failed to send admin notification:", error);
+            });
+
             writeJson(res, 201, { success: true });
           } catch (error) {
             writeJson(res, 500, { success: false, error: String(error) });
