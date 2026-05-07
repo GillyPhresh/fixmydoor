@@ -195,10 +195,10 @@ export default function Home() {
       <nav className="sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/95 backdrop-blur">
         <div className="border-b border-primary/10 bg-[#3a281f] text-white">
           <div className="container flex max-w-[1180px] flex-wrap items-center justify-center gap-x-5 gap-y-1 py-2 text-center text-[0.72rem] font-semibold sm:justify-between sm:text-xs">
-            <span>Canada-wide door, lock, and furniture repairs</span>
+            <span>Canada-based door, lock, and furniture repairs for local and international clients</span>
             <span className="inline-flex items-center gap-2">
               <Phone className="h-3.5 w-3.5 text-primary" />
-              <a href="tel:+148383471823" className="hover:text-primary">+1 (483) 834-7182</a>
+              <a href="tel:+14383471823" className="hover:text-primary">+1 (438) 347-1823</a>
             </span>
           </div>
         </div>
@@ -212,7 +212,7 @@ export default function Home() {
                 FixMyDoor | Door & Furniture Repairs
               </p>
               <p className="mt-0.5 hidden text-[0.66rem] uppercase tracking-[0.2em] text-secondary/65 sm:block md:text-[0.7rem]">
-                Montreal-based service across Canada
+                Canada-based service with international support
               </p>
             </div>
           </div>
@@ -223,7 +223,7 @@ export default function Home() {
             <a href="#testimonials" className="transition hover:text-primary">Reviews</a>
             <a href="#contact" className="transition hover:text-primary">Contact</a>
           </div>
-          <a href="tel:+148383471823" className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-2 text-xs font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-primary/90 sm:px-4 sm:text-sm md:px-5">
+          <a href="tel:+14383471823" className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-2 text-xs font-bold text-white shadow-lg shadow-primary/20 transition hover:bg-primary/90 sm:px-4 sm:text-sm md:px-5">
             <Phone className="h-4 w-4" />
             <span className="hidden sm:inline">Call Now</span>
             <span className="sm:hidden">Call</span>
@@ -236,7 +236,7 @@ export default function Home() {
           <div className="max-w-lg">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-white px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-secondary shadow-sm">
               <Globe2 className="h-4 w-4 text-primary" />
-              Serving all of Canada
+              Canada-based. Available internationally.
             </div>
             <h1 className="font-display text-[2rem] font-bold leading-tight text-secondary sm:text-4xl md:text-5xl xl:text-[3.2rem]">
               Smooth doors, secure locks, and repairs that make home feel right again.
@@ -250,9 +250,9 @@ export default function Home() {
                 Book a Repair
                 <ArrowRight className="h-4 w-4" />
               </a>
-              <a href="tel:+148383471823" className="inline-flex items-center justify-center gap-2 rounded-full bg-secondary px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-secondary/90">
+              <a href="tel:+14383471823" className="inline-flex items-center justify-center gap-2 rounded-full bg-secondary px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-secondary/90">
                 <Phone className="h-4 w-4" />
-                Call +1 (483) 834-7182
+                Call +1 (438) 347-1823
               </a>
             </div>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -417,7 +417,7 @@ export default function Home() {
             <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Meet the Expert</p>
             <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Richard Ampofo</h2>
             <p className="mt-5 text-lg leading-relaxed text-foreground/75">Richard is the person behind FixMyDoor, handling the everyday problems people actually notice: doors that scrape, locks that feel loose, frames that need attention, and furniture that still deserves to be kept.</p>
-            <p className="mt-4 text-lg leading-relaxed text-foreground/75">Based in Montreal and working with clients across Canada, he keeps the process simple: understand the issue, explain the fix clearly, and leave the job looking clean.</p>
+            <p className="mt-4 text-lg leading-relaxed text-foreground/75">Based in Canada and supporting local and international clients, he keeps the process simple: understand the issue, explain the fix clearly, and leave the job looking clean.</p>
             <p className="mt-4 text-lg leading-relaxed text-foreground/75">The goal is not just to patch the problem, but to make the space feel secure, tidy, and easy to live with again.</p>
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               {[
@@ -433,7 +433,7 @@ export default function Home() {
               ))}
             </div>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-              <a href="tel:+148383471823" className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-bold text-white transition hover:bg-primary/90">Schedule Now</a>
+              <a href="tel:+14383471823" className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-bold text-white transition hover:bg-primary/90">Schedule Now</a>
               <a href="mailto:info.fixmydoor@gmail.com" className="inline-flex items-center justify-center rounded-full bg-secondary px-6 py-3 font-bold text-white transition hover:bg-secondary/90">Send Email</a>
             </div>
           </div>
@@ -536,7 +536,7 @@ export default function Home() {
             <div className="text-center">
               <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-4xl font-bold text-white">1</div>
               <h3 className="text-2xl font-semibold text-secondary">Contact Us</h3>
-              <p className="mt-3 leading-relaxed text-foreground/70">Call <a href="tel:+148383471823" className="font-semibold text-primary hover:underline">+1 (483) 834-7182</a> or send your repair details through the booking form.</p>
+              <p className="mt-3 leading-relaxed text-foreground/70">Call <a href="tel:+14383471823" className="font-semibold text-primary hover:underline">+1 (438) 347-1823</a> or send your repair details through the booking form.</p>
             </div>
             <div className="text-center">
               <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-secondary text-4xl font-bold text-white">2</div>
@@ -559,7 +559,7 @@ export default function Home() {
             <div className="mt-8 space-y-6">
               <div className="flex gap-4">
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Phone className="h-6 w-6 text-primary" /></div>
-                <div><p className="font-semibold text-secondary">Phone</p><a href="tel:+148383471823" className="text-lg text-primary hover:underline">+1 (483) 834-7182</a></div>
+                <div><p className="font-semibold text-secondary">Phone</p><a href="tel:+14383471823" className="text-lg text-primary hover:underline">+1 (438) 347-1823</a></div>
               </div>
               <div className="flex gap-4">
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><MessageCircle className="h-6 w-6 text-primary" /></div>
@@ -569,10 +569,7 @@ export default function Home() {
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Mail className="h-6 w-6 text-primary" /></div>
                 <div>
                   <p className="font-semibold text-secondary">Email</p>
-                  <div className="mt-1 space-y-1">
-                    <div><span className="text-sm text-foreground/60">Business:</span><a href="mailto:info.fixmydoor@gmail.com" className="ml-1 text-lg text-primary hover:underline">info.fixmydoor@gmail.com</a></div>
-                    <div><span className="text-sm text-foreground/60">Personal:</span><a href="mailto:ampofor55@gmail.com" className="ml-1 text-lg text-primary hover:underline">ampofor55@gmail.com</a></div>
-                  </div>
+                  <a href="mailto:info.fixmydoor@gmail.com" className="mt-1 inline-block text-lg text-primary hover:underline">info.fixmydoor@gmail.com</a>
                 </div>
               </div>
               <div className="flex gap-4">
@@ -591,7 +588,7 @@ export default function Home() {
                 <div>
                   <p className="font-semibold text-secondary">Head Office</p>
                   <p className="mt-1 text-foreground/70">10158 Rue Berri<br />Montreal, Quebec H3L 2G6<br />Canada</p>
-                  <p className="mt-3 text-sm font-semibold uppercase tracking-[0.24em] text-primary">Serving clients across Canada</p>
+                  <p className="mt-3 text-sm font-semibold uppercase tracking-[0.24em] text-primary">Canada-based, working across international requests</p>
                 </div>
               </div>
             </div>
@@ -605,7 +602,7 @@ export default function Home() {
                 <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Name *</FormLabel><FormControl><Input placeholder="Your full name" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Phone *</FormLabel><FormControl><Input type="tel" placeholder="+1 (438) 000-0000" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Email *</FormLabel><FormControl><Input type="email" placeholder="your.email@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Address *</FormLabel><FormControl><Input placeholder="Your full address anywhere in Canada" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Address *</FormLabel><FormControl><Input placeholder="Your full address or project location" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="repairType" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="font-semibold text-foreground">Service Type *</FormLabel>
@@ -630,7 +627,7 @@ export default function Home() {
       </section>
 
       <div className="fixed bottom-4 left-4 right-4 z-40 flex gap-2 md:hidden">
-        <a href="tel:+148383471823" className="flex-1 rounded-lg bg-primary px-3 py-2 text-center text-sm font-bold text-white">Call</a>
+        <a href="tel:+14383471823" className="flex-1 rounded-lg bg-primary px-3 py-2 text-center text-sm font-bold text-white">Call</a>
         <a href="#contact" className="flex-1 rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-white">Book</a>
       </div>
 
@@ -639,7 +636,7 @@ export default function Home() {
           <div className="mb-12 grid gap-12 md:grid-cols-4">
             <div>
               <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-24 w-auto max-w-full object-contain" />
-              <p className="mt-4 max-w-xs leading-relaxed text-white/85">Door and furniture repairs handled with care from Montreal for homes and businesses across Canada.</p>
+              <p className="mt-4 max-w-xs leading-relaxed text-white/85">Door and furniture repairs handled with care from Canada for homes, businesses, and international requests.</p>
             </div>
             <div>
               <h4 className="mb-4 font-bold" style={{ fontFamily: "Montserrat" }}>Quick Links</h4>
@@ -669,9 +666,9 @@ export default function Home() {
             <div>
               <h4 className="mb-4 font-bold" style={{ fontFamily: "Montserrat" }}>Get in Touch</h4>
               <ul className="space-y-3 text-white/80">
-                <li><a href="tel:+148383471823" className="font-semibold transition hover:text-primary">+1 (483) 834-7182</a></li>
+                <li><a href="tel:+14383471823" className="font-semibold transition hover:text-primary">+1 (438) 347-1823</a></li>
                 <li><a href="https://wa.me/233242011305" className="text-sm transition hover:text-primary">WhatsApp: +233 24 201 1305</a></li>
-                <li className="text-sm">Montreal HQ, serving all of Canada</li>
+                <li className="text-sm">Canada-based, supporting international clients</li>
               </ul>
               <div className="mt-4 flex gap-3">
                 <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="text-white/80 transition hover:text-primary" aria-label="Instagram"><Instagram className="h-6 w-6" /></a>
@@ -681,7 +678,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-primary/30 pt-8">
-            <p className="text-center font-medium text-white/80">&copy; 2026 FixMyDoor. Door & Furniture Repair Services across Canada.</p>
+            <p className="text-center font-medium text-white/80">&copy; 2026 FixMyDoor. Canada-based door & furniture repair services with international support.</p>
           </div>
         </div>
       </footer>

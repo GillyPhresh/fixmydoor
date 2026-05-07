@@ -136,8 +136,8 @@ export const customerReviews = [
 
 export const quickHighlights = [
   {
-    title: "Canada-Wide Coverage",
-    text: "Montreal-based, serving homes and businesses across Canada.",
+    title: "Canada-Based Reach",
+    text: "Serving Canadian clients with support for international requests.",
   },
   {
     title: "Trusted Workmanship",

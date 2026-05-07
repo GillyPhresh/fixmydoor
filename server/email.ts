@@ -12,7 +12,7 @@ interface EmailConfig {
   from: string;
 }
 
-const DEFAULT_BUSINESS_EMAIL = "info@fixmydoor.com";
+const DEFAULT_BUSINESS_EMAIL = "info.fixmydoor@gmail.com";
 
 function getBusinessEmail() {
   return process.env.BUSINESS_EMAIL || process.env.ADMIN_EMAIL || DEFAULT_BUSINESS_EMAIL;
@@ -94,7 +94,7 @@ class EmailService {
         </div>
 
         <p>Our Staff will contact you soon to confirm the appointment time. You can reach us at:</p>
-        <p><strong>Phone:</strong> +1 (483) 834-7182</p>
+        <p><strong>Phone:</strong> +1 (438) 347-1823</p>
         <p><strong>Email:</strong> <a href="mailto:${escapeHtml(businessEmail)}">${escapeHtml(businessEmail)}</a></p>
 
         <p>Thank you for trusting FixMyDoor with your repair needs!</p>
