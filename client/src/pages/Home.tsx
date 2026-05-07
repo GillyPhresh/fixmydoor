@@ -13,14 +13,17 @@ import {
   CheckCircle2,
   Facebook,
   Globe2,
+  Hammer,
   Home as HomeIcon,
   Instagram,
   Lock,
   Mail,
   MapPin,
   MessageCircle,
+  PackageCheck,
   Phone,
   ShieldCheck,
+  ShoppingBag,
   Star,
   Twitter,
   Wrench,
@@ -29,7 +32,20 @@ import {
 import { toast } from "sonner";
 import type { BookingRequest, Review, ReviewRequest } from "@shared/types";
 import { serviceCatalog as defaultServiceCatalog, type ServiceCatalogItem } from "@shared/services";
-import { customerReviews, featuredService, featuredServiceCollage, heroImage, projectGallery, quickHighlights, serviceShowcase, technicianImage } from "./homeContent";
+import {
+  customerPaths,
+  customerReviews,
+  doorProducts,
+  featuredService,
+  featuredServiceCollage,
+  hardwareProducts,
+  heroImage,
+  productCategories,
+  projectGallery,
+  quickHighlights,
+  serviceShowcase,
+  technicianImage,
+} from "./homeContent";
 
 const bookingSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -58,6 +74,9 @@ const serviceIcons: Record<string, typeof HomeIcon> = {
   "lock-rekeying": Lock,
   "entry-door-installation": ShieldCheck,
   "furniture-repair": Wrench,
+  "door-purchase": ShoppingBag,
+  "door-hardware-purchase": PackageCheck,
+  "furniture-hardware-purchase": Hammer,
 };
 
 export default function Home() {
@@ -190,6 +209,28 @@ export default function Home() {
     toast.success(`${service.title} selected. Fill in your details and we'll take it from there.`);
   };
 
+  const handleCatalogPick = (bookingValue: string, label: string) => {
+    form.setValue("repairType", bookingValue, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+
+    const currentMessage = form.getValues("message")?.trim();
+    if (!currentMessage) {
+      form.setValue("message", `I am interested in ${label}. Please contact me with availability, sizing, and pricing.`, {
+        shouldDirty: true,
+      });
+    }
+
+    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      document.getElementById("repair-type-trigger")?.focus();
+    }, 350);
+
+    toast.success(`${label} selected. Send your details and we will prepare the next step.`);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <nav className="sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/95 backdrop-blur">
@@ -218,6 +259,7 @@ export default function Home() {
           </div>
           <div className="hidden gap-6 text-sm font-semibold lg:flex">
             <a href="#services" className="transition hover:text-primary">Services</a>
+            <a href="#shop" className="transition hover:text-primary">Shop</a>
             <a href="#before-after" className="transition hover:text-primary">Projects</a>
             <a href="#about" className="transition hover:text-primary">About</a>
             <a href="#testimonials" className="transition hover:text-primary">Reviews</a>
@@ -249,6 +291,10 @@ export default function Home() {
               <a href="#contact" className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-primary/90">
                 Book a Repair
                 <ArrowRight className="h-4 w-4" />
+              </a>
+              <a href="#shop" className="inline-flex items-center justify-center gap-2 rounded-full border border-secondary/20 bg-white px-6 py-3 font-bold text-secondary shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">
+                <ShoppingBag className="h-4 w-4" />
+                Buy Doors & Hardware
               </a>
               <a href="tel:+14383471823" className="inline-flex items-center justify-center gap-2 rounded-full bg-secondary px-6 py-3 font-bold text-white transition hover:-translate-y-0.5 hover:bg-secondary/90">
                 <Phone className="h-4 w-4" />
@@ -287,6 +333,42 @@ export default function Home() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#2f241c] py-12 text-white md:py-16">
+        <div className="container max-w-[1180px]">
+          <div className="mb-8 text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.35em] text-primary">Choose Your Path</p>
+            <h2 className="mt-3 font-display text-3xl font-bold md:text-5xl">Repair it, replace it, or source the right part.</h2>
+            <p className="mx-auto mt-3 max-w-3xl text-white/75">
+              FixMyDoor is structured around two practical needs: getting things fixed and helping customers buy the right door, furniture part, or hardware for the job.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            {customerPaths.map((path, index) => (
+              <a
+                key={path.title}
+                href={path.href}
+                className={`group overflow-hidden rounded-[30px] border border-white/10 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.18)] transition hover:-translate-y-1 ${
+                  index === 0 ? "bg-white text-secondary" : "bg-primary text-white"
+                }`}
+              >
+                <span className={`inline-flex rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] ${
+                  index === 0 ? "bg-primary/10 text-primary" : "bg-white/18 text-white"
+                }`}>
+                  {path.label}
+                </span>
+                <h3 className="mt-5 text-2xl font-bold md:text-3xl">{path.title}</h3>
+                <p className={`mt-3 leading-relaxed ${index === 0 ? "text-foreground/70" : "text-white/85"}`}>{path.desc}</p>
+                <span className="mt-6 inline-flex items-center gap-2 font-bold">
+                  {path.cta}
+                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                </span>
+              </a>
+            ))}
           </div>
         </div>
       </section>
@@ -376,6 +458,113 @@ export default function Home() {
                 </button>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      <section id="shop" className="bg-[linear-gradient(180deg,_#fffdf8,_#f3eadc)] py-16 md:py-[4.5rem]">
+        <div className="container max-w-[1180px]">
+          <div className="mb-10 flex flex-col gap-4 text-center md:flex-row md:items-end md:justify-between md:text-left">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Buy & Source</p>
+              <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Doors, furniture parts, and repair hardware</h2>
+              <p className="mt-4 max-w-3xl text-lg leading-relaxed text-foreground/70">
+                Browse realistic product categories, then request availability, sizing, and pricing through the booking form. We keep the purchase process practical so you do not buy the wrong part.
+              </p>
+            </div>
+            <a href="#contact" className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 font-bold text-white transition hover:bg-primary/90">
+              Request a Quote
+            </a>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3">
+            {productCategories.map((category) => (
+              <article key={category.title} className="overflow-hidden rounded-[32px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)]">
+                <div className="relative h-64 overflow-hidden bg-[#f8f4ec]">
+                  <img src={category.image} alt={category.title} className="h-full w-full object-cover" />
+                  <img src={category.accent} alt="" className="absolute bottom-4 right-4 h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-xl" />
+                </div>
+                <div className="p-6">
+                  <h3 className="text-2xl font-bold text-secondary">{category.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-foreground/70">{category.desc}</p>
+                  <p className="mt-4 rounded-2xl bg-background p-4 text-sm font-semibold text-secondary">{category.items}</p>
+                  <button
+                    type="button"
+                    onClick={() => handleCatalogPick(category.bookingValue, category.title)}
+                    className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-secondary px-5 py-3 font-bold text-white transition hover:bg-primary"
+                  >
+                    Ask About This
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-12 rounded-[34px] bg-[#2f241c] p-5 text-white shadow-[0_22px_70px_rgba(47,36,28,0.2)] sm:p-8">
+            <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">Door Buying Gallery</p>
+                <h3 className="mt-3 text-3xl font-bold">Entry, interior, security, and custom-fit door options</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCatalogPick("door-purchase", "door buying options")}
+                className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-bold text-white transition hover:bg-primary/90"
+              >
+                Request Door Options
+              </button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              {doorProducts.map((product) => (
+                <button
+                  key={product.title}
+                  type="button"
+                  onClick={() => handleCatalogPick("door-purchase", product.title)}
+                  className="group overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12"
+                >
+                  <img src={product.image} alt={product.title} className="h-56 w-full bg-white object-cover transition duration-500 group-hover:scale-[1.03]" />
+                  <div className="p-4">
+                    <span className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary">{product.tag}</span>
+                    <p className="mt-2 font-bold text-white">{product.title}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-10 rounded-[34px] border border-primary/12 bg-white p-5 shadow-[0_18px_50px_rgba(0,0,0,0.06)] sm:p-8">
+            <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">Hardware & Tools</p>
+                <h3 className="mt-3 text-3xl font-bold text-secondary">Handles, locks, hinges, cylinders, slides, and cabinet parts</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleCatalogPick("door-hardware-purchase", "door and furniture hardware")}
+                className="inline-flex items-center justify-center rounded-full bg-secondary px-5 py-3 text-sm font-bold text-white transition hover:bg-primary"
+              >
+                Request Hardware
+              </button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              {hardwareProducts.map((product) => (
+                <button
+                  key={product.title}
+                  type="button"
+                  onClick={() => handleCatalogPick(product.tag.includes("Drawer") || product.tag.includes("Cabinet") ? "furniture-hardware-purchase" : "door-hardware-purchase", product.title)}
+                  className="group overflow-hidden rounded-[22px] border border-primary/10 bg-[#fffaf2] text-left transition hover:-translate-y-1"
+                >
+                  <img src={product.image} alt={product.title} className="h-48 w-full bg-white object-contain p-3 transition duration-500 group-hover:scale-[1.03]" />
+                  <div className="p-4">
+                    <span className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary">{product.tag}</span>
+                    <p className="mt-2 font-bold text-secondary">{product.title}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -605,7 +794,7 @@ export default function Home() {
                 <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Address *</FormLabel><FormControl><Input placeholder="Your full address or project location" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="repairType" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-semibold text-foreground">Service Type *</FormLabel>
+                    <FormLabel className="font-semibold text-foreground">Service or Product Request *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || undefined}>
                       <FormControl><SelectTrigger id="repair-type-trigger"><SelectValue placeholder="Select a service" /></SelectTrigger></FormControl>
                       <SelectContent>
@@ -642,6 +831,7 @@ export default function Home() {
               <h4 className="mb-4 font-bold" style={{ fontFamily: "Montserrat" }}>Quick Links</h4>
               <ul className="space-y-3 text-white/80">
                 <li><a href="#services" className="transition hover:text-primary">Services</a></li>
+                <li><a href="#shop" className="transition hover:text-primary">Shop</a></li>
                 <li><a href="#before-after" className="transition hover:text-primary">Projects</a></li>
                 <li><a href="#about" className="transition hover:text-primary">About</a></li>
                 <li><a href="#contact" className="transition hover:text-primary">Contact</a></li>

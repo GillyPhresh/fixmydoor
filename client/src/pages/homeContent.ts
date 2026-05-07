@@ -14,6 +14,28 @@ import furnitureMovingTeamImage from "./Images/furniture-moving-team.jpg";
 import executiveDeskShowcaseImage from "./Images/desk-monitor-plant-ai-generated.jpg";
 import doorHardwareRefreshImage from "./Images/one-stop-home-services.jpg";
 import woodenDoorShowcaseImage from "./Images/wooden-door-showcase.jpg";
+import doorShowroomOptionsImage from "./Images/catalog/door-showroom-options.jpg";
+import modernEntranceIdeasImage from "./Images/catalog/modern-main-entrance-ideas.jpg";
+import blackHandleLockHingeKitImage from "./Images/catalog/black-handle-lock-hinge-kit.jpg";
+import chromeBathroomHandleLockKitImage from "./Images/catalog/chrome-bathroom-handle-lock-kit.jpg";
+import silverMortiseHandleCylinderKitImage from "./Images/catalog/silver-mortise-handle-cylinder-kit.jpg";
+import blackDrawerSlideWithDrawerImage from "./Images/catalog/black-drawer-slide-with-drawer.jpg";
+import blackSoftCloseDrawerSlidesImage from "./Images/catalog/black-soft-close-drawer-slides.jpg";
+import softCloseCabinetHingesImage from "./Images/catalog/soft-close-cabinet-hinges.jpg";
+import chromeBackplateHandleLockKitImage from "./Images/catalog/chrome-backplate-handle-lock-kit.jpg";
+import euroCylinderLocksImage from "./Images/catalog/euro-cylinder-locks.jpg";
+import cylindricalKnobLockImage from "./Images/catalog/cylindrical-knob-lock.jpg";
+import brassMortiseHandleLockImage from "./Images/catalog/brass-mortise-handle-lock.jpg";
+import doorHandleStyleGridImage from "./Images/catalog/door-handle-style-grid.jpg";
+import blackSecurityDoorImage from "./Images/catalog/black-security-door.jpg";
+import brownSecurityDoorImage from "./Images/catalog/brown-security-door.jpg";
+import threeSecurityDoorsImage from "./Images/catalog/three-security-doors.jpg";
+import wideGreyGlassEntryDoorImage from "./Images/catalog/wide-grey-glass-entry-door.jpg";
+import woodGlassEntryDoorImage from "./Images/catalog/wood-glass-entry-door.jpg";
+import modernWoodEntryDoorHouseImage from "./Images/catalog/modern-wood-entry-door-house.jpg";
+import brownPanelFrontDoorImage from "./Images/catalog/brown-panel-front-door.jpg";
+import fourDoorProductLineImage from "./Images/catalog/four-door-product-line.jpg";
+import woodDoorProductLineImage from "./Images/catalog/wood-door-product-line.jpg";
 
 export { heroImage, technicianImage };
 
@@ -75,6 +97,76 @@ export const serviceShowcase = [
     tag: "Commercial Touch-Up",
     contain: true,
   },
+];
+
+export const customerPaths = [
+  {
+    label: "Repair & Installation",
+    title: "Fix doors, locks, hinges, sliders, and furniture",
+    desc: "Book a practical repair visit for sticking doors, damaged frames, loose hardware, broken furniture, cabinet hinges, drawer slides, and lock issues.",
+    cta: "Book a Repair",
+    href: "#contact",
+  },
+  {
+    label: "Buy & Source",
+    title: "Buy doors, furniture parts, and repair hardware",
+    desc: "Request doors, handles, cylinders, locks, hinges, drawer slides, and furniture hardware. We help match the product to the job before quoting.",
+    cta: "Browse Products",
+    href: "#shop",
+  },
+];
+
+export const productCategories = [
+  {
+    title: "Doors & Entry Systems",
+    desc: "Modern, steel, wood-look, glass-panel, and security-style doors for homes, offices, hotels, and rental properties.",
+    items: "Entry doors, interior doors, security doors, custom-fit door options",
+    image: doorShowroomOptionsImage,
+    accent: modernEntranceIdeasImage,
+    bookingValue: "door-purchase",
+  },
+  {
+    title: "Locks, Handles & Door Hardware",
+    desc: "Door handle sets, mortise locks, cylinders, knobs, hinges, backplates, and full hardware kits for replacement or upgrade jobs.",
+    items: "Handles, cylinders, hinges, lock bodies, backplates, knob locks",
+    image: silverMortiseHandleCylinderKitImage,
+    accent: chromeBackplateHandleLockKitImage,
+    bookingValue: "door-hardware-purchase",
+  },
+  {
+    title: "Furniture Hardware & Tools",
+    desc: "Useful parts for furniture repairs, cabinet doors, drawers, and storage systems that need smoother movement and stronger support.",
+    items: "Drawer slides, cabinet hinges, soft-close runners, mounting hardware",
+    image: blackDrawerSlideWithDrawerImage,
+    accent: softCloseCabinetHingesImage,
+    bookingValue: "furniture-hardware-purchase",
+  },
+];
+
+export const doorProducts = [
+  { title: "Modern Entrance Door Concepts", image: modernEntranceIdeasImage, tag: "Modern Entry" },
+  { title: "Black Security Door", image: blackSecurityDoorImage, tag: "Security" },
+  { title: "Brown Security Door", image: brownSecurityDoorImage, tag: "Security" },
+  { title: "Three-Door Security Range", image: threeSecurityDoorsImage, tag: "Door Range" },
+  { title: "Wide Grey Glass Entry Door", image: wideGreyGlassEntryDoorImage, tag: "Glass Entry" },
+  { title: "Wood Glass Entry Door", image: woodGlassEntryDoorImage, tag: "Wood Entry" },
+  { title: "Modern Wood Front Door", image: modernWoodEntryDoorHouseImage, tag: "Exterior Door" },
+  { title: "Brown Panel Front Door", image: brownPanelFrontDoorImage, tag: "Classic Door" },
+  { title: "Four-Door Product Line", image: fourDoorProductLineImage, tag: "Interior Options" },
+  { title: "Wood Door Product Line", image: woodDoorProductLineImage, tag: "Interior Options" },
+];
+
+export const hardwareProducts = [
+  { title: "Black Handle, Lock & Hinge Kit", image: blackHandleLockHingeKitImage, tag: "Door Kit" },
+  { title: "Chrome Bathroom Handle Lock Kit", image: chromeBathroomHandleLockKitImage, tag: "Bathroom Lock" },
+  { title: "Silver Mortise Handle Cylinder Kit", image: silverMortiseHandleCylinderKitImage, tag: "Mortise Kit" },
+  { title: "Chrome Backplate Handle Lock Kit", image: chromeBackplateHandleLockKitImage, tag: "Handle Set" },
+  { title: "Euro Cylinder Locks", image: euroCylinderLocksImage, tag: "Cylinder" },
+  { title: "Cylindrical Knob Lock", image: cylindricalKnobLockImage, tag: "Knob Lock" },
+  { title: "Brass Mortise Handle Lock", image: brassMortiseHandleLockImage, tag: "Premium Handle" },
+  { title: "Door Handle Style Set", image: doorHandleStyleGridImage, tag: "Handle Options" },
+  { title: "Black Soft-Close Drawer Slides", image: blackSoftCloseDrawerSlidesImage, tag: "Drawer Runner" },
+  { title: "Soft-Close Cabinet Hinges", image: softCloseCabinetHingesImage, tag: "Cabinet Hinge" },
 ];
 
 export const projectGallery = [
