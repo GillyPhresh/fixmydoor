@@ -41,31 +41,31 @@ export { heroImage, technicianImage };
 
 export const featuredService = {
   tag: "Security Upgrade",
-  title: "Front Door Rekeying and the kind of repair work people call about every day.",
-  desc: "The main focus here is front-door security, while the supporting images show the wider mix of door and furniture jobs handled on a normal week.",
+  title: "Front-door security, plus the everyday repairs people call us for.",
+  desc: "From rekeying a front door to fixing furniture hardware, this is the kind of work we handle when something at home or at work stops feeling right.",
 };
 
 export const featuredServiceCollage = [
   {
     src: doorHardwareRefreshImage,
-    title: "Lock Hardware Refresh",
-    tag: "Entry Care",
+    title: "Fresh Lock Hardware",
+    tag: "Entry Door",
     featured: true,
   },
   {
     src: woodenDoorShowcaseImage,
-    title: "Custom Wood Door Fit",
-    tag: "Door Craft",
+    title: "Wood Door Fitting",
+    tag: "Door Work",
   },
   {
     src: sofaFrameRepairImage,
     title: "Sofa Frame Repair",
-    tag: "Furniture Fix",
+    tag: "Furniture",
   },
   {
     src: furnitureMovingTeamImage,
-    title: "Furniture Setup Support",
-    tag: "Home Support",
+    title: "Furniture Setup Help",
+    tag: "Setup",
     featured: true,
   },
 ];
@@ -74,27 +74,27 @@ export const serviceShowcase = [
   {
     src: heroImage,
     title: "Front Door Rekeying",
-    desc: "A sensible security refresh when you want the lock to feel safer, smoother, and easier to trust.",
+    desc: "A simple way to feel safer when keys are missing, tenants change, or a lock no longer feels trustworthy.",
     tag: "Security Upgrade",
   },
   {
     src: entryDoorImage,
     title: "Entry Door Replacement",
-    desc: "A cleaner front-door upgrade with better fit, better swing, and a stronger first impression.",
+    desc: "A better-fitting front door that opens smoothly, closes properly, and gives the entrance a cleaner look.",
     tag: "Exterior Doors",
   },
   {
     src: officeDeskRepairImage,
     title: "Desk & Cabinet Repairs",
-    desc: "Useful repairs for desks and cabinets that need to look tidier and work properly again.",
+    desc: "Small repairs that make desks, cabinets, and storage pieces easier to use again.",
     tag: "Workspace Care",
     contain: true,
   },
   {
     src: executiveDeskShowcaseImage,
     title: "Office Furniture Refresh",
-    desc: "Simple touch-ups that help office furniture feel more presentable without overcomplicating the job.",
-    tag: "Commercial Touch-Up",
+    desc: "A simple clean-up for office furniture that looks worn but still has plenty of life left.",
+    tag: "Office Care",
     contain: true,
   },
 ];
@@ -102,15 +102,15 @@ export const serviceShowcase = [
 export const customerPaths = [
   {
     label: "Repair & Installation",
-    title: "Fix doors, locks, hinges, sliders, and furniture",
-    desc: "Book a practical repair visit for sticking doors, damaged frames, loose hardware, broken furniture, cabinet hinges, drawer slides, and lock issues.",
+    title: "Fix the door, lock, hinge, drawer, or furniture piece",
+    desc: "Tell us what is not working. We will help with sticking doors, loose handles, damaged frames, drawer slides, cabinet hinges, and furniture repairs.",
     cta: "Book a Repair",
     href: "#contact",
   },
   {
     label: "Buy & Source",
-    title: "Buy doors, furniture parts, and repair hardware",
-    desc: "Request doors, handles, cylinders, locks, hinges, drawer slides, and furniture hardware. We help match the product to the job before quoting.",
+    title: "Find the right door, part, or hardware before you buy",
+    desc: "Looking for doors, handles, locks, cylinders, hinges, drawer slides, or furniture parts? We help you choose what fits the job.",
     cta: "Browse Products",
     href: "#shop",
   },
@@ -119,24 +119,24 @@ export const customerPaths = [
 export const productCategories = [
   {
     title: "Doors & Entry Systems",
-    desc: "Modern, steel, wood-look, glass-panel, and security-style doors for homes, offices, hotels, and rental properties.",
-    items: "Entry doors, interior doors, security doors, custom-fit door options",
+    desc: "Entry, interior, glass-panel, steel, and wood-look doors for homes, rentals, offices, and small commercial spaces.",
+    items: "Entry doors, interior doors, security doors, and custom-fit options",
     image: doorShowroomOptionsImage,
     accent: modernEntranceIdeasImage,
     bookingValue: "door-purchase",
   },
   {
     title: "Locks, Handles & Door Hardware",
-    desc: "Door handle sets, mortise locks, cylinders, knobs, hinges, backplates, and full hardware kits for replacement or upgrade jobs.",
-    items: "Handles, cylinders, hinges, lock bodies, backplates, knob locks",
+    desc: "Handles, lock bodies, cylinders, hinges, knobs, and backplates for simple replacements or full door upgrades.",
+    items: "Handles, cylinders, hinges, lock bodies, backplates, and knob locks",
     image: silverMortiseHandleCylinderKitImage,
     accent: chromeBackplateHandleLockKitImage,
     bookingValue: "door-hardware-purchase",
   },
   {
     title: "Furniture Hardware & Tools",
-    desc: "Useful parts for furniture repairs, cabinet doors, drawers, and storage systems that need smoother movement and stronger support.",
-    items: "Drawer slides, cabinet hinges, soft-close runners, mounting hardware",
+    desc: "Parts for drawers, cabinet doors, shelves, and furniture pieces that need stronger support or smoother movement.",
+    items: "Drawer slides, cabinet hinges, soft-close runners, and mounting hardware",
     image: blackDrawerSlideWithDrawerImage,
     accent: softCloseCabinetHingesImage,
     bookingValue: "furniture-hardware-purchase",
@@ -144,10 +144,10 @@ export const productCategories = [
 ];
 
 export const doorProducts = [
-  { title: "Modern Entrance Door Concepts", image: modernEntranceIdeasImage, tag: "Modern Entry" },
+  { title: "Modern Front Door Ideas", image: modernEntranceIdeasImage, tag: "Modern Entry" },
   { title: "Black Security Door", image: blackSecurityDoorImage, tag: "Security" },
   { title: "Brown Security Door", image: brownSecurityDoorImage, tag: "Security" },
-  { title: "Three-Door Security Range", image: threeSecurityDoorsImage, tag: "Door Range" },
+  { title: "Security Door Set", image: threeSecurityDoorsImage, tag: "Door Range" },
   { title: "Wide Grey Glass Entry Door", image: wideGreyGlassEntryDoorImage, tag: "Glass Entry" },
   { title: "Wood Glass Entry Door", image: woodGlassEntryDoorImage, tag: "Wood Entry" },
   { title: "Modern Wood Front Door", image: modernWoodEntryDoorHouseImage, tag: "Exterior Door" },
@@ -172,55 +172,55 @@ export const hardwareProducts = [
 export const projectGallery = [
   {
     src: brokenDoorImage,
-    title: "Emergency Frame Reinforcement",
-    desc: "Kicked-in entry doors are stabilized, rebuilt, and made safe again with stronger support at the frame.",
+    title: "Damaged Frame Repair",
+    desc: "When a door frame is damaged after a break-in or hard impact, we focus on making the entry safe and usable again.",
     category: "Frame Repair",
   },
   {
     src: locksmithImage,
-    title: "Smart Rekeying Upgrade",
-    desc: "A practical security refresh when keys are missing, locks are worn, or access needs to change quickly.",
+    title: "Lock Rekeying",
+    desc: "A good option when keys are missing, access needs to change, or the lock simply feels worn out.",
     category: "Lock Service",
   },
   {
     src: entryDoorImage,
-    title: "Fresh Entry Door Install",
-    desc: "A sharper front entrance with better fit, cleaner gaps, and a stronger everyday feel.",
+    title: "Entry Door Install",
+    desc: "A front-door update with cleaner gaps, smoother swing, and a better everyday feel.",
     category: "Door Upgrade",
   },
   {
     src: warmEntryImage,
-    title: "Warm Entryway Refresh",
-    desc: "A polished door finish that lifts curb appeal while keeping daily use smooth and reliable.",
+    title: "Entryway Refresh",
+    desc: "A cleaner entrance that looks better from outside and still works well day to day.",
     category: "Exterior Finish",
   },
   {
     src: whiteDoorImage,
     title: "Interior Door Tune-Up",
-    desc: "Clean alignment work that helps interior doors close quietly and look properly set in the opening.",
+    desc: "Alignment work for interior doors that scrape, swing badly, or will not sit properly in the frame.",
     category: "Interior Repair",
   },
   {
     src: modernDoorImage,
     title: "Modern Door Installation",
-    desc: "Contemporary doors installed with straighter lines, neater reveals, and a crisp finished look.",
+    desc: "A cleaner modern door setup with straighter lines and a more finished look.",
     category: "Design Upgrade",
   },
 ];
 
 export const customerReviews = [
   {
-    quote: "Richard fixed my front door quickly, and the finished result looked cleaner than I expected.",
+    quote: "Richard fixed my front door quickly, and the finished work looked very clean.",
     name: "Sarah M.",
     location: "Montreal, QC",
   },
   {
-    quote: "We booked for lock adjustment and door realignment. The service was tidy, fast, and confidently handled.",
+    quote: "We called for a lock adjustment and door realignment. The work was neat and handled well.",
     name: "Daniel T.",
     location: "Ottawa, ON",
   },
   {
-    quote: "The door closes perfectly now, and the hardware finally feels secure again. Very dependable work.",
+    quote: "The door closes properly now, and the handle finally feels secure again.",
     name: "Melissa R.",
     location: "Calgary, AB",
   },
@@ -229,14 +229,14 @@ export const customerReviews = [
 export const quickHighlights = [
   {
     title: "Canada-Based Reach",
-    text: "Serving Canadian clients with support for international requests.",
+    text: "Based in Canada, while also helping customers who contact us from abroad.",
   },
   {
     title: "Trusted Workmanship",
-    text: "Careful door, lock, hinge, and furniture repair.",
+    text: "Careful work on doors, locks, hinges, cabinets, and furniture.",
   },
   {
     title: "Fast Response",
-    text: "Quick replies, clear timing, and dependable follow-up.",
+    text: "Quick replies, clear timing, and follow-up you can understand.",
   },
 ];
