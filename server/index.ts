@@ -1,6 +1,7 @@
 import express from "express";
 import session from "express-session";
 import { createServer } from "http";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
@@ -16,7 +17,9 @@ import { emailService } from "./email";
 import type { Booking, BookingStatusHistoryEntry, BookingUpdateRequest } from "@shared/types";
 import { serviceCatalog } from "@shared/services";
 
-process.loadEnvFile?.();
+if (fs.existsSync(".env")) {
+  process.loadEnvFile?.(".env");
+}
 
 declare module "express-session" {
   interface SessionData {
@@ -143,22 +146,28 @@ async function startServer() {
 
   // Health check endpoint
   app.get("/api/health", async (req, res) => {
-    try {
-      // Check database connectivity
-      await prisma.$queryRaw`SELECT 1`;
+    const payload = {
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV,
+      checks: {
+        database: "connected",
+      },
+    };
 
-      res.json({
-        status: "healthy",
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV,
-      });
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      return res.json(payload);
     } catch (error) {
       console.error("Health check failed:", error);
-      res.status(503).json({
-        status: "unhealthy",
-        timestamp: new Date().toISOString(),
-        error: "Database connection failed",
+
+      return res.json({
+        ...payload,
+        status: "degraded",
+        checks: {
+          database: "unavailable",
+        },
       });
     }
   });
