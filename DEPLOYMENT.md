@@ -1,215 +1,145 @@
-# 🚀 FixMyDoor Deployment Guide
+# FixMyDoor Railway Deployment Guide
 
-## Recommended Hosting: Railway
+This project deploys as one full-stack Railway service:
 
-Railway is the best choice for this full-stack Node.js + SQLite application because:
-- ✅ Native Node.js support
-- ✅ SQLite works perfectly (persistent file storage)
-- ✅ Easy GitHub integration
-- ✅ Automatic HTTPS
-- ✅ Good free tier ($5/month after trial)
-- ✅ Handles full-stack apps seamlessly
+- Public website: `/`
+- Admin dashboard: `/admin`
+- Customer tracking pages: `/track/:token`
+- Backend API: `/api/*`
+- SQLite database: stored on a Railway volume
 
-## Alternative Options
+## 1. What Railway Plan Can Be Used?
 
-- **Render**: Good free tier, but slower cold starts
-- **Fly.io**: Excellent performance, but more complex setup
-- **Vercel**: Great for frontend, but SQLite tricky
-- **DigitalOcean App Platform**: Reliable, but more expensive
+Railway has a Free plan/trial option for small apps. The free/trial limits can change, so confirm the current limits in Railway before relying on it for production. For a preview website, the Free plan/trial is suitable if the app stays within the included monthly credits and storage limits.
 
----
+## 2. Push Code To GitHub
 
-## Step 1: Prepare Your Code
+Do not commit `.env`.
 
-### 1.1 Push to GitHub
-
-```bash
-# Initialize git if not already done
-git init
+```powershell
 git add .
-git commit -m "Initial commit: FixMyDoor booking system"
-
-# Create GitHub repository and push
-# (Replace with your GitHub username/repo)
-git remote add origin https://github.com/yourusername/fixmydoor.git
-git push -u origin main
+git commit -m "Prepare FixMyDoor for Railway deployment"
+git push
 ```
 
-### 1.2 Environment Variables
+## 3. Create Railway Project
 
-Create a `.env` file in your project root with:
+1. Go to Railway.
+2. Click `New Project`.
+3. Choose `Deploy from GitHub repo`.
+4. Select the FixMyDoor repository.
+5. Railway will use `railway.json` and the `Dockerfile`.
+
+Railway will build the frontend and backend into one Node app.
+
+## 4. Add A Persistent Volume For SQLite
+
+Bookings, reviews, admin users, and dashboard content are stored in SQLite. Railway containers are recreated during deploys, so the database must be on a persistent volume.
+
+1. In the Railway project canvas, add a volume to the app service.
+2. Mount the volume at:
+
+```text
+/data
+```
+
+3. Set `DATABASE_URL` to:
+
+```text
+file:/data/fixmydoor.db
+```
+
+This keeps the database outside the temporary app filesystem.
+
+## 5. Add Railway Environment Variables
+
+In Railway, open the app service, then go to `Variables`.
+
+Required:
 
 ```env
-DATABASE_URL="file:./prisma/prod.db"
-SESSION_SECRET="your-super-secure-random-session-secret-here"
 NODE_ENV="production"
+DATABASE_URL="file:/data/fixmydoor.db"
+SESSION_SECRET="generate-a-long-random-secret-at-least-32-characters"
 ```
 
-**⚠️ Important**: Generate a secure SESSION_SECRET:
-```bash
-# On Linux/Mac
-openssl rand -base64 32
+First admin account:
 
-# Or use an online generator for a 32-character random string
+```env
+CREATE_DEFAULT_ADMIN="true"
+DEFAULT_ADMIN_USERNAME="admin"
+DEFAULT_ADMIN_PASSWORD="Use-A-Strong-Private-Password123"
 ```
 
----
+Email sending:
 
-## Step 2: Deploy to Railway
-
-### 2.1 Create Railway Account
-
-1. Go to [railway.app](https://railway.app)
-2. Sign up with GitHub
-3. Verify your email
-
-### 2.2 Deploy Your App
-
-1. Click **"New Project"**
-2. Choose **"Deploy from GitHub repo"**
-3. Connect your GitHub account
-4. Select your `fixmydoor` repository
-5. Click **"Deploy"**
-
-Railway will automatically:
-- ✅ Detect it's a Node.js app
-- ✅ Install dependencies
-- ✅ Run the build process
-- ✅ Start the server
-- ✅ Provide a live URL
-
-### 2.3 Configure Environment Variables
-
-1. In your Railway project dashboard, go to **"Variables"**
-2. Add these variables:
-   - `DATABASE_URL`: `file:./prisma/prod.db`
-   - `SESSION_SECRET`: Your secure random string
-   - `NODE_ENV`: `production`
-
-### 2.4 Database Setup
-
-Railway will automatically run your build process, which includes:
-- ✅ Prisma client generation
-- ✅ Database migration
-- ✅ Admin user creation
-
-### 2.5 Custom Domain (Optional)
-
-1. Go to **"Settings"** → **"Domains"**
-2. Add your custom domain
-3. Configure DNS records as instructed
-
----
-
-## Step 3: Post-Deployment Setup
-
-### 3.1 Test Your Application
-
-1. Visit your Railway URL (e.g., `https://fixmydoor.up.railway.app`)
-2. Test the booking form
-3. Test admin login: `/admin`
-   - Username: `admin`
-   - Password: `admin123`
-
-### 3.2 Change Default Admin Password
-
-**⚠️ CRITICAL**: Change the default password immediately!
-
-1. Connect to your database:
-   ```bash
-   # In Railway dashboard → "Data" → "Connect"
-   npx prisma studio --browser none --port 5555
-   ```
-
-2. Or update via code - modify `server/auth.ts` to change the default password
-
-### 3.3 Monitor Your App
-
-- **Logs**: Railway dashboard → "Logs"
-- **Metrics**: Railway dashboard → "Metrics"
-- **Database**: Railway dashboard → "Data"
-
----
-
-## Step 4: Production Checklist
-
-- ✅ **HTTPS**: Enabled automatically by Railway
-- ✅ **Environment Variables**: Configured
-- ✅ **Database**: SQLite with persistent storage
-- ✅ **Sessions**: Secure with HTTPS
-- ✅ **Admin Password**: Changed from default
-- ✅ **Domain**: Custom domain configured (optional)
-- ✅ **Backups**: Railway provides automatic backups
-
----
-
-## Troubleshooting
-
-### Build Fails
-```bash
-# Check Railway logs
-# Common issues:
-# - Missing environment variables
-# - Prisma client generation issues
-# - Node.js version compatibility
+```env
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_USER="info.fixmydoor@gmail.com"
+SMTP_PASS="your-gmail-app-password"
+FROM_EMAIL="FixMyDoor <info.fixmydoor@gmail.com>"
+BUSINESS_EMAIL="info.fixmydoor@gmail.com"
+ADMIN_EMAIL="info.fixmydoor@gmail.com"
 ```
 
-### Database Issues
-```bash
-# Reset database (⚠️ destroys data)
-# Railway dashboard → "Data" → "Reset Database"
+After Railway gives you a public URL, add:
+
+```env
+PUBLIC_SITE_URL="https://your-railway-url.up.railway.app"
+ADMIN_URL="https://your-railway-url.up.railway.app/admin"
 ```
 
-### Admin Login Not Working
-- Check SESSION_SECRET is set
-- Verify admin user was created (check logs)
-- Try resetting the database
+Important: `SMTP_PASS` must be a Gmail App Password, not the normal Gmail login password.
 
----
+## 6. Deploy
 
-## Cost Estimate
+Railway should automatically deploy after you push to GitHub.
 
-- **Railway Free Tier**: $5/month after 512MB RAM trial
-- **Custom Domain**: Free on Railway
-- **Database**: Included (SQLite file-based)
-- **Bandwidth**: Generous free tier
+During startup, the app runs Prisma migrations automatically when `NODE_ENV=production`.
 
----
+Useful pages after deploy:
 
-## Alternative: Docker Deployment
-
-If you prefer Docker deployment:
-
-### Build & Push Docker Image
-```bash
-# Build image
-docker build -t fixmydoor .
-
-# Tag for your registry
-docker tag fixmydoor your-registry/fixmydoor:latest
-
-# Push to registry
-docker push your-registry/fixmydoor:latest
+```text
+https://your-railway-url.up.railway.app/
+https://your-railway-url.up.railway.app/admin
+https://your-railway-url.up.railway.app/api/health
 ```
 
-### Deploy to Docker Host
-```bash
-# Run with environment variables
-docker run -p 3000:3000 \
-  -e DATABASE_URL="file:./prisma/prod.db" \
-  -e SESSION_SECRET="your-secret" \
-  -e NODE_ENV="production" \
-  your-registry/fixmydoor:latest
+## 7. Test Before Sharing
+
+Test these:
+
+- Open the public homepage.
+- Submit one booking request.
+- Confirm the business email receives the booking.
+- Confirm the customer email receives the confirmation.
+- Open `/admin`.
+- Log in with the admin username/password.
+- Confirm the booking appears in the dashboard.
+- Change the booking status and confirm the customer receives a status update email.
+- Add a review and approve it from admin.
+
+## 8. Security Notes
+
+- Do not commit `.env`.
+- Do not put Gmail passwords in GitHub.
+- Use a strong `SESSION_SECRET`.
+- Use a strong admin password.
+- Keep the Railway volume attached. Without it, SQLite data can be lost on redeploy.
+- After confirming the admin account exists, you may change `CREATE_DEFAULT_ADMIN` to `"false"`.
+
+## 9. When Ready For A Domain
+
+In Railway:
+
+1. Open the app service.
+2. Go to `Settings` or `Networking`.
+3. Add your custom domain.
+4. Update DNS as Railway instructs.
+5. Update these variables:
+
+```env
+PUBLIC_SITE_URL="https://yourdomain.com"
+ADMIN_URL="https://yourdomain.com/admin"
 ```
-
----
-
-## 🎉 You're Live!
-
-Your FixMyDoor booking system is now live and accessible worldwide! Share your Railway URL with customers to start receiving bookings.
-
-**Next Steps:**
-1. Update your business website to link to the booking form
-2. Set up email notifications (future enhancement)
-3. Add Google Analytics or similar tracking
-4. Consider adding payment integration for deposits

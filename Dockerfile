@@ -10,8 +10,8 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 # Set working directory
 WORKDIR /app
 
-# Change ownership of working directory
-RUN chown -R nextjs:nodejs /app
+# Prepare app and Railway SQLite volume directories
+RUN mkdir -p /data && chown -R nextjs:nodejs /app /data
 USER nextjs
 
 # Install pnpm

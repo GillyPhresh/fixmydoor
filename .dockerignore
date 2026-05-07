@@ -1,17 +1,27 @@
+# Keep the Railway/Docker image clean and avoid shipping secrets.
 node_modules
-npm-debug.log
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+dist
 .git
-.gitignore
-README.md
-.DS_Store
+.env
+.env.*
+*.log
+dev-server.log
+
+# Local databases should not be copied into the image.
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+prisma/prisma
+
+# Editor and OS files.
 .vscode
 .idea
-*.log
-dist
-prisma/migrations
-!prisma/schema.prisma
+Thumbs.db
+.DS_Store
+
+# Runtime/debug artifacts.
+.manus-logs
+coverage
+.cache
+.webdev
