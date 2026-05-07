@@ -1,8 +1,8 @@
 # Use Node.js 20 LTS Alpine for smaller image size
 FROM node:20-alpine
 
-# Install security updates
-RUN apk update && apk upgrade && apk add --no-cache dumb-init
+# Install security updates and runtime libraries required by Prisma
+RUN apk update && apk upgrade && apk add --no-cache dumb-init openssl
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
