@@ -10,9 +10,9 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 # Set working directory
 WORKDIR /app
 
-# Prepare app and Railway SQLite volume directories
+# Prepare app and Railway SQLite volume directories. Railway volumes are mounted
+# as root, so the runtime stays root to avoid SQLite write permission failures.
 RUN mkdir -p /data && chown -R nextjs:nodejs /app /data
-USER nextjs
 
 # Install pnpm
 RUN npm install -g pnpm
