@@ -1,5 +1,7 @@
-import type { Review, ReviewRequest } from "../shared/types";
+import type { Review, ReviewRequest, ReviewStatus } from "../shared/types";
 import { prisma } from "./prisma";
+
+const VALID_REVIEW_STATUSES: ReviewStatus[] = ["PENDING", "APPROVED", "HIDDEN"];
 
 export function validateReview(body: any): body is ReviewRequest {
   return (
@@ -18,12 +20,18 @@ export function validateReview(body: any): body is ReviewRequest {
   );
 }
 
+export function validateReviewStatus(status: any): status is ReviewStatus {
+  return typeof status === "string" && VALID_REVIEW_STATUSES.includes(status as ReviewStatus);
+}
+
 function toReview(review: {
   id: string;
   name: string;
   location: string | null;
   rating: number;
   quote: string;
+  status?: string;
+  adminNotes?: string | null;
   createdAt: Date;
 }): Review {
   return {
@@ -32,12 +40,25 @@ function toReview(review: {
     location: review.location ?? undefined,
     rating: review.rating,
     quote: review.quote,
+    status: validateReviewStatus(review.status) ? review.status : undefined,
+    adminNotes: review.adminNotes ?? undefined,
     createdAt: review.createdAt.toISOString(),
   };
 }
 
-export async function listReviews(limit = 12): Promise<Review[]> {
+export async function listReviews(limit = 12, status: ReviewStatus = "APPROVED"): Promise<Review[]> {
   const safeLimit = Math.min(30, Math.max(1, limit));
+  const reviews = await prisma.review.findMany({
+    where: { status },
+    orderBy: { createdAt: "desc" },
+    take: safeLimit,
+  });
+
+  return reviews.map(toReview);
+}
+
+export async function listAdminReviews(limit = 50): Promise<Review[]> {
+  const safeLimit = Math.min(100, Math.max(1, limit));
   const reviews = await prisma.review.findMany({
     orderBy: { createdAt: "desc" },
     take: safeLimit,
@@ -53,6 +74,7 @@ export async function saveReview(review: ReviewRequest): Promise<Review> {
       location: review.location?.trim() || null,
       rating: review.rating,
       quote: review.quote.trim(),
+      status: "PENDING",
     },
   });
 

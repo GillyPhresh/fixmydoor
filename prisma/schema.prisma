@@ -8,23 +8,40 @@ datasource db {
 }
 
 model Booking {
-  id            String      @id @default(cuid())
-  name          String
-  phone         String
-  email         String
-  address       String
-  repairType    String
-  preferredDate String?
-  message       String?
-  status        String      @default("PENDING")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id                 String      @id @default(cuid())
+  name               String
+  phone              String
+  email              String
+  address            String
+  repairType         String
+  preferredDate      String?
+  message            String?
+  status             String      @default("PENDING")
+  customerToken      String?     @unique
+  photos             String?
+  dimensions         String?
+  quantity           String?
+  material           String?
+  color              String?
+  swingDirection     String?
+  deliveryNeeded     String?
+  installationNeeded String?
+  budget             String?
+  customerConsent    Boolean     @default(false)
+  appointmentTime    String?
+  quoteAmount        String?
+  staffAssigned      String?
+  adminNotes         String?
+  statusHistory      String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   @@index([status])
   @@index([createdAt])
   @@index([name])
   @@index([email])
   @@index([phone])
+  @@index([customerToken])
 }
 
 model Admin {
@@ -40,8 +57,31 @@ model Review {
   location  String?
   rating    Int      @default(5)
   quote     String
+  status    String   @default("APPROVED")
+  adminNotes String?
   createdAt DateTime @default(now())
 
   @@index([createdAt])
   @@index([rating])
+  @@index([status])
+}
+
+model ContentItem {
+  id          String   @id @default(cuid())
+  category    String
+  title       String
+  description String?
+  tag         String?
+  image       String?
+  accentImage String?
+  items       String?
+  bookingValue String?
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([active])
+  @@index([sortOrder])
 }

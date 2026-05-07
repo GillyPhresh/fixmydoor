@@ -5,12 +5,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
-import { saveBooking, validateBooking, validateBookingStatus } from "./server/bookings";
+import { parseStatusHistory, saveBooking, serializeStatusHistory, toBooking, validateBooking, validateBookingStatus } from "./server/bookings";
 import { emailService } from "./server/email";
-import { listReviews, saveReview, validateReview } from "./server/reviews";
+import { listAdminReviews, listReviews, saveReview, validateReview, validateReviewStatus } from "./server/reviews";
+import { createContentItem, listAdminContent, listPublicContent, updateContentItem, validateContentItem } from "./server/content";
 import { prisma } from "./server/prisma";
 import { findAdminByUsername, verifyPassword } from "./server/auth";
 import { serviceCatalog } from "./shared/services";
+import type { Booking, BookingStatusHistoryEntry, BookingUpdateRequest } from "./shared/types";
 
 process.loadEnvFile?.();
 
@@ -223,6 +225,13 @@ function vitePluginBookingApi(): Plugin {
         res.end(JSON.stringify(payload));
       };
 
+      const cleanOptionalText = (value: unknown, maxLength = 1000) =>
+        typeof value === "string" && value.trim().length > 0
+          ? value.trim().slice(0, maxLength)
+          : null;
+
+      const csvValue = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+
       const readJsonBody = (req: any) =>
         new Promise<any>((resolve, reject) => {
           let body = "";
@@ -365,6 +374,95 @@ function vitePluginBookingApi(): Plugin {
           return;
         }
 
+        if (req.method === "GET" && pathname === "/content") {
+          try {
+            const items = await listPublicContent();
+            writeJson(res, 200, { items });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
+          return;
+        }
+
+        if (req.method === "GET" && pathname === "/admin/content") {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
+            return;
+          }
+
+          try {
+            const items = await listAdminContent();
+            writeJson(res, 200, { items });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
+          return;
+        }
+
+        if (req.method === "POST" && pathname === "/admin/content") {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
+            return;
+          }
+
+          try {
+            const payload = await readJsonBody(req);
+            if (!validateContentItem(payload)) {
+              writeJson(res, 400, { success: false, error: "Invalid content item" });
+              return;
+            }
+
+            const item = await createContentItem(payload);
+            writeJson(res, 201, { success: true, item });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
+          return;
+        }
+
+        if (req.method === "PATCH" && pathname.startsWith("/admin/content/")) {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
+            return;
+          }
+
+          const id = pathname.slice("/admin/content/".length);
+          try {
+            const payload = await readJsonBody(req);
+            if (!id || id.length > 50 || !validateContentItem(payload)) {
+              writeJson(res, 400, { success: false, error: "Invalid content item" });
+              return;
+            }
+
+            const item = await updateContentItem(id, payload);
+            writeJson(res, 200, { success: true, item });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
+          return;
+        }
+
+        if (req.method === "DELETE" && pathname.startsWith("/admin/content/")) {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
+            return;
+          }
+
+          const id = pathname.slice("/admin/content/".length);
+          if (!id || id.length > 50) {
+            writeJson(res, 400, { success: false, error: "Invalid content item ID" });
+            return;
+          }
+
+          try {
+            await prisma.contentItem.delete({ where: { id } });
+            writeJson(res, 200, { success: true });
+          } catch {
+            writeJson(res, 500, { success: false, error: "Failed to delete content item" });
+          }
+          return;
+        }
+
         if (req.method === "GET" && pathname === "/reviews") {
           try {
             const url = new URL(req.url ?? "/", "http://localhost");
@@ -393,6 +491,69 @@ function vitePluginBookingApi(): Plugin {
           return;
         }
 
+        if (req.method === "GET" && pathname === "/admin/reviews") {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
+            return;
+          }
+
+          try {
+            const url = new URL(req.url ?? "/", "http://localhost");
+            const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "50", 10) || 50));
+            const reviews = await listAdminReviews(limit);
+            writeJson(res, 200, { reviews });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
+          return;
+        }
+
+        if (req.method === "PATCH" && pathname.startsWith("/admin/reviews/")) {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
+            return;
+          }
+
+          const id = pathname.slice("/admin/reviews/".length);
+          try {
+            const { status, adminNotes } = await readJsonBody(req);
+            if (!id || id.length > 50 || !validateReviewStatus(status)) {
+              writeJson(res, 400, { success: false, error: "Invalid review update" });
+              return;
+            }
+
+            const review = await prisma.review.update({
+              where: { id },
+              data: { status, adminNotes: cleanOptionalText(adminNotes, 500) },
+            });
+            writeJson(res, 200, { success: true, review });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
+          return;
+        }
+
+        if (req.method === "DELETE" && pathname.startsWith("/admin/reviews/")) {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
+            return;
+          }
+
+          const id = pathname.slice("/admin/reviews/".length);
+          if (!id || id.length > 50) {
+            writeJson(res, 400, { success: false, error: "Invalid review ID" });
+            return;
+          }
+
+          try {
+            await prisma.review.delete({ where: { id } });
+            writeJson(res, 200, { success: true });
+          } catch {
+            writeJson(res, 500, { success: false, error: "Failed to delete review" });
+          }
+          return;
+        }
+
         if (req.method === "POST" && pathname === "/bookings") {
           try {
             const payload = await readJsonBody(req);
@@ -412,6 +573,45 @@ function vitePluginBookingApi(): Plugin {
             });
 
             writeJson(res, 201, { success: true });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
+          return;
+        }
+
+        if (req.method === "GET" && pathname.startsWith("/bookings/track/")) {
+          const token = pathname.slice("/bookings/track/".length);
+          if (!token || token.length > 80) {
+            writeJson(res, 400, { success: false, error: "Invalid tracking link" });
+            return;
+          }
+
+          try {
+            const booking = await prisma.booking.findUnique({
+              where: { customerToken: token },
+            });
+
+            if (!booking) {
+              writeJson(res, 404, { success: false, error: "Booking not found" });
+              return;
+            }
+
+            const safeBooking = toBooking(booking);
+            writeJson(res, 200, {
+              booking: {
+                id: safeBooking.id,
+                name: safeBooking.name,
+                repairType: safeBooking.repairType,
+                preferredDate: safeBooking.preferredDate,
+                status: safeBooking.status,
+                appointmentTime: safeBooking.appointmentTime,
+                quoteAmount: safeBooking.quoteAmount,
+                staffAssigned: safeBooking.staffAssigned,
+                statusHistory: safeBooking.statusHistory,
+                createdAt: safeBooking.createdAt,
+                updatedAt: safeBooking.updatedAt,
+              },
+            });
           } catch (error) {
             writeJson(res, 500, { success: false, error: String(error) });
           }
@@ -460,7 +660,7 @@ function vitePluginBookingApi(): Plugin {
             ]);
 
             writeJson(res, 200, {
-              bookings,
+              bookings: bookings.map(toBooking),
               pagination: {
                 page: pageNum,
                 limit: limitNum,
@@ -468,6 +668,68 @@ function vitePluginBookingApi(): Plugin {
                 pages: Math.ceil(totalCount / limitNum),
               },
             });
+          } catch (error) {
+            writeJson(res, 500, { success: false, error: String(error) });
+          }
+          return;
+        }
+
+        if (req.method === "GET" && pathname === "/bookings/export") {
+          if (!request.session?.adminId) {
+            writeJson(res, 401, { success: false, error: "Authentication required" });
+            return;
+          }
+
+          try {
+            const bookings = (await prisma.booking.findMany({
+              orderBy: { createdAt: "desc" },
+            })).map(toBooking);
+            const headers = [
+              "ID",
+              "Name",
+              "Phone",
+              "Email",
+              "Address",
+              "Service",
+              "Status",
+              "Preferred Date",
+              "Appointment Time",
+              "Quote Amount",
+              "Staff Assigned",
+              "Budget",
+              "Dimensions",
+              "Quantity",
+              "Delivery Needed",
+              "Installation Needed",
+              "Message",
+              "Created At",
+            ];
+            const rows = bookings.map((booking) => [
+              booking.id,
+              booking.name,
+              booking.phone,
+              booking.email,
+              booking.address,
+              booking.repairType,
+              booking.status,
+              booking.preferredDate,
+              booking.appointmentTime,
+              booking.quoteAmount,
+              booking.staffAssigned,
+              booking.budget,
+              booking.dimensions,
+              booking.quantity,
+              booking.deliveryNeeded,
+              booking.installationNeeded,
+              booking.message,
+              booking.createdAt,
+            ]);
+            const csv = [headers, ...rows].map((row) => row.map(csvValue).join(",")).join("\n");
+            res.writeHead(200, {
+              "Content-Type": "text/csv; charset=utf-8",
+              "Content-Disposition": "attachment; filename=\"fixmydoor-bookings.csv\"",
+            });
+            res.end(csv);
           } catch (error) {
             writeJson(res, 500, { success: false, error: String(error) });
           }
@@ -501,17 +763,54 @@ function vitePluginBookingApi(): Plugin {
           }
 
           try {
-            const { status } = await readJsonBody(req);
-            if (!validateBookingStatus(status)) {
+            const update = await readJsonBody(req) as BookingUpdateRequest;
+            const { status } = update;
+            if (status !== undefined && !validateBookingStatus(status)) {
               writeJson(res, 400, { success: false, error: "Invalid status" });
               return;
             }
 
+            const existingBooking = await prisma.booking.findUnique({ where: { id } });
+            if (!existingBooking) {
+              writeJson(res, 404, { success: false, error: "Booking not found" });
+              return;
+            }
+
+            const previousStatus = existingBooking.status as Booking["status"];
+            const nextStatus = status || previousStatus;
+            const history = parseStatusHistory(existingBooking.statusHistory);
+
+            if (status && status !== previousStatus) {
+              history.push({
+                status,
+                changedAt: new Date().toISOString(),
+                note: cleanOptionalText(update.adminNotes, 300) || "Status updated by admin",
+              } as BookingStatusHistoryEntry);
+            }
+
+            const updateData: Record<string, unknown> = {
+              status: nextStatus,
+              statusHistory: serializeStatusHistory(history),
+            };
+
+            if ("appointmentTime" in update) updateData.appointmentTime = cleanOptionalText(update.appointmentTime, 160);
+            if ("quoteAmount" in update) updateData.quoteAmount = cleanOptionalText(update.quoteAmount, 80);
+            if ("staffAssigned" in update) updateData.staffAssigned = cleanOptionalText(update.staffAssigned, 120);
+            if ("adminNotes" in update) updateData.adminNotes = cleanOptionalText(update.adminNotes, 1000);
+
             const booking = await prisma.booking.update({
               where: { id },
-              data: { status },
+              data: updateData,
             });
-            writeJson(res, 200, booking);
+            const normalizedBooking = toBooking(booking);
+
+            if (status && status !== previousStatus) {
+              emailService.sendStatusUpdate(normalizedBooking).catch((error) => {
+                console.error("Failed to send status update email:", error);
+              });
+            }
+
+            writeJson(res, 200, normalizedBooking);
           } catch {
             writeJson(res, 500, { success: false, error: "Failed to update booking" });
           }
@@ -571,6 +870,16 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ["react", "react-dom", "wouter"],
+          forms: ["react-hook-form", "zod", "@hookform/resolvers"],
+          ui: ["@radix-ui/react-dialog", "@radix-ui/react-select", "@radix-ui/react-checkbox", "lucide-react"],
+          motion: ["framer-motion"],
+        },
+      },
+    },
   },
   server: {
     port: 3000,

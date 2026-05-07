@@ -5,13 +5,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Calendar, Phone, User, MapPin, MessageSquare, Mail, Search, Filter, LogOut, Trash2, Edit, Eye } from "lucide-react";
+import { Calendar, Download, Phone, User, MapPin, Mail, Search, Filter, LogOut, Trash2, Eye, Save, Star } from "lucide-react";
 import { toast } from "sonner";
-import type { Booking, BookingStatus } from "@shared/types";
+import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
 
 const statusColors = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -20,6 +21,27 @@ const statusColors = {
   COMPLETED: "bg-green-100 text-green-800",
   CANCELLED: "bg-red-100 text-red-800",
 };
+
+const emptyContentDraft: ContentItemRequest = {
+  category: "projectGallery",
+  title: "",
+  description: "",
+  tag: "",
+  image: "",
+  accentImage: "",
+  items: "",
+  bookingValue: "",
+  sortOrder: 0,
+  active: true,
+};
+
+const contentCategories: { value: ContentItem["category"]; label: string }[] = [
+  { value: "serviceShowcase", label: "Service Card" },
+  { value: "productCategory", label: "Product Category" },
+  { value: "doorProduct", label: "Door Product" },
+  { value: "hardwareProduct", label: "Hardware Product" },
+  { value: "projectGallery", label: "Project Gallery" },
+];
 
 function formatPreferredDate(dateString?: string | null) {
   if (!dateString) {
@@ -45,10 +67,15 @@ export default function Admin() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [bookingDraft, setBookingDraft] = useState<BookingUpdateRequest>({});
   const [statusUpdateLoading, setStatusUpdateLoading] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [contentItems, setContentItems] = useState<ContentItem[]>([]);
+  const [contentDraft, setContentDraft] = useState<ContentItemRequest>(emptyContentDraft);
+  const [editingContentId, setEditingContentId] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuthStatus();
@@ -57,6 +84,8 @@ export default function Admin() {
   useEffect(() => {
     if (authenticated) {
       fetchStats();
+      fetchReviews();
+      fetchContentItems();
     }
   }, [authenticated]);
 
@@ -109,6 +138,9 @@ export default function Admin() {
       setStats(null);
       setError(null);
       setSelectedBooking(null);
+      setBookingDraft({});
+      setReviews([]);
+      setContentItems([]);
       setCurrentPage(1);
       toast.success("Logged out successfully");
     } catch (err) {
@@ -147,17 +179,134 @@ export default function Admin() {
     }
   };
 
+  const fetchReviews = async () => {
+    try {
+      const response = await axios.get("/api/admin/reviews?limit=100");
+      setReviews(response.data.reviews || []);
+    } catch (err) {
+      console.error("Failed to fetch reviews:", err);
+    }
+  };
+
+  const fetchContentItems = async () => {
+    try {
+      const response = await axios.get("/api/admin/content");
+      setContentItems(response.data.items || []);
+    } catch (err) {
+      console.error("Failed to fetch content items:", err);
+    }
+  };
+
+  const openBooking = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setBookingDraft({
+      appointmentTime: booking.appointmentTime || "",
+      quoteAmount: booking.quoteAmount || "",
+      staffAssigned: booking.staffAssigned || "",
+      adminNotes: booking.adminNotes || "",
+    });
+  };
+
+  const saveBookingWorkflow = async () => {
+    if (!selectedBooking) return;
+
+    try {
+      const response = await axios.patch(`/api/bookings/${selectedBooking.id}`, bookingDraft);
+      const updatedBooking = response.data as Booking;
+      setBookings((currentBookings) =>
+        currentBookings.map((booking) => (booking.id === updatedBooking.id ? updatedBooking : booking)),
+      );
+      setSelectedBooking(updatedBooking);
+      toast.success("Booking details saved");
+    } catch (err) {
+      toast.error("Failed to save booking details");
+    }
+  };
+
+  const updateReviewStatus = async (id: string, status: ReviewStatus) => {
+    try {
+      await axios.patch(`/api/admin/reviews/${id}`, { status });
+      await fetchReviews();
+      toast.success("Review updated");
+    } catch (err) {
+      toast.error("Failed to update review");
+    }
+  };
+
+  const deleteReview = async (id: string) => {
+    try {
+      await axios.delete(`/api/admin/reviews/${id}`);
+      setReviews((currentReviews) => currentReviews.filter((review) => review.id !== id));
+      toast.success("Review deleted");
+    } catch (err) {
+      toast.error("Failed to delete review");
+    }
+  };
+
+  const saveContentItem = async () => {
+    if (!contentDraft.title.trim()) {
+      toast.error("Content title is required");
+      return;
+    }
+
+    try {
+      if (editingContentId) {
+        await axios.patch(`/api/admin/content/${editingContentId}`, contentDraft);
+        toast.success("Content updated");
+      } else {
+        await axios.post("/api/admin/content", contentDraft);
+        toast.success("Content added");
+      }
+      setContentDraft(emptyContentDraft);
+      setEditingContentId(null);
+      await fetchContentItems();
+    } catch (err) {
+      toast.error("Failed to save content item");
+    }
+  };
+
+  const editContentItem = (item: ContentItem) => {
+    setEditingContentId(item.id);
+    setContentDraft({
+      category: item.category,
+      title: item.title,
+      description: item.description || "",
+      tag: item.tag || "",
+      image: item.image || "",
+      accentImage: item.accentImage || "",
+      items: item.items || "",
+      bookingValue: item.bookingValue || "",
+      sortOrder: item.sortOrder,
+      active: item.active,
+    });
+  };
+
+  const deleteContentItem = async (id: string) => {
+    try {
+      await axios.delete(`/api/admin/content/${id}`);
+      setContentItems((currentItems) => currentItems.filter((item) => item.id !== id));
+      toast.success("Content deleted");
+    } catch (err) {
+      toast.error("Failed to delete content item");
+    }
+  };
+
+  const exportBookings = () => {
+    window.open("/api/bookings/export", "_blank");
+  };
+
   const updateBookingStatus = async (id: string, status: BookingStatus) => {
     setStatusUpdateLoading(id);
     try {
-      await axios.patch(`/api/bookings/${id}`, { status });
+      const response = await axios.patch(`/api/bookings/${id}`, { status });
+      const updatedBooking = response.data as Booking;
       setBookings((currentBookings) =>
-        currentBookings.map((booking) => (booking.id === id ? { ...booking, status } : booking)),
+        currentBookings.map((booking) => (booking.id === id ? updatedBooking : booking)),
       );
       setSelectedBooking((currentBooking) =>
-        currentBooking?.id === id ? { ...currentBooking, status } : currentBooking,
+        currentBooking?.id === id ? updatedBooking : currentBooking,
       );
-      toast.success("Status updated successfully");
+      toast.success("Status updated and customer email was queued");
     } catch (err) {
       toast.error("Failed to update status");
     } finally {
@@ -248,12 +397,12 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4">
-        <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-[#ead8bf] bg-white/85 p-5 shadow-sm md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
+        <div className="relative mb-8 rounded-3xl border border-[#ead8bf] bg-white/85 p-6 text-center shadow-sm">
+          <div className="mx-auto flex max-w-xl flex-col items-center gap-3">
             <img
               src="/img5150-transparent.png"
               alt="FixMyDoor logo"
-              className="h-20 w-auto object-contain"
+              className="h-24 w-auto object-contain"
             />
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8a5a2d]">
@@ -267,7 +416,7 @@ export default function Admin() {
               </p>
             </div>
           </div>
-          <Button onClick={handleLogout} variant="outline" className="self-start md:self-center">
+          <Button onClick={handleLogout} variant="outline" className="mt-4 md:absolute md:right-6 md:top-6 md:mt-0">
             <LogOut className="w-4 h-4 mr-2" />
             Logout
           </Button>
@@ -335,7 +484,7 @@ export default function Admin() {
           </Card>
         )}
 
-        <div className="flex gap-4 mb-6">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row">
           <div className="flex-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -361,6 +510,10 @@ export default function Admin() {
               <SelectItem value="CANCELLED">Cancelled</SelectItem>
             </SelectContent>
           </Select>
+          <Button type="button" variant="outline" onClick={exportBookings} className="lg:w-auto">
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
         </div>
 
         <Card>
@@ -376,6 +529,7 @@ export default function Admin() {
                 No bookings found.
               </p>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -454,11 +608,11 @@ export default function Admin() {
                         <div className="flex gap-2">
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" onClick={() => setSelectedBooking(booking)}>
+                              <Button variant="outline" size="sm" onClick={() => openBooking(booking)}>
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
+                            <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>Booking Details</DialogTitle>
                               </DialogHeader>
@@ -504,6 +658,95 @@ export default function Admin() {
                                       <p className="mt-1 p-3 bg-muted rounded-md">{selectedBooking.message}</p>
                                     </div>
                                   )}
+                                  {(selectedBooking.dimensions || selectedBooking.quantity || selectedBooking.material || selectedBooking.color || selectedBooking.swingDirection || selectedBooking.deliveryNeeded || selectedBooking.installationNeeded || selectedBooking.budget) && (
+                                    <div className="rounded-xl border bg-muted/30 p-4">
+                                      <Label>Product / Job Details</Label>
+                                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                        {[
+                                          ["Size / Measurements", selectedBooking.dimensions],
+                                          ["Quantity", selectedBooking.quantity],
+                                          ["Material", selectedBooking.material],
+                                          ["Color / Finish", selectedBooking.color],
+                                          ["Swing Direction", selectedBooking.swingDirection],
+                                          ["Delivery Needed", selectedBooking.deliveryNeeded],
+                                          ["Installation Needed", selectedBooking.installationNeeded],
+                                          ["Budget", selectedBooking.budget],
+                                        ].filter(([, value]) => value).map(([label, value]) => (
+                                          <div key={label} className="rounded-lg bg-background p-3">
+                                            <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+                                            <p className="font-medium">{value}</p>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {selectedBooking.photos && selectedBooking.photos.length > 0 && (
+                                    <div>
+                                      <Label>Customer Photos</Label>
+                                      <div className="mt-2 grid gap-3 sm:grid-cols-3">
+                                        {selectedBooking.photos.map((photo, index) => (
+                                          <img key={`${selectedBooking.id}-photo-${index}`} src={photo} alt={`Booking photo ${index + 1}`} className="h-36 w-full rounded-xl object-cover" />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div className="rounded-xl border p-4">
+                                    <div className="mb-3 flex items-center justify-between gap-3">
+                                      <Label>Admin Workflow</Label>
+                                      <Button type="button" size="sm" onClick={saveBookingWorkflow}>
+                                        <Save className="mr-2 h-4 w-4" />
+                                        Save Details
+                                      </Button>
+                                    </div>
+                                    <div className="grid gap-3 sm:grid-cols-3">
+                                      <div>
+                                        <Label>Appointment Time</Label>
+                                        <Input
+                                          value={bookingDraft.appointmentTime || ""}
+                                          onChange={(event) => setBookingDraft((draft) => ({ ...draft, appointmentTime: event.target.value }))}
+                                          placeholder="May 10, 2:00 PM"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label>Quote Amount</Label>
+                                        <Input
+                                          value={bookingDraft.quoteAmount || ""}
+                                          onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteAmount: event.target.value }))}
+                                          placeholder="C$250"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label>Staff Assigned</Label>
+                                        <Input
+                                          value={bookingDraft.staffAssigned || ""}
+                                          onChange={(event) => setBookingDraft((draft) => ({ ...draft, staffAssigned: event.target.value }))}
+                                          placeholder="Richard / Team"
+                                        />
+                                      </div>
+                                      <div className="sm:col-span-3">
+                                        <Label>Internal Notes</Label>
+                                        <Textarea
+                                          value={bookingDraft.adminNotes || ""}
+                                          onChange={(event) => setBookingDraft((draft) => ({ ...draft, adminNotes: event.target.value }))}
+                                          placeholder="Private notes for follow-up, measurements, pricing, supplier info..."
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {selectedBooking.statusHistory && selectedBooking.statusHistory.length > 0 && (
+                                    <div>
+                                      <Label>Status History</Label>
+                                      <div className="mt-2 space-y-2">
+                                        {selectedBooking.statusHistory.map((entry, index) => (
+                                          <div key={`${entry.status}-${entry.changedAt}-${index}`} className="rounded-lg bg-muted p-3">
+                                            <p className="font-medium">{entry.status.replace("_", " ")}</p>
+                                            <p className="text-xs text-muted-foreground">{new Date(entry.changedAt).toLocaleString()}</p>
+                                            {entry.note && <p className="mt-1 text-sm">{entry.note}</p>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </DialogContent>
@@ -539,6 +782,7 @@ export default function Admin() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -565,6 +809,153 @@ export default function Admin() {
             </Button>
           </div>
         )}
+
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5" />
+              Review Moderation ({reviews.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {reviews.length === 0 ? (
+              <p className="py-6 text-center text-muted-foreground">No reviews yet.</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {reviews.map((review) => (
+                  <div key={review.id} className="rounded-xl border p-4">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{review.name}</p>
+                        <p className="text-sm text-muted-foreground">{review.location || "No location"} · {review.rating} stars</p>
+                      </div>
+                      <Badge variant={review.status === "APPROVED" ? "default" : "secondary"}>{review.status || "PENDING"}</Badge>
+                    </div>
+                    <p className="text-sm leading-relaxed">"{review.quote}"</p>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                      <Select value={review.status || "PENDING"} onValueChange={(value: ReviewStatus) => updateReviewStatus(review.id, value)}>
+                        <SelectTrigger className="sm:w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PENDING">Pending</SelectItem>
+                          <SelectItem value="APPROVED">Approved</SelectItem>
+                          <SelectItem value="HIDDEN">Hidden</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button type="button" variant="outline" onClick={() => deleteReview(review.id)}>
+                        <Trash2 className="mr-2 h-4 w-4 text-destructive" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Website Content Manager</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Add or replace product cards, project cards, and service cards without editing code. Leave image fields as public image paths or full URLs.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 rounded-xl border bg-muted/20 p-4 md:grid-cols-2">
+              <div>
+                <Label>Category</Label>
+                <Select value={contentDraft.category} onValueChange={(value: ContentItem["category"]) => setContentDraft((draft) => ({ ...draft, category: value }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {contentCategories.map((category) => (
+                      <SelectItem key={category.value} value={category.value}>{category.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Title</Label>
+                <Input value={contentDraft.title} onChange={(event) => setContentDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder="Card title" />
+              </div>
+              <div>
+                <Label>Tag / Category Label</Label>
+                <Input value={contentDraft.tag || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, tag: event.target.value }))} placeholder="Security, Door Kit, Before / After..." />
+              </div>
+              <div>
+                <Label>Booking Value</Label>
+                <Input value={contentDraft.bookingValue || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, bookingValue: event.target.value }))} placeholder="door-purchase" />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Description</Label>
+                <Textarea value={contentDraft.description || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, description: event.target.value }))} placeholder="Short customer-facing description" />
+              </div>
+              <div className="md:col-span-2">
+                <Label>Items / Details</Label>
+                <Input value={contentDraft.items || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, items: event.target.value }))} placeholder="Handles, cylinders, hinges, lock bodies..." />
+              </div>
+              <div>
+                <Label>Main Image</Label>
+                <Input value={contentDraft.image || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="/src/pages/Images/..." />
+              </div>
+              <div>
+                <Label>Accent Image</Label>
+                <Input value={contentDraft.accentImage || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, accentImage: event.target.value }))} placeholder="Optional second image" />
+              </div>
+              <div>
+                <Label>Sort Order</Label>
+                <Input type="number" value={contentDraft.sortOrder} onChange={(event) => setContentDraft((draft) => ({ ...draft, sortOrder: Number(event.target.value) || 0 }))} />
+              </div>
+              <div>
+                <Label>Visibility</Label>
+                <Select value={contentDraft.active ? "true" : "false"} onValueChange={(value) => setContentDraft((draft) => ({ ...draft, active: value === "true" }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="true">Visible</SelectItem>
+                    <SelectItem value="false">Hidden</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-2 md:col-span-2 sm:flex-row">
+                <Button type="button" onClick={saveContentItem}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {editingContentId ? "Update Content" : "Add Content"}
+                </Button>
+                {editingContentId && (
+                  <Button type="button" variant="outline" onClick={() => { setEditingContentId(null); setContentDraft(emptyContentDraft); }}>
+                    Cancel Editing
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {contentItems.map((item) => (
+                <div key={item.id} className="rounded-xl border p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <Badge variant="secondary">{contentCategories.find((category) => category.value === item.category)?.label || item.category}</Badge>
+                      <h3 className="mt-2 text-lg font-semibold">{item.title}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">{item.description || "No description"}</p>
+                    </div>
+                    <Badge variant={item.active ? "default" : "outline"}>{item.active ? "Visible" : "Hidden"}</Badge>
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <Button type="button" variant="outline" onClick={() => editContentItem(item)}>Edit</Button>
+                    <Button type="button" variant="outline" onClick={() => deleteContentItem(item.id)}>
+                      <Trash2 className="mr-2 h-4 w-4 text-destructive" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {contentItems.length === 0 && (
+                <p className="text-sm text-muted-foreground">No custom content yet. The website is using its built-in cards until you add replacements here.</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

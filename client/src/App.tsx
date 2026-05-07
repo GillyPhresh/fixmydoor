@@ -1,22 +1,39 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { lazy, Suspense } from "react";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Admin from "./pages/Admin";
-import Home from "./pages/Home";
 
+const Home = lazy(() => import("./pages/Home"));
+const Admin = lazy(() => import("./pages/Admin"));
+const TrackBooking = lazy(() => import("./pages/TrackBooking"));
+
+function HomeRoute() {
+  return <Home />;
+}
+
+function AdminRoute() {
+  return <Admin />;
+}
+
+function TrackBookingRoute() {
+  return <TrackBooking />;
+}
 
 function Router() {
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/admin"} component={Admin} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<div className="min-h-screen bg-background p-8 text-center font-semibold text-secondary">Loading FixMyDoor...</div>}>
+      <Switch>
+        <Route path={"/"} component={HomeRoute} />
+        <Route path={"/admin"} component={AdminRoute} />
+        <Route path={"/track/:token"} component={TrackBookingRoute} />
+        <Route path={"/404"} component={NotFound} />
+        {/* Final fallback route */}
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

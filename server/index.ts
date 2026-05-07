@@ -7,12 +7,13 @@ import { execSync } from "child_process";
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { saveBooking, validateBooking, validateBookingStatus } from "./bookings";
-import { listReviews, saveReview, validateReview } from "./reviews";
+import { parseStatusHistory, saveBooking, serializeStatusHistory, toBooking, validateBooking, validateBookingStatus } from "./bookings";
+import { listAdminReviews, listReviews, saveReview, validateReview, validateReviewStatus } from "./reviews";
+import { createContentItem, listAdminContent, listPublicContent, updateContentItem, validateContentItem } from "./content";
 import { prisma } from "./prisma";
 import { findAdminByUsername, initializeAdminUser, verifyPassword, hashPassword } from "./auth";
 import { emailService } from "./email";
-import type { Booking } from "@shared/types";
+import type { Booking, BookingStatusHistoryEntry, BookingUpdateRequest } from "@shared/types";
 import { serviceCatalog } from "@shared/services";
 
 process.loadEnvFile?.();
@@ -129,6 +130,17 @@ async function startServer() {
     res.status(401).json({ success: false, error: "Authentication required" });
   }
 
+  function cleanOptionalText(value: unknown, maxLength = 1000) {
+    return typeof value === "string" && value.trim().length > 0
+      ? value.trim().slice(0, maxLength)
+      : null;
+  }
+
+  function csvValue(value: unknown) {
+    const safeValue = String(value ?? "").replace(/"/g, '""');
+    return `"${safeValue}"`;
+  }
+
   // Health check endpoint
   app.get("/api/health", async (req, res) => {
     try {
@@ -241,6 +253,70 @@ async function startServer() {
     res.json({ services: serviceCatalog });
   });
 
+  app.get("/api/content", async (_req, res) => {
+    try {
+      const items = await listPublicContent();
+      return res.json({ items });
+    } catch (error) {
+      console.error("Content load error:", error);
+      return res.status(500).json({ success: false, error: "Failed to load content" });
+    }
+  });
+
+  app.get("/api/admin/content", requireAuth, async (_req, res) => {
+    try {
+      const items = await listAdminContent();
+      return res.json({ items });
+    } catch (error) {
+      console.error("Admin content load error:", error);
+      return res.status(500).json({ success: false, error: "Failed to load content" });
+    }
+  });
+
+  app.post("/api/admin/content", requireAuth, async (req, res) => {
+    if (!validateContentItem(req.body)) {
+      return res.status(400).json({ success: false, error: "Invalid content item" });
+    }
+
+    try {
+      const item = await createContentItem(req.body);
+      return res.status(201).json({ success: true, item });
+    } catch (error) {
+      console.error("Content creation error:", error);
+      return res.status(500).json({ success: false, error: "Failed to create content item" });
+    }
+  });
+
+  app.patch("/api/admin/content/:id", requireAuth, async (req, res) => {
+    const { id } = req.params;
+    if (!id || id.length > 50 || !validateContentItem(req.body)) {
+      return res.status(400).json({ success: false, error: "Invalid content item" });
+    }
+
+    try {
+      const item = await updateContentItem(id, req.body);
+      return res.json({ success: true, item });
+    } catch (error) {
+      console.error("Content update error:", error);
+      return res.status(500).json({ success: false, error: "Failed to update content item" });
+    }
+  });
+
+  app.delete("/api/admin/content/:id", requireAuth, async (req, res) => {
+    const { id } = req.params;
+    if (!id || id.length > 50) {
+      return res.status(400).json({ success: false, error: "Invalid content item ID" });
+    }
+
+    try {
+      await prisma.contentItem.delete({ where: { id } });
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Content deletion error:", error);
+      return res.status(500).json({ success: false, error: "Failed to delete content item" });
+    }
+  });
+
   app.get("/api/reviews", async (req, res) => {
     try {
       const limit = Math.min(30, Math.max(1, parseInt(req.query.limit as string, 10) || 12));
@@ -263,6 +339,56 @@ async function startServer() {
     } catch (error) {
       console.error("Review creation error:", error);
       return res.status(500).json({ success: false, error: "Failed to save review" });
+    }
+  });
+
+  app.get("/api/admin/reviews", requireAuth, async (req, res) => {
+    try {
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string, 10) || 50));
+      const reviews = await listAdminReviews(limit);
+      return res.json({ reviews });
+    } catch (error) {
+      console.error("Admin review load error:", error);
+      return res.status(500).json({ success: false, error: "Failed to load reviews" });
+    }
+  });
+
+  app.patch("/api/admin/reviews/:id", requireAuth, async (req, res) => {
+    const { id } = req.params;
+    const { status, adminNotes } = req.body;
+
+    if (!id || id.length > 50 || !validateReviewStatus(status)) {
+      return res.status(400).json({ success: false, error: "Invalid review update" });
+    }
+
+    try {
+      const review = await prisma.review.update({
+        where: { id },
+        data: {
+          status,
+          adminNotes: cleanOptionalText(adminNotes, 500),
+        },
+      });
+      return res.json({ success: true, review });
+    } catch (error) {
+      console.error("Review update error:", error);
+      return res.status(500).json({ success: false, error: "Failed to update review" });
+    }
+  });
+
+  app.delete("/api/admin/reviews/:id", requireAuth, async (req, res) => {
+    const { id } = req.params;
+
+    if (!id || id.length > 50) {
+      return res.status(400).json({ success: false, error: "Invalid review ID" });
+    }
+
+    try {
+      await prisma.review.delete({ where: { id } });
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Review deletion error:", error);
+      return res.status(500).json({ success: false, error: "Failed to delete review" });
     }
   });
 
@@ -289,6 +415,43 @@ async function startServer() {
     } catch (error) {
       console.error("Booking creation error:", error);
       return res.status(500).json({ success: false, error: "Failed to create booking" });
+    }
+  });
+
+  app.get("/api/bookings/track/:token", async (req, res) => {
+    const { token } = req.params;
+    if (!token || token.length > 80) {
+      return res.status(400).json({ success: false, error: "Invalid tracking link" });
+    }
+
+    try {
+      const booking = await prisma.booking.findUnique({
+        where: { customerToken: token },
+      });
+
+      if (!booking) {
+        return res.status(404).json({ success: false, error: "Booking not found" });
+      }
+
+      const safeBooking = toBooking(booking);
+      return res.json({
+        booking: {
+          id: safeBooking.id,
+          name: safeBooking.name,
+          repairType: safeBooking.repairType,
+          preferredDate: safeBooking.preferredDate,
+          status: safeBooking.status,
+          appointmentTime: safeBooking.appointmentTime,
+          quoteAmount: safeBooking.quoteAmount,
+          staffAssigned: safeBooking.staffAssigned,
+          statusHistory: safeBooking.statusHistory,
+          createdAt: safeBooking.createdAt,
+          updatedAt: safeBooking.updatedAt,
+        },
+      });
+    } catch (error) {
+      console.error("Booking tracking error:", error);
+      return res.status(500).json({ success: false, error: "Failed to load booking status" });
     }
   });
 
@@ -326,7 +489,7 @@ async function startServer() {
       ]);
 
       return res.json({
-        bookings,
+        bookings: bookings.map(toBooking),
         pagination: {
           page: pageNum,
           limit: limitNum,
@@ -340,25 +503,121 @@ async function startServer() {
     }
   });
 
+  app.get("/api/bookings/export", requireAuth, async (_req, res) => {
+    try {
+      const bookings = (await prisma.booking.findMany({
+        orderBy: { createdAt: "desc" },
+      })).map(toBooking);
+
+      const headers = [
+        "ID",
+        "Name",
+        "Phone",
+        "Email",
+        "Address",
+        "Service",
+        "Status",
+        "Preferred Date",
+        "Appointment Time",
+        "Quote Amount",
+        "Staff Assigned",
+        "Budget",
+        "Dimensions",
+        "Quantity",
+        "Delivery Needed",
+        "Installation Needed",
+        "Message",
+        "Created At",
+      ];
+      const rows = bookings.map((booking) => [
+        booking.id,
+        booking.name,
+        booking.phone,
+        booking.email,
+        booking.address,
+        booking.repairType,
+        booking.status,
+        booking.preferredDate,
+        booking.appointmentTime,
+        booking.quoteAmount,
+        booking.staffAssigned,
+        booking.budget,
+        booking.dimensions,
+        booking.quantity,
+        booking.deliveryNeeded,
+        booking.installationNeeded,
+        booking.message,
+        booking.createdAt,
+      ]);
+
+      const csv = [headers, ...rows]
+        .map((row) => row.map(csvValue).join(","))
+        .join("\n");
+
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", "attachment; filename=\"fixmydoor-bookings.csv\"");
+      return res.send(csv);
+    } catch (error) {
+      console.error("Booking export error:", error);
+      return res.status(500).json({ success: false, error: "Failed to export bookings" });
+    }
+  });
+
   app.patch("/api/bookings/:id", requireAuth, async (req, res) => {
     const { id } = req.params;
-    const { status } = req.body;
+    const update = req.body as BookingUpdateRequest;
+    const { status } = update;
 
     // Validate ID format
     if (!id || typeof id !== "string" || id.length > 50) {
       return res.status(400).json({ success: false, error: "Invalid booking ID" });
     }
 
-    if (!validateBookingStatus(status)) {
+    if (status !== undefined && !validateBookingStatus(status)) {
       return res.status(400).json({ success: false, error: "Invalid status" });
     }
 
     try {
+      const existingBooking = await prisma.booking.findUnique({ where: { id } });
+      if (!existingBooking) {
+        return res.status(404).json({ success: false, error: "Booking not found" });
+      }
+
+      const previousStatus = existingBooking.status as Booking["status"];
+      const nextStatus = status || previousStatus;
+      const history = parseStatusHistory(existingBooking.statusHistory);
+
+      if (status && status !== previousStatus) {
+        history.push({
+          status,
+          changedAt: new Date().toISOString(),
+          note: cleanOptionalText(update.adminNotes, 300) || "Status updated by admin",
+        } as BookingStatusHistoryEntry);
+      }
+
+      const updateData: Record<string, unknown> = {
+        status: nextStatus,
+        statusHistory: serializeStatusHistory(history),
+      };
+
+      if ("appointmentTime" in update) updateData.appointmentTime = cleanOptionalText(update.appointmentTime, 160);
+      if ("quoteAmount" in update) updateData.quoteAmount = cleanOptionalText(update.quoteAmount, 80);
+      if ("staffAssigned" in update) updateData.staffAssigned = cleanOptionalText(update.staffAssigned, 120);
+      if ("adminNotes" in update) updateData.adminNotes = cleanOptionalText(update.adminNotes, 1000);
+
       const booking = await prisma.booking.update({
         where: { id },
-        data: { status },
+        data: updateData,
       });
-      res.json(booking);
+      const normalizedBooking = toBooking(booking);
+
+      if (status && status !== previousStatus) {
+        emailService.sendStatusUpdate(normalizedBooking).catch(err =>
+          console.error("Failed to send status update email:", err)
+        );
+      }
+
+      res.json(normalizedBooking);
     } catch (error) {
       console.error("Error updating booking:", error);
       res.status(500).json({ success: false, error: "Failed to update booking" });

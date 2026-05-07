@@ -1,5 +1,5 @@
 import heroImage from "./Images/Why Rekeying Your Locks in Columbus, Ohio Is Essential for Your Home's Security.jpg";
-import technicianImage from "./Images/IMG_5531.png";
+import technicianImage from "./Images/richard-ampofo.jpg";
 import entryDoorImage from "./Images/entry-door-replacement-alt.jpg";
 import brokenDoorImage from "./Images/kicked-down-doors-alt.jpg";
 import forcedEntryImage from "./Images/forced-entry-broken-door.jpg";
@@ -119,8 +119,8 @@ export const customerPaths = [
 export const productCategories = [
   {
     title: "Doors & Entry Systems",
-    desc: "Entry, interior, glass-panel, steel, and wood-look doors for homes, rentals, offices, and small commercial spaces.",
-    items: "Entry doors, interior doors, security doors, and custom-fit options",
+    desc: "Entry, interior, glass-panel, steel, wood-look, Paladin, SED, and heavy-duty doors for homes, rentals, offices, and small commercial spaces.",
+    items: "Paladin doors, SED doors, heavy doors, entry doors, interior doors, security doors, and sizes for different openings",
     image: doorShowroomOptionsImage,
     accent: modernEntranceIdeasImage,
     bookingValue: "door-purchase",

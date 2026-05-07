@@ -1,9 +1,10 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { type ChangeEvent, useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,20 +13,25 @@ import {
   ArrowRight,
   CheckCircle2,
   Facebook,
+  FileText,
   Globe2,
   Instagram,
   Mail,
   MapPin,
+  Menu,
   MessageCircle,
   Phone,
+  Ruler,
   ShieldCheck,
   ShoppingBag,
   Star,
   Twitter,
+  Upload,
+  X,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { BookingRequest, Review, ReviewRequest } from "@shared/types";
+import type { BookingRequest, ContentItem, Review, ReviewRequest } from "@shared/types";
 import { serviceCatalog as defaultServiceCatalog, type ServiceCatalogItem } from "@shared/services";
 import {
   customerPaths,
@@ -50,6 +56,15 @@ const bookingSchema = z.object({
   repairType: z.string().min(1, "Please select a service type"),
   preferredDate: z.string().optional(),
   message: z.string().optional(),
+  dimensions: z.string().optional(),
+  quantity: z.string().optional(),
+  material: z.string().optional(),
+  color: z.string().optional(),
+  swingDirection: z.string().optional(),
+  deliveryNeeded: z.string().optional(),
+  installationNeeded: z.string().optional(),
+  budget: z.string().optional(),
+  customerConsent: z.boolean().refine(Boolean, "Please confirm that FixMyDoor can contact you about this request"),
 });
 
 type BookingFormData = z.infer<typeof bookingSchema>;
@@ -63,9 +78,46 @@ const reviewSchema = z.object({
 
 type ReviewFormData = z.infer<typeof reviewSchema>;
 
+const navLinks = [
+  { href: "#services", label: "Services" },
+  { href: "#shop", label: "Shop" },
+  { href: "#before-after", label: "Projects" },
+  { href: "#about", label: "About" },
+  { href: "#testimonials", label: "Reviews" },
+  { href: "#contact", label: "Contact" },
+];
+
+const serviceAreaNotes = [
+  "Montreal-based head office for local coordination.",
+  "Canada-wide booking support for homes, rentals, offices, and small commercial spaces.",
+  "International requests are welcome for product sourcing, measurements, and repair guidance.",
+];
+
+const faqItems = [
+  {
+    question: "Can I send photos before booking?",
+    answer: "Yes. Add up to three photos in the request form so we can understand the door, lock, furniture, or part before calling you.",
+  },
+  {
+    question: "Can you help me buy the right door or hardware?",
+    answer: "Yes. Share the size, quantity, finish, swing direction, and whether you need delivery or installation. We will help narrow the options.",
+  },
+  {
+    question: "Do you work only in Montreal?",
+    answer: "The business address is in Montreal, but FixMyDoor supports Canada-based requests and international product or repair questions.",
+  },
+  {
+    question: "Will I receive updates after booking?",
+    answer: "Yes. Your confirmation email includes a tracking link, and admin status changes can send an update email.",
+  },
+];
+
 export default function Home() {
   const [services, setServices] = useState<ServiceCatalogItem[]>(defaultServiceCatalog);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [contentItems, setContentItems] = useState<ContentItem[]>([]);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -76,6 +128,15 @@ export default function Home() {
       repairType: "",
       preferredDate: "",
       message: "",
+      dimensions: "",
+      quantity: "",
+      material: "",
+      color: "",
+      swingDirection: "",
+      deliveryNeeded: "",
+      installationNeeded: "",
+      budget: "",
+      customerConsent: false,
     },
   });
   const reviewForm = useForm<ReviewFormData>({
@@ -99,6 +160,24 @@ export default function Home() {
       })
       .catch((error) => {
         console.error("Service catalog load error:", error);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    axios.get<{ items: ContentItem[] }>("/api/content")
+      .then(({ data }) => {
+        if (active && Array.isArray(data.items)) {
+          setContentItems(data.items);
+        }
+      })
+      .catch((error) => {
+        console.error("Content load error:", error);
       });
 
     return () => {
@@ -133,12 +212,23 @@ export default function Home() {
       repairType: data.repairType,
       preferredDate: data.preferredDate || undefined,
       message: data.message?.trim() || undefined,
+      photos: photoPreviews,
+      dimensions: data.dimensions?.trim() || undefined,
+      quantity: data.quantity?.trim() || undefined,
+      material: data.material?.trim() || undefined,
+      color: data.color?.trim() || undefined,
+      swingDirection: data.swingDirection?.trim() || undefined,
+      deliveryNeeded: data.deliveryNeeded?.trim() || undefined,
+      installationNeeded: data.installationNeeded?.trim() || undefined,
+      budget: data.budget?.trim() || undefined,
+      customerConsent: data.customerConsent,
     };
 
     try {
       await axios.post("/api/bookings", payload);
-      toast.success("Thanks, your request was sent. We'll contact you soon.");
+      toast.success("Thanks, your request was sent. Check your email for the tracking link.");
       form.reset();
+      setPhotoPreviews([]);
     } catch (error) {
       toast.error("Unable to submit booking at this time. Please try again later.");
       console.error("Booking submission error:", error);
@@ -156,6 +246,85 @@ export default function Home() {
     createdAt: "",
   }));
   const featuredReviews = displayReviews.slice(0, 3);
+  const dynamicItems = (category: ContentItem["category"]) =>
+    contentItems
+      .filter((item) => item.category === category && item.active)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  const dynamicServiceShowcase = dynamicItems("serviceShowcase").map((item) => ({
+    src: item.image || heroImage,
+    title: item.title,
+    desc: item.description || "",
+    tag: item.tag || "Service",
+    contain: false,
+  }));
+  const dynamicProductCategories = dynamicItems("productCategory").map((item) => ({
+    title: item.title,
+    desc: item.description || "",
+    items: item.items || "Ask us about sizes, finish, delivery, and installation",
+    image: item.image || doorProducts[0].image,
+    accent: item.accentImage || item.image || doorProducts[1].image,
+    bookingValue: item.bookingValue || "door-purchase",
+  }));
+  const dynamicDoorProducts = dynamicItems("doorProduct").map((item) => ({
+    title: item.title,
+    image: item.image || doorProducts[0].image,
+    tag: item.tag || "Door Option",
+  }));
+  const dynamicHardwareProducts = dynamicItems("hardwareProduct").map((item) => ({
+    title: item.title,
+    image: item.image || hardwareProducts[0].image,
+    tag: item.tag || "Hardware",
+  }));
+  const dynamicProjectGallery = dynamicItems("projectGallery").map((item) => ({
+    src: item.image || projectGallery[0].src,
+    title: item.title,
+    desc: item.description || "",
+    category: item.tag || "Project",
+  }));
+  const displayedServiceShowcase = dynamicServiceShowcase.length > 0 ? dynamicServiceShowcase : serviceShowcase;
+  const displayedProductCategories = dynamicProductCategories.length > 0 ? dynamicProductCategories : productCategories;
+  const displayedDoorProducts = dynamicDoorProducts.length > 0 ? dynamicDoorProducts : doorProducts;
+  const displayedHardwareProducts = dynamicHardwareProducts.length > 0 ? dynamicHardwareProducts : hardwareProducts;
+  const displayedProjectGallery = dynamicProjectGallery.length > 0 ? dynamicProjectGallery : projectGallery;
+
+  const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    const files = selectedFiles.slice(0, 3);
+
+    if (selectedFiles.length > 3) {
+      toast.warning("You can upload up to 3 photos for one request.");
+    }
+
+    const validFiles = files.filter((file) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error(`${file.name} is not an image file.`);
+        return false;
+      }
+
+      if (file.size > 1_800_000) {
+        toast.error(`${file.name} is too large. Please use images under 1.8MB.`);
+        return false;
+      }
+
+      return true;
+    });
+
+    const readFile = (file: File) =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+    try {
+      const previews = await Promise.all(validFiles.map(readFile));
+      setPhotoPreviews(previews);
+    } catch (error) {
+      toast.error("Unable to read one of the selected photos.");
+      console.error("Photo read error:", error);
+    }
+  };
 
   const onReviewSubmit = async (data: ReviewFormData) => {
     const payload: ReviewRequest = {
@@ -167,11 +336,11 @@ export default function Home() {
 
     try {
       const response = await axios.post<{ review: Review }>("/api/reviews", payload);
-      if (response.data.review) {
+      if (response.data.review?.status === "APPROVED") {
         setReviews((currentReviews) => [response.data.review, ...currentReviews].slice(0, 9));
       }
       reviewForm.reset({ name: "", location: "", rating: 5, quote: "" });
-      toast.success("Thank you. Your review has been added.");
+      toast.success("Thank you. Your review was sent and will appear after approval.");
     } catch (error) {
       toast.error("Unable to submit review right now. Please try again later.");
       console.error("Review submission error:", error);
@@ -242,19 +411,42 @@ export default function Home() {
             </div>
           </div>
           <div className="hidden gap-4 text-sm font-semibold lg:flex xl:gap-5">
-            <a href="#services" className="transition hover:text-primary">Services</a>
-            <a href="#shop" className="transition hover:text-primary">Shop</a>
-            <a href="#before-after" className="transition hover:text-primary">Projects</a>
-            <a href="#about" className="transition hover:text-primary">About</a>
-            <a href="#testimonials" className="transition hover:text-primary">Reviews</a>
-            <a href="#contact" className="transition hover:text-primary">Contact</a>
+            {navLinks.map((link) => (
+              <a key={link.href} href={link.href} className="transition hover:text-primary">{link.label}</a>
+            ))}
           </div>
-          <a href="tel:+14383471823" className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl bg-primary px-3 py-2 text-xs font-bold text-white shadow-[0_10px_22px_rgba(180,101,50,0.18)] transition hover:-translate-y-0.5 hover:bg-primary/90 sm:px-4 sm:text-sm">
-            <Phone className="h-4 w-4" />
-            <span className="hidden sm:inline">Call Now</span>
-            <span className="sm:hidden">Call</span>
-          </a>
+          <div className="flex shrink-0 items-center gap-2">
+            <a href="tel:+14383471823" className="inline-flex items-center gap-1.5 rounded-2xl bg-primary px-3 py-2 text-xs font-bold text-white shadow-[0_10px_22px_rgba(180,101,50,0.18)] transition hover:-translate-y-0.5 hover:bg-primary/90 sm:px-4 sm:text-sm">
+              <Phone className="h-4 w-4" />
+              <span className="hidden sm:inline">Call Now</span>
+              <span className="sm:hidden">Call</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/15 bg-white text-secondary shadow-sm lg:hidden"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
+        {mobileMenuOpen && (
+          <div className="border-t border-primary/10 bg-white lg:hidden">
+            <div className="container grid max-w-[1180px] gap-2 py-3">
+              {navLinks.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-2xl bg-background px-4 py-3 text-sm font-bold text-secondary"
+                >
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </nav>
 
       <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(212,165,116,0.2),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(66,40,18,0.12),_transparent_34%),linear-gradient(to_bottom,_#f8f3ea,_#ffffff)]">
@@ -389,6 +581,7 @@ export default function Home() {
                       <img
                         src={item.src}
                         alt={item.title}
+                        loading="lazy"
                         className={`w-full object-cover transition duration-500 group-hover:scale-[1.03] ${item.featured ? "h-48 md:h-52" : "h-40 md:h-44"}`}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-secondary/85 via-secondary/15 to-transparent" />
@@ -403,11 +596,12 @@ export default function Home() {
             </article>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              {serviceShowcase.map((service) => (
+              {displayedServiceShowcase.map((service) => (
                 <article key={service.title} className="overflow-hidden rounded-[28px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1">
                   <img
                     src={service.src}
                     alt={service.title}
+                    loading="lazy"
                     className={`h-52 w-full ${service.contain ? "bg-white p-4 object-contain" : "object-cover"}`}
                   />
                   <div className="p-5">
@@ -439,11 +633,11 @@ export default function Home() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            {productCategories.map((category) => (
+            {displayedProductCategories.map((category) => (
               <article key={category.title} className="overflow-hidden rounded-[32px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)]">
                 <div className="relative h-64 overflow-hidden bg-[#f8f4ec]">
-                  <img src={category.image} alt={category.title} className="h-full w-full object-cover" />
-                  <img src={category.accent} alt="" className="absolute bottom-4 right-4 h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-xl" />
+                  <img src={category.image} alt={category.title} loading="lazy" className="h-full w-full object-cover" />
+                  <img src={category.accent} alt="" loading="lazy" className="absolute bottom-4 right-4 h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-xl" />
                 </div>
                 <div className="p-6">
                   <h3 className="text-2xl font-bold text-secondary">{category.title}</h3>
@@ -466,7 +660,10 @@ export default function Home() {
             <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">Door Buying Gallery</p>
-                <h3 className="mt-3 text-3xl font-bold">Entry, interior, security, and custom-fit doors</h3>
+                <h3 className="mt-3 text-3xl font-bold">Paladin, SED, heavy-duty, entry, interior, and custom-fit doors</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/75">
+                  Different sizes are available, so you can ask about the type of door and opening size you need before buying.
+                </p>
               </div>
               <button
                 type="button"
@@ -478,14 +675,14 @@ export default function Home() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              {doorProducts.map((product) => (
+              {displayedDoorProducts.map((product) => (
                 <button
                   key={product.title}
                   type="button"
                   onClick={() => handleCatalogPick("door-purchase", product.title)}
                   className="group overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12"
                 >
-                  <img src={product.image} alt={product.title} className="h-56 w-full bg-white object-cover transition duration-500 group-hover:scale-[1.03]" />
+                  <img src={product.image} alt={product.title} loading="lazy" className="h-56 w-full bg-white object-cover transition duration-500 group-hover:scale-[1.03]" />
                   <div className="p-4">
                     <span className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary">{product.tag}</span>
                     <p className="mt-2 font-bold text-white">{product.title}</p>
@@ -511,14 +708,14 @@ export default function Home() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              {hardwareProducts.map((product) => (
+              {displayedHardwareProducts.map((product) => (
                 <button
                   key={product.title}
                   type="button"
                   onClick={() => handleCatalogPick(product.tag.includes("Drawer") || product.tag.includes("Cabinet") ? "furniture-hardware-purchase" : "door-hardware-purchase", product.title)}
                   className="group overflow-hidden rounded-[22px] border border-primary/10 bg-[#fffaf2] text-left transition hover:-translate-y-1"
                 >
-                  <img src={product.image} alt={product.title} className="h-48 w-full bg-white object-contain p-3 transition duration-500 group-hover:scale-[1.03]" />
+                  <img src={product.image} alt={product.title} loading="lazy" className="h-48 w-full bg-white object-contain p-3 transition duration-500 group-hover:scale-[1.03]" />
                   <div className="p-4">
                     <span className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary">{product.tag}</span>
                     <p className="mt-2 font-bold text-secondary">{product.title}</p>
@@ -541,9 +738,9 @@ export default function Home() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {projectGallery.map((project) => (
+            {displayedProjectGallery.map((project) => (
               <article key={project.title} className="overflow-hidden rounded-[30px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1">
-                <img src={project.src} alt={project.title} className="h-[300px] w-full object-cover" />
+                <img src={project.src} alt={project.title} loading="lazy" className="h-[300px] w-full object-cover" />
                 <div className="p-6">
                   <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{project.category}</span>
                   <h3 className="mt-3 text-2xl font-bold text-secondary">{project.title}</h3>
@@ -560,7 +757,7 @@ export default function Home() {
           <div className="relative order-2 md:order-1">
             <div className="absolute -left-4 top-8 h-28 w-28 rounded-full bg-primary/18 blur-3xl" />
             <div className="relative mx-auto flex h-[330px] max-w-[285px] items-center justify-center overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(180deg,_#f7efe4,_#ffffff)] shadow-[0_16px_42px_rgba(66,40,18,0.13)] sm:h-[360px] sm:max-w-[310px] md:mx-0 md:h-[380px] md:max-w-[320px]">
-              <img src={technicianImage} alt="Richard Ampofo working on a door repair" className="h-full w-full object-cover object-top" />
+              <img src={technicianImage} alt="Richard Ampofo working on a door repair" loading="lazy" className="h-full w-full object-cover object-top" />
             </div>
           </div>
           <div className="order-1 md:order-2">
@@ -713,28 +910,90 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="contact" className="bg-background py-8 md:py-10">
-        <div className="container grid max-w-[1180px] gap-6 md:grid-cols-[0.9fr_1.1fr] md:items-start">
-          <div>
+      <section className="bg-[linear-gradient(180deg,_#fffdf8,_#f4eadc)] py-10 md:py-12">
+        <div className="container max-w-[1180px]">
+          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+            <article className="rounded-[28px] bg-[#2f241c] p-6 text-white shadow-[0_18px_50px_rgba(47,36,28,0.18)] md:p-7">
+              <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">Service Areas</p>
+              <h2 className="mt-3 font-display text-3xl font-bold md:text-4xl">Canada-based, with support for international requests</h2>
+              <p className="mt-3 text-sm leading-relaxed text-white/75">
+                FixMyDoor is organized from Montreal, but the service conversation is not limited to one city. Send your repair, installation, door, or hardware request and we will confirm what is realistic for your location.
+              </p>
+              <div className="mt-5 grid gap-3">
+                {serviceAreaNotes.map((note) => (
+                  <div key={note} className="flex gap-3 rounded-2xl bg-white/8 p-4">
+                    <Globe2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <p className="text-sm leading-relaxed text-white/84">{note}</p>
+                  </div>
+                ))}
+              </div>
+            </article>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              <article className="rounded-[28px] border border-primary/12 bg-white p-6 shadow-[0_14px_38px_rgba(0,0,0,0.055)]">
+                <ShieldCheck className="h-8 w-8 text-primary" />
+                <h3 className="mt-4 text-2xl font-bold text-secondary">Workmanship promise</h3>
+                <p className="mt-3 text-sm leading-relaxed text-foreground/70">
+                  We aim for repairs that feel solid when you use them again. If something needs follow-up after the agreed work, contact us quickly so it can be reviewed properly.
+                </p>
+              </article>
+              <article className="rounded-[28px] border border-primary/12 bg-white p-6 shadow-[0_14px_38px_rgba(0,0,0,0.055)]">
+                <FileText className="h-8 w-8 text-primary" />
+                <h3 className="mt-4 text-2xl font-bold text-secondary">Clear request records</h3>
+                <p className="mt-3 text-sm leading-relaxed text-foreground/70">
+                  Every submitted request is saved in the dashboard, emailed to the team, and confirmed to the customer with a tracking link for status updates.
+                </p>
+              </article>
+              <article className="rounded-[28px] border border-primary/12 bg-white p-6 shadow-[0_14px_38px_rgba(0,0,0,0.055)] md:col-span-2">
+                <h3 className="text-2xl font-bold text-secondary">Privacy note</h3>
+                <p className="mt-3 text-sm leading-relaxed text-foreground/70">
+                  Customer contact details are collected only to respond to repair, installation, quote, review, or product requests. Do not send sensitive lock codes or private access details through the form.
+                </p>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-10 md:py-12">
+        <div className="container max-w-[1180px]">
+          <div className="mb-6 text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary">Questions Customers Ask</p>
+            <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:text-4xl">A few answers before you book</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {faqItems.map((item) => (
+              <article key={item.question} className="rounded-[24px] border border-primary/10 bg-background p-5">
+                <h3 className="text-lg font-bold text-secondary">{item.question}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-foreground/70">{item.answer}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" className="bg-background pb-3 pt-8 md:pb-4 md:pt-10">
+        <div className="container grid max-w-[1180px] gap-6 md:grid-cols-[0.9fr_1.1fr] md:items-stretch">
+          <div className="rounded-[26px] border border-primary/12 bg-white p-5 shadow-[0_16px_42px_rgba(0,0,0,0.055)] sm:p-6">
             <h2 className="font-display text-3xl font-bold text-secondary md:text-4xl">Get in Touch</h2>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-foreground/68">Send the details you have, even if you are not sure what the problem is called. We will help you sort out the next step.</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 md:grid-cols-1">
-              <div className="flex gap-3 rounded-[20px] bg-white p-4 shadow-sm">
+              <div className="flex gap-3 rounded-[20px] bg-background p-4 shadow-sm">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Phone className="h-5 w-5 text-primary" /></div>
                 <div><p className="font-semibold text-secondary">Phone</p><a href="tel:+14383471823" className="text-base font-semibold text-primary hover:underline">+1 (438) 347-1823</a></div>
               </div>
-              <div className="flex gap-3 rounded-[20px] bg-white p-4 shadow-sm">
+              <div className="flex gap-3 rounded-[20px] bg-background p-4 shadow-sm">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><MessageCircle className="h-5 w-5 text-primary" /></div>
                 <div><p className="font-semibold text-secondary">WhatsApp</p><a href="https://wa.me/233242011305" className="text-base font-semibold text-primary hover:underline">+233 24 201 1305</a></div>
               </div>
-              <div className="flex gap-3 rounded-[20px] bg-white p-4 shadow-sm">
+              <div className="flex gap-3 rounded-[20px] bg-background p-4 shadow-sm">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Mail className="h-5 w-5 text-primary" /></div>
                 <div>
                   <p className="font-semibold text-secondary">Email</p>
                   <a href="mailto:info.fixmydoor@gmail.com" className="mt-1 inline-block text-base font-semibold text-primary hover:underline">info.fixmydoor@gmail.com</a>
                 </div>
               </div>
-              <div className="flex gap-3 rounded-[20px] bg-white p-4 shadow-sm">
+              <div className="flex gap-3 rounded-[20px] bg-background p-4 shadow-sm">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Instagram className="h-5 w-5 text-primary" /></div>
                 <div>
                   <p className="font-semibold text-secondary">Follow Us</p>
@@ -745,7 +1004,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-              <div className="flex gap-3 rounded-[20px] bg-white p-4 shadow-sm sm:col-span-2 md:col-span-1">
+              <div className="flex gap-3 rounded-[20px] bg-background p-4 shadow-sm sm:col-span-2 md:col-span-1">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><MapPin className="h-5 w-5 text-primary" /></div>
                 <div>
                   <p className="font-semibold text-secondary">Head Office</p>
@@ -780,7 +1039,100 @@ export default function Home() {
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="preferredDate" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Preferred Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <div className="sm:col-span-2 rounded-[22px] border border-primary/10 bg-background p-4">
+                  <div className="flex items-center gap-2">
+                    <Ruler className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-bold text-secondary">Helpful details for repairs or buying</p>
+                      <p className="text-xs leading-relaxed text-foreground/65">Add what you know. If you are not sure, leave it blank and we will ask during follow-up.</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <FormField control={form.control} name="dimensions" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Size / Measurements</FormLabel><FormControl><Input placeholder="Example: 32 x 80 inches" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="quantity" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Quantity</FormLabel><FormControl><Input placeholder="Example: 1 door, 4 hinges" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="material" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Material</FormLabel><FormControl><Input placeholder="Wood, steel, glass, fabric..." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="color" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Color / Finish</FormLabel><FormControl><Input placeholder="Black, brown, chrome, white..." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="swingDirection" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold text-foreground">Door Swing</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Choose if known" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="Left hand">Left hand</SelectItem>
+                            <SelectItem value="Right hand">Right hand</SelectItem>
+                            <SelectItem value="Outward swing">Outward swing</SelectItem>
+                            <SelectItem value="Inward swing">Inward swing</SelectItem>
+                            <SelectItem value="Not sure">Not sure</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="budget" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Budget / Price Range</FormLabel><FormControl><Input placeholder="Example: C$300 - C$700" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="deliveryNeeded" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold text-foreground">Delivery Needed?</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Choose one" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="Yes">Yes</SelectItem>
+                            <SelectItem value="No">No</SelectItem>
+                            <SelectItem value="Not sure">Not sure</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="installationNeeded" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold text-foreground">Installation Needed?</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Choose one" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="Yes">Yes</SelectItem>
+                            <SelectItem value="No">No</SelectItem>
+                            <SelectItem value="Not sure">Not sure</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </div>
+                <div className="sm:col-span-2 rounded-[22px] border border-dashed border-primary/30 bg-white p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3">
+                      <Upload className="mt-1 h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-bold text-secondary">Upload photos</p>
+                        <p className="text-xs leading-relaxed text-foreground/65">Optional, but very helpful. Add up to 3 images under 1.8MB each.</p>
+                      </div>
+                    </div>
+                    <Input type="file" accept="image/*" multiple onChange={handlePhotoChange} className="max-w-xs bg-background" />
+                  </div>
+                  {photoPreviews.length > 0 && (
+                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      {photoPreviews.map((photo, index) => (
+                        <img key={`${photo.slice(0, 30)}-${index}`} src={photo} alt={`Uploaded preview ${index + 1}`} className="h-28 w-full rounded-2xl object-cover" />
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <FormField control={form.control} name="message" render={({ field }) => (<FormItem className="sm:col-span-2"><FormLabel className="font-semibold text-foreground">Message</FormLabel><FormControl><Textarea placeholder="What is not working, or what are you trying to buy?" className="min-h-20" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="customerConsent" render={({ field }) => (
+                  <FormItem className="sm:col-span-2 rounded-[18px] bg-background p-4">
+                    <div className="flex items-start gap-3">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked === true)} />
+                      </FormControl>
+                      <div>
+                        <FormLabel className="font-semibold text-foreground">I agree that FixMyDoor can contact me about this request.</FormLabel>
+                        <p className="mt-1 text-xs leading-relaxed text-foreground/65">Your details are used to respond to your booking, quote, repair, or product request.</p>
+                        <FormMessage />
+                      </div>
+                    </div>
+                  </FormItem>
+                )} />
                 <Button type="submit" className="btn-primary w-full sm:col-span-2" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Sending..." : "Send Request"}</Button>
               </form>
             </Form>
@@ -793,7 +1145,7 @@ export default function Home() {
         <a href="#contact" className="flex-1 rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-white">Book</a>
       </div>
 
-      <footer className="bg-[#2f241c] py-10 text-white">
+      <footer className="bg-[#2f241c] py-8 text-white">
         <div className="container max-w-[1180px]">
           <div className="mb-8 grid gap-8 md:grid-cols-4">
             <div>

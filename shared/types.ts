@@ -6,16 +6,47 @@ export interface BookingRequest {
   repairType: string;
   preferredDate?: string;
   message?: string;
+  photos?: string[];
+  dimensions?: string;
+  quantity?: string;
+  material?: string;
+  color?: string;
+  swingDirection?: string;
+  deliveryNeeded?: string;
+  installationNeeded?: string;
+  budget?: string;
+  customerConsent?: boolean;
   submittedAt?: string;
 }
 
 export interface Booking extends BookingRequest {
   id: string;
   status: "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  customerToken?: string;
+  appointmentTime?: string;
+  quoteAmount?: string;
+  staffAssigned?: string;
+  adminNotes?: string;
+  statusHistory?: BookingStatusHistoryEntry[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export type BookingStatus = "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+
+export interface BookingStatusHistoryEntry {
+  status: BookingStatus;
+  changedAt: string;
+  note?: string;
+}
+
+export interface BookingUpdateRequest {
+  status?: BookingStatus;
+  appointmentTime?: string;
+  quoteAmount?: string;
+  staffAssigned?: string;
+  adminNotes?: string;
+}
 
 export interface ReviewRequest {
   name: string;
@@ -26,5 +57,34 @@ export interface ReviewRequest {
 
 export interface Review extends ReviewRequest {
   id: string;
+  status?: ReviewStatus;
+  adminNotes?: string;
   createdAt: string;
 }
+
+export type ReviewStatus = "PENDING" | "APPROVED" | "HIDDEN";
+
+export interface ContentItem {
+  id: string;
+  category: ContentCategory;
+  title: string;
+  description?: string;
+  tag?: string;
+  image?: string;
+  accentImage?: string;
+  items?: string;
+  bookingValue?: string;
+  sortOrder: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type ContentCategory =
+  | "serviceShowcase"
+  | "productCategory"
+  | "doorProduct"
+  | "hardwareProduct"
+  | "projectGallery";
+
+export type ContentItemRequest = Omit<ContentItem, "id" | "createdAt" | "updatedAt">;
