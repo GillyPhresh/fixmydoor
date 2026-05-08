@@ -58,6 +58,11 @@ async function startServer() {
 
   const app = express();
   const server = createServer(app);
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (isProduction) {
+    app.set("trust proxy", 1);
+  }
 
   // Initialize admin user
   await initializeAdminUser();
@@ -109,11 +114,11 @@ async function startServer() {
   app.use(compression());
 
   // Session configuration
-  const isProduction = process.env.NODE_ENV === "production";
   app.use(session({
     secret: sessionSecret as string,
     resave: false,
     saveUninitialized: false,
+    proxy: isProduction,
     cookie: {
       secure: isProduction, // Use HTTPS in production
       httpOnly: true,

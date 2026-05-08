@@ -177,9 +177,17 @@ export default function Admin() {
       setBookings(response.data.bookings);
       setTotalPages(response.data.pagination.pages || 1);
       setError(null);
-    } catch (err) {
-      setError("Failed to load bookings");
-      console.error("Error fetching bookings:", err);
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
+        setAuthenticated(false);
+        setBookings([]);
+        setStats(null);
+        setError(null);
+        toast.error("Your admin session expired. Please log in again.");
+      } else {
+        setError("Failed to load bookings");
+        console.error("Error fetching bookings:", err);
+      }
     } finally {
       setLoading(false);
     }
