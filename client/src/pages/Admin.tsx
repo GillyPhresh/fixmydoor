@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Calendar, Download, Phone, User, MapPin, Mail, Search, Filter, LogOut, Trash2, Eye, Save, Star } from "lucide-react";
+import { Calendar, Download, Phone, User, MapPin, Mail, Search, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
 
@@ -76,6 +76,12 @@ export default function Admin() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [contentDraft, setContentDraft] = useState<ContentItemRequest>(emptyContentDraft);
   const [editingContentId, setEditingContentId] = useState<string | null>(null);
+  const [passwordDraft, setPasswordDraft] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     checkAuthStatus();
@@ -265,6 +271,38 @@ export default function Admin() {
     }
   };
 
+  const changePassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (passwordDraft.newPassword.length < 8) {
+      toast.error("New password must be at least 8 characters long");
+      return;
+    }
+
+    if (passwordDraft.newPassword !== passwordDraft.confirmPassword) {
+      toast.error("New password and confirmation do not match");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await axios.post("/api/auth/change-password", {
+        currentPassword: passwordDraft.currentPassword,
+        newPassword: passwordDraft.newPassword,
+      });
+      setPasswordDraft({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      toast.success("Admin password changed successfully");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Failed to change password");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   const editContentItem = (item: ContentItem) => {
     setEditingContentId(item.id);
     setContentDraft({
@@ -416,10 +454,20 @@ export default function Admin() {
               </p>
             </div>
           </div>
-          <Button onClick={handleLogout} variant="outline" className="mt-4 md:absolute md:right-6 md:top-6 md:mt-0">
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center md:absolute md:right-6 md:top-6 md:mt-0">
+            <Button
+              type="button"
+              onClick={() => document.getElementById("admin-password-card")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="bg-[#8a5a2d] text-white hover:bg-[#71451f]"
+            >
+              <KeyRound className="w-4 h-4 mr-2" />
+              Change Password
+            </Button>
+            <Button onClick={handleLogout} variant="outline">
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
 
         {/* Stats Dashboard */}
@@ -459,6 +507,60 @@ export default function Admin() {
             </Card>
           </div>
         )}
+
+        <Card id="admin-password-card" className="mb-8 scroll-mt-6 border-[#ead8bf]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              Change Admin Password
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Use this after the first Railway login so the default password is replaced with your own private password.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={changePassword} className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
+              <div>
+                <Label htmlFor="current-admin-password">Current Password</Label>
+                <Input
+                  id="current-admin-password"
+                  type="password"
+                  value={passwordDraft.currentPassword}
+                  onChange={(event) => setPasswordDraft((draft) => ({ ...draft, currentPassword: event.target.value }))}
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="new-admin-password">New Password</Label>
+                <Input
+                  id="new-admin-password"
+                  type="password"
+                  value={passwordDraft.newPassword}
+                  onChange={(event) => setPasswordDraft((draft) => ({ ...draft, newPassword: event.target.value }))}
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="confirm-admin-password">Confirm New Password</Label>
+                <Input
+                  id="confirm-admin-password"
+                  type="password"
+                  value={passwordDraft.confirmPassword}
+                  onChange={(event) => setPasswordDraft((draft) => ({ ...draft, confirmPassword: event.target.value }))}
+                  autoComplete="new-password"
+                  minLength={8}
+                  required
+                />
+              </div>
+              <Button type="submit" disabled={passwordLoading}>
+                {passwordLoading ? "Saving..." : "Update Password"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* Recent Bookings */}
         {stats?.recentBookings && stats.recentBookings.length > 0 && (
