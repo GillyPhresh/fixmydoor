@@ -88,6 +88,11 @@ const navLinks = [
   { href: "#contact", label: "Contact" },
 ];
 
+const BUSINESS_WHATSAPP_NUMBER = "233242011305";
+const BUSINESS_WHATSAPP_DISPLAY = "+233 24 201 1305";
+const CLIENT_WHATSAPP_MESSAGE = "Hello FixMyDoor, I need help with a door, lock, furniture, or hardware request. Please contact me.";
+const BUSINESS_WHATSAPP_URL = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${encodeURIComponent(CLIENT_WHATSAPP_MESSAGE)}`;
+
 const serviceAreaNotes = [
   "Montreal-based head office for local coordination.",
   "Canada-wide booking support for homes, rentals, offices, and small commercial spaces.",
@@ -999,7 +1004,13 @@ export default function Home() {
               </div>
               <div className="flex gap-3 rounded-[20px] bg-background p-4 shadow-sm">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><MessageCircle className="h-5 w-5 text-primary" /></div>
-                <div><p className="font-semibold text-secondary">WhatsApp</p><a href="https://wa.me/233242011305" className="text-base font-semibold text-primary hover:underline">+233 24 201 1305</a></div>
+                <div>
+                  <p className="font-semibold text-secondary">WhatsApp</p>
+                  <a href={BUSINESS_WHATSAPP_URL} target="_blank" rel="noreferrer" className="text-base font-semibold text-primary hover:underline">
+                    {BUSINESS_WHATSAPP_DISPLAY}
+                  </a>
+                  <p className="mt-1 text-xs leading-relaxed text-foreground/60">Opens WhatsApp with a ready message.</p>
+                </div>
               </div>
               <div className="flex gap-3 rounded-[20px] bg-background p-4 shadow-sm">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Mail className="h-5 w-5 text-primary" /></div>
@@ -1296,9 +1307,9 @@ export default function Home() {
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15"><Mail className="h-4 w-4 text-primary" /></span>
                   <span className="break-all text-sm font-semibold text-white/86">info.fixmydoor@gmail.com</span>
                 </a>
-                <a href="https://wa.me/233242011305" className="flex gap-3 rounded-2xl bg-white/8 p-3 transition hover:bg-white/12">
+                <a href={BUSINESS_WHATSAPP_URL} target="_blank" rel="noreferrer" className="flex gap-3 rounded-2xl bg-white/8 p-3 transition hover:bg-white/12">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15"><MessageCircle className="h-4 w-4 text-primary" /></span>
-                  <span className="text-sm font-semibold text-white/86">WhatsApp: +233 24 201 1305</span>
+                  <span className="text-sm font-semibold text-white/86">WhatsApp: {BUSINESS_WHATSAPP_DISPLAY}</span>
                 </a>
                 <div className="flex gap-3 rounded-2xl bg-white/8 p-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15"><MapPin className="h-4 w-4 text-primary" /></span>

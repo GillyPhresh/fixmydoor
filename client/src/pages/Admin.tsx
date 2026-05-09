@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Calendar, Download, Phone, User, MapPin, Mail, Search, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound } from "lucide-react";
+import { Calendar, Download, Phone, User, MapPin, Mail, Search, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
 
@@ -54,6 +54,33 @@ function formatPreferredDate(dateString?: string | null) {
   }
 
   return new Date(year, month - 1, day).toLocaleDateString();
+}
+
+function normalizeWhatsAppPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `1${digits}`;
+  }
+  if (digits.startsWith("00") && digits.length > 10) {
+    return digits.slice(2);
+  }
+  return digits.length >= 8 ? digits : "";
+}
+
+function getAdminToClientWhatsAppUrl(booking: Booking) {
+  const normalizedPhone = normalizeWhatsAppPhone(booking.phone);
+  if (!normalizedPhone) {
+    return "";
+  }
+
+  const message = [
+    `Hello ${booking.name}, this is FixMyDoor Services.`,
+    `We received your request for ${booking.repairType}.`,
+    "Our staff will contact you to confirm the appointment details.",
+    `Booking ID: ${booking.id}`,
+  ].join("\n");
+
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
 }
 
 export default function Admin() {
@@ -662,6 +689,17 @@ export default function Admin() {
                             <Phone className="w-3 h-3 text-muted-foreground" />
                             {booking.phone}
                           </div>
+                          {getAdminToClientWhatsAppUrl(booking) && (
+                            <a
+                              href={getAdminToClientWhatsAppUrl(booking)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-sm font-semibold text-green-700 hover:underline"
+                            >
+                              <MessageCircle className="h-3 w-3" />
+                              WhatsApp client
+                            </a>
+                          )}
                           <div className="flex items-center gap-1 text-sm">
                             <Mail className="w-3 h-3 text-muted-foreground" />
                             <a href={`mailto:${booking.email}`} className="text-primary hover:underline">
@@ -736,6 +774,17 @@ export default function Admin() {
                                     <div>
                                       <Label>Phone</Label>
                                       <p className="font-medium">{selectedBooking.phone}</p>
+                                      {getAdminToClientWhatsAppUrl(selectedBooking) && (
+                                        <a
+                                          href={getAdminToClientWhatsAppUrl(selectedBooking)}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="mt-2 inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-green-700"
+                                        >
+                                          <MessageCircle className="h-4 w-4" />
+                                          Message on WhatsApp
+                                        </a>
+                                      )}
                                     </div>
                                     <div>
                                       <Label>Email</Label>
