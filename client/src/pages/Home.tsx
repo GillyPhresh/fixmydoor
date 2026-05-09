@@ -77,6 +77,7 @@ const reviewSchema = z.object({
 });
 
 type ReviewFormData = z.infer<typeof reviewSchema>;
+type CookiePreference = "accepted" | "denied";
 
 const navLinks = [
   { href: "#services", label: "Services" },
@@ -118,6 +119,7 @@ export default function Home() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -148,6 +150,13 @@ export default function Home() {
       quote: "",
     },
   });
+
+  useEffect(() => {
+    const savedPreference = window.localStorage.getItem("fixmydoor-cookie-choice");
+    if (savedPreference !== "accepted" && savedPreference !== "denied") {
+      setCookieBannerOpen(true);
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -384,6 +393,12 @@ export default function Home() {
     toast.success(`${label} selected. Add your details and we'll follow up.`);
   };
 
+  const saveCookiePreference = (preference: CookiePreference) => {
+    window.localStorage.setItem("fixmydoor-cookie-choice", preference);
+    setCookieBannerOpen(false);
+    toast.success(preference === "accepted" ? "Cookie preference saved." : "Optional cookies declined.");
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <nav className="sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/96 shadow-[0_8px_28px_rgba(47,36,28,0.06)] backdrop-blur">
@@ -450,7 +465,7 @@ export default function Home() {
       </nav>
 
       <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(212,165,116,0.2),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(66,40,18,0.12),_transparent_34%),linear-gradient(to_bottom,_#f8f3ea,_#ffffff)]">
-        <div className="container grid max-w-[1180px] items-center gap-5 py-5 sm:py-7 md:grid-cols-[0.9fr_1fr] md:py-8 lg:gap-8">
+        <div className="container grid max-w-[1180px] items-center gap-4 py-4 sm:py-7 md:grid-cols-[0.9fr_1fr] md:py-8 lg:gap-8">
           <div className="max-w-lg">
             <div className="mb-2 inline-flex items-center gap-2 rounded-2xl border border-primary/18 bg-white px-3.5 py-1.5 text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-secondary shadow-sm">
               <Globe2 className="h-4 w-4 text-primary" />
@@ -462,7 +477,7 @@ export default function Home() {
             <p className="mt-3 max-w-[32rem] text-[0.96rem] leading-relaxed text-foreground/75 md:text-[1.03rem]">
               If a door sticks, a lock feels loose, or furniture hardware keeps giving trouble, we help you fix it properly or find the right replacement.
             </p>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
               <a href="#contact" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.24)] transition hover:-translate-y-0.5 hover:bg-primary/90">
                 Book a Repair
                 <ArrowRight className="h-4 w-4" />
@@ -476,7 +491,7 @@ export default function Home() {
                 Call +1 (438) 347-1823
               </a>
             </div>
-            <div className="mt-5 grid gap-2.5 sm:grid-cols-3">
+            <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
               <div className="rounded-2xl bg-white p-3.5 shadow-lg shadow-primary/5">
                 <Zap className="mb-2 h-5 w-5 text-primary" />
                 <p className="font-bold text-secondary">Fast Scheduling</p>
@@ -498,12 +513,12 @@ export default function Home() {
           <div className="relative">
             <div className="absolute -left-5 top-8 h-32 w-32 rounded-full bg-primary/18 blur-3xl" />
             <div className="absolute -right-6 bottom-10 h-40 w-40 rounded-full bg-secondary/15 blur-3xl" />
-            <div className="relative overflow-hidden rounded-[32px] border border-white/60 bg-white p-3 shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
-              <img src={heroImage} alt="Lock rekeying service at a front door" className="h-[250px] w-full rounded-[24px] object-cover object-center sm:h-[320px] md:h-[430px]" />
-              <div className="absolute bottom-5 left-5 right-5 rounded-[24px] bg-white/90 p-4 shadow-lg backdrop-blur md:bottom-7 md:left-7 md:right-7 md:max-w-sm">
+            <div className="relative overflow-hidden rounded-[28px] border border-white/60 bg-white p-2.5 shadow-[0_24px_70px_rgba(66,40,18,0.16)] md:rounded-[32px] md:p-3 md:shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
+              <img src={heroImage} alt="Lock rekeying service at a front door" className="h-[210px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
+              <div className="absolute bottom-3 left-3 right-3 rounded-[20px] bg-white/92 p-3 shadow-lg backdrop-blur md:bottom-7 md:left-7 md:right-7 md:max-w-sm md:rounded-[24px] md:p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
-                <h2 className="mt-2 text-2xl font-bold text-secondary">Front Door Rekeying</h2>
-                <p className="mt-2 text-sm leading-relaxed text-foreground/70">
+                <h2 className="mt-1 text-xl font-bold text-secondary md:mt-2 md:text-2xl">Front Door Rekeying</h2>
+                <p className="mt-1 text-xs leading-relaxed text-foreground/70 md:mt-2 md:text-sm">
                   If a key goes missing or a lock starts acting up, we can rekey the entry and get the door feeling secure again.
                 </p>
               </div>
@@ -550,24 +565,24 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="services" className="bg-white py-16 md:py-[4.5rem]">
+      <section id="services" className="bg-white py-10 md:py-[4.5rem]">
         <div className="container max-w-[1180px]">
-          <div className="mb-12 text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">What We Handle</p>
-            <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Real fixes for everyday door and furniture problems</h2>
-            <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-foreground/70">
+          <div className="mb-8 text-center md:mb-12">
+            <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary md:text-sm md:tracking-[0.4em]">What We Handle</p>
+            <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:mt-4 md:text-5xl">Real fixes for everyday door and furniture problems</h2>
+            <p className="mx-auto mt-3 max-w-3xl text-sm leading-relaxed text-foreground/70 md:mt-4 md:text-lg">
               Doors, locks, hinges, cabinets, and furniture all wear down with daily use. We keep the explanation simple and focus on what will actually solve the problem.
             </p>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-            <article className="overflow-hidden rounded-[32px] bg-secondary p-8 text-white shadow-[0_22px_60px_rgba(66,40,18,0.2)]">
-              <div className="grid gap-8 xl:grid-cols-[0.88fr_1.12fr] xl:items-center">
+            <article className="overflow-hidden rounded-[28px] bg-secondary p-5 text-white shadow-[0_22px_60px_rgba(66,40,18,0.2)] md:rounded-[32px] md:p-8">
+              <div className="grid gap-5 md:gap-8 xl:grid-cols-[0.88fr_1.12fr] xl:items-center">
                 <div className="max-w-lg">
                   <span className="inline-flex rounded-full bg-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90">{featuredService.tag}</span>
-                  <h3 className="mt-4 font-display text-3xl font-bold leading-tight">{featuredService.title}</h3>
-                  <p className="mt-4 max-w-xl text-white/82">{featuredService.desc}</p>
-                  <div className="mt-6 flex flex-wrap gap-3">
+                  <h3 className="mt-3 font-display text-2xl font-bold leading-tight md:mt-4 md:text-3xl">{featuredService.title}</h3>
+                  <p className="mt-3 max-w-xl text-sm text-white/82 md:mt-4 md:text-base">{featuredService.desc}</p>
+                  <div className="mt-4 flex flex-wrap gap-2 md:mt-6 md:gap-3">
                     {["Front-door rekeying", "Wood door fitting", "Sofa frame repair", "Furniture setup"].map((item) => (
                       <span key={item} className="rounded-full border border-white/15 bg-white/8 px-4 py-2 text-sm font-semibold text-white/90">
                         {item}
@@ -596,13 +611,13 @@ export default function Home() {
             </article>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              {displayedServiceShowcase.map((service) => (
-                <article key={service.title} className="overflow-hidden rounded-[28px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1">
+              {displayedServiceShowcase.map((service, index) => (
+                <article key={service.title} className={`overflow-hidden rounded-[24px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 md:rounded-[28px] ${index > 1 ? "hidden md:block" : ""}`}>
                   <img
                     src={service.src}
                     alt={service.title}
                     loading="lazy"
-                    className={`h-52 w-full ${service.contain ? "bg-white p-4 object-contain" : "object-cover"}`}
+                    className={`h-44 w-full md:h-52 ${service.contain ? "bg-white p-4 object-contain" : "object-cover"}`}
                   />
                   <div className="p-5">
                     <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{service.tag}</span>
@@ -617,13 +632,13 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="shop" className="bg-[linear-gradient(180deg,_#fffdf8,_#f3eadc)] py-16 md:py-[4.5rem]">
+      <section id="shop" className="bg-[linear-gradient(180deg,_#fffdf8,_#f3eadc)] py-10 md:py-[4.5rem]">
         <div className="container max-w-[1180px]">
-          <div className="mb-10 flex flex-col gap-4 text-center md:flex-row md:items-end md:justify-between md:text-left">
+          <div className="mb-7 flex flex-col gap-4 text-center md:mb-10 md:flex-row md:items-end md:justify-between md:text-left">
             <div>
-              <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Buy & Source</p>
-              <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Need a door, handle, lock, hinge, or furniture part?</h2>
-              <p className="mt-4 max-w-3xl text-lg leading-relaxed text-foreground/70">
+              <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary md:text-sm md:tracking-[0.4em]">Buy & Source</p>
+              <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:mt-4 md:text-5xl">Need a door, handle, lock, hinge, or furniture part?</h2>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-foreground/70 md:mt-4 md:text-lg">
                 Tell us what you are trying to fix or replace. We can help you narrow down the right product before you spend money on the wrong item.
               </p>
             </div>
@@ -633,14 +648,14 @@ export default function Home() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            {displayedProductCategories.map((category) => (
-              <article key={category.title} className="overflow-hidden rounded-[32px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)]">
-                <div className="relative h-64 overflow-hidden bg-[#f8f4ec]">
+            {displayedProductCategories.map((category, index) => (
+              <article key={category.title} className={`overflow-hidden rounded-[28px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)] md:rounded-[32px] ${index > 1 ? "hidden md:block" : ""}`}>
+                <div className="relative h-52 overflow-hidden bg-[#f8f4ec] md:h-64">
                   <img src={category.image} alt={category.title} loading="lazy" className="h-full w-full object-cover" />
                   <img src={category.accent} alt="" loading="lazy" className="absolute bottom-4 right-4 h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-xl" />
                 </div>
-                <div className="p-6">
-                  <h3 className="text-2xl font-bold text-secondary">{category.title}</h3>
+                <div className="p-5 md:p-6">
+                  <h3 className="text-xl font-bold text-secondary md:text-2xl">{category.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-foreground/70">{category.desc}</p>
                   <p className="mt-4 rounded-2xl bg-background p-4 text-sm font-semibold text-secondary">{category.items}</p>
                   <button
@@ -656,11 +671,11 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="mt-12 rounded-[34px] bg-[#2f241c] p-5 text-white shadow-[0_22px_70px_rgba(47,36,28,0.2)] sm:p-8">
+          <div className="mt-8 rounded-[28px] bg-[#2f241c] p-5 text-white shadow-[0_22px_70px_rgba(47,36,28,0.2)] sm:p-8 md:mt-12 md:rounded-[34px]">
             <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">Door Buying Gallery</p>
-                <h3 className="mt-3 text-3xl font-bold">Paladin, SED, heavy-duty, entry, interior, and custom-fit doors</h3>
+                <h3 className="mt-3 text-2xl font-bold md:text-3xl">Paladin, SED, heavy-duty, entry, interior, and custom-fit doors</h3>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/75">
                   Different sizes are available, so you can ask about the type of door and opening size you need before buying.
                 </p>
@@ -675,14 +690,14 @@ export default function Home() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              {displayedDoorProducts.map((product) => (
+              {displayedDoorProducts.map((product, index) => (
                 <button
                   key={product.title}
                   type="button"
                   onClick={() => handleCatalogPick("door-purchase", product.title)}
-                  className="group overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12"
+                  className={`group overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12 ${index > 1 ? "hidden md:block" : ""}`}
                 >
-                  <img src={product.image} alt={product.title} loading="lazy" className="h-56 w-full bg-white object-cover transition duration-500 group-hover:scale-[1.03]" />
+                  <img src={product.image} alt={product.title} loading="lazy" className="h-48 w-full bg-white object-cover transition duration-500 group-hover:scale-[1.03] md:h-56" />
                   <div className="p-4">
                     <span className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary">{product.tag}</span>
                     <p className="mt-2 font-bold text-white">{product.title}</p>
@@ -692,11 +707,11 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-10 rounded-[34px] border border-primary/12 bg-white p-5 shadow-[0_18px_50px_rgba(0,0,0,0.06)] sm:p-8">
+          <div className="mt-8 rounded-[28px] border border-primary/12 bg-white p-5 shadow-[0_18px_50px_rgba(0,0,0,0.06)] sm:p-8 md:mt-10 md:rounded-[34px]">
             <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">Hardware & Tools</p>
-                <h3 className="mt-3 text-3xl font-bold text-secondary">Handles, locks, hinges, drawer slides, and cabinet parts</h3>
+                <h3 className="mt-3 text-2xl font-bold text-secondary md:text-3xl">Handles, locks, hinges, drawer slides, and cabinet parts</h3>
               </div>
               <button
                 type="button"
@@ -708,14 +723,14 @@ export default function Home() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              {displayedHardwareProducts.map((product) => (
+              {displayedHardwareProducts.map((product, index) => (
                 <button
                   key={product.title}
                   type="button"
                   onClick={() => handleCatalogPick(product.tag.includes("Drawer") || product.tag.includes("Cabinet") ? "furniture-hardware-purchase" : "door-hardware-purchase", product.title)}
-                  className="group overflow-hidden rounded-[22px] border border-primary/10 bg-[#fffaf2] text-left transition hover:-translate-y-1"
+                  className={`group overflow-hidden rounded-[22px] border border-primary/10 bg-[#fffaf2] text-left transition hover:-translate-y-1 ${index > 2 ? "hidden md:block" : ""}`}
                 >
-                  <img src={product.image} alt={product.title} loading="lazy" className="h-48 w-full bg-white object-contain p-3 transition duration-500 group-hover:scale-[1.03]" />
+                  <img src={product.image} alt={product.title} loading="lazy" className="h-40 w-full bg-white object-contain p-3 transition duration-500 group-hover:scale-[1.03] md:h-48" />
                   <div className="p-4">
                     <span className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary">{product.tag}</span>
                     <p className="mt-2 font-bold text-secondary">{product.title}</p>
@@ -727,21 +742,21 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="before-after" className="bg-gradient-to-b from-background to-white py-16 md:py-[4.5rem]">
+      <section id="before-after" className="bg-gradient-to-b from-background to-white py-10 md:py-[4.5rem]">
         <div className="container max-w-[1180px]">
-          <div className="mb-12 text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.4em] text-primary">Our Work</p>
-            <h2 className="mt-4 font-display text-4xl font-bold text-secondary md:text-5xl">Recent jobs customers usually ask about</h2>
-            <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-foreground/70">
+          <div className="mb-8 text-center md:mb-12">
+            <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary md:text-sm md:tracking-[0.4em]">Our Work</p>
+            <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:mt-4 md:text-5xl">Recent jobs customers usually ask about</h2>
+            <p className="mx-auto mt-3 max-w-3xl text-sm leading-relaxed text-foreground/70 md:mt-4 md:text-lg">
               These examples show the type of door, lock, and furniture work we are often asked to look at.
             </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {displayedProjectGallery.map((project) => (
-              <article key={project.title} className="overflow-hidden rounded-[30px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1">
-                <img src={project.src} alt={project.title} loading="lazy" className="h-[300px] w-full object-cover" />
-                <div className="p-6">
+            {displayedProjectGallery.map((project, index) => (
+              <article key={project.title} className={`overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px] ${index > 2 ? "hidden md:block" : ""}`}>
+                <img src={project.src} alt={project.title} loading="lazy" className="h-56 w-full object-cover md:h-[300px]" />
+                <div className="p-5 md:p-6">
                   <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{project.category}</span>
                   <h3 className="mt-3 text-2xl font-bold text-secondary">{project.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-foreground/70">{project.desc}</p>
@@ -752,21 +767,21 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="about" className="bg-white py-9 md:py-10">
+      <section id="about" className="bg-white py-8 md:py-10">
         <div className="container grid max-w-[1180px] gap-6 md:grid-cols-[0.58fr_1.42fr] md:items-start">
           <div className="relative order-2 md:order-1">
             <div className="absolute -left-4 top-8 h-28 w-28 rounded-full bg-primary/18 blur-3xl" />
-            <div className="relative mx-auto flex h-[330px] max-w-[285px] items-center justify-center overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(180deg,_#f7efe4,_#ffffff)] shadow-[0_16px_42px_rgba(66,40,18,0.13)] sm:h-[360px] sm:max-w-[310px] md:mx-0 md:h-[380px] md:max-w-[320px]">
+            <div className="relative mx-auto flex h-[280px] max-w-[240px] items-center justify-center overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,_#f7efe4,_#ffffff)] shadow-[0_16px_42px_rgba(66,40,18,0.13)] sm:h-[340px] sm:max-w-[300px] md:mx-0 md:h-[380px] md:max-w-[320px] md:rounded-[26px]">
               <img src={technicianImage} alt="Richard Ampofo working on a door repair" loading="lazy" className="h-full w-full object-cover object-top" />
             </div>
           </div>
           <div className="order-1 md:order-2">
             <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary">Meet the Expert</p>
             <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:text-4xl">Richard Ampofo</h2>
-            <p className="mt-4 max-w-3xl text-base leading-relaxed text-foreground/75">
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-foreground/75 md:mt-4 md:text-base">
               Richard runs FixMyDoor with a simple approach: look at the problem, explain the options clearly, and do the work in a way that feels solid when you use it again.
             </p>
-            <p className="mt-3 max-w-3xl text-base leading-relaxed text-foreground/75">
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-foreground/75 md:mt-3 md:text-base">
               The business is based in Canada and can also help with international repair questions or product requests.
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -790,7 +805,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="testimonials" className="bg-gradient-to-b from-background to-white py-10 md:py-12">
+      <section id="testimonials" className="bg-gradient-to-b from-background to-white py-8 md:py-12">
         <div className="container max-w-[1180px]">
           <div className="mb-6 flex flex-col gap-3 text-center md:flex-row md:items-end md:justify-between md:text-left">
             <div>
@@ -807,8 +822,8 @@ export default function Home() {
 
           <div className="grid gap-5 lg:grid-cols-[1fr_0.62fr] lg:items-start">
             <div className="grid gap-4 md:grid-cols-3">
-              {featuredReviews.map((review) => (
-                <article key={review.id} className="rounded-[22px] border border-primary/10 bg-white p-4 shadow-[0_12px_34px_rgba(0,0,0,0.05)]">
+              {featuredReviews.map((review, index) => (
+                <article key={review.id} className={`rounded-[22px] border border-primary/10 bg-white p-4 shadow-[0_12px_34px_rgba(0,0,0,0.05)] ${index > 1 ? "hidden md:block" : ""}`}>
                   <div className="mb-3 flex gap-1">
                     {Array.from({ length: 5 }).map((_, index) => (
                       <Star
@@ -879,7 +894,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="how-it-works" className="section-divider bg-white py-9 md:py-10">
+      <section id="how-it-works" className="section-divider bg-white py-8 md:py-10">
         <div className="container max-w-[1180px]">
           <div className="mb-5 flex flex-col gap-2 text-center md:flex-row md:items-end md:justify-between md:text-left">
             <div>
@@ -910,7 +925,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[linear-gradient(180deg,_#fffdf8,_#f4eadc)] py-10 md:py-12">
+      <section className="bg-[linear-gradient(180deg,_#fffdf8,_#f4eadc)] py-8 md:py-12">
         <div className="container max-w-[1180px]">
           <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
             <article className="rounded-[28px] bg-[#2f241c] p-6 text-white shadow-[0_18px_50px_rgba(47,36,28,0.18)] md:p-7">
@@ -919,9 +934,9 @@ export default function Home() {
               <p className="mt-3 text-sm leading-relaxed text-white/75">
                 FixMyDoor is organized from Montreal, but the service conversation is not limited to one city. Send your repair, installation, door, or hardware request and we will confirm what is realistic for your location.
               </p>
-              <div className="mt-5 grid gap-3">
-                {serviceAreaNotes.map((note) => (
-                  <div key={note} className="flex gap-3 rounded-2xl bg-white/8 p-4">
+              <div className="mt-4 grid gap-3 md:mt-5">
+                {serviceAreaNotes.map((note, index) => (
+                  <div key={note} className={`gap-3 rounded-2xl bg-white/8 p-4 ${index > 0 ? "hidden md:flex" : "flex"}`}>
                     <Globe2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
                     <p className="text-sm leading-relaxed text-white/84">{note}</p>
                   </div>
@@ -930,21 +945,21 @@ export default function Home() {
             </article>
 
             <div className="grid gap-5 md:grid-cols-2">
-              <article className="rounded-[28px] border border-primary/12 bg-white p-6 shadow-[0_14px_38px_rgba(0,0,0,0.055)]">
+              <article className="rounded-[24px] border border-primary/12 bg-white p-5 shadow-[0_14px_38px_rgba(0,0,0,0.055)] md:rounded-[28px] md:p-6">
                 <ShieldCheck className="h-8 w-8 text-primary" />
                 <h3 className="mt-4 text-2xl font-bold text-secondary">Workmanship promise</h3>
                 <p className="mt-3 text-sm leading-relaxed text-foreground/70">
                   We aim for repairs that feel solid when you use them again. If something needs follow-up after the agreed work, contact us quickly so it can be reviewed properly.
                 </p>
               </article>
-              <article className="rounded-[28px] border border-primary/12 bg-white p-6 shadow-[0_14px_38px_rgba(0,0,0,0.055)]">
+              <article className="rounded-[24px] border border-primary/12 bg-white p-5 shadow-[0_14px_38px_rgba(0,0,0,0.055)] md:rounded-[28px] md:p-6">
                 <FileText className="h-8 w-8 text-primary" />
                 <h3 className="mt-4 text-2xl font-bold text-secondary">Clear request records</h3>
                 <p className="mt-3 text-sm leading-relaxed text-foreground/70">
                   Every submitted request is saved in the dashboard, emailed to the team, and confirmed to the customer with a tracking link for status updates.
                 </p>
               </article>
-              <article className="rounded-[28px] border border-primary/12 bg-white p-6 shadow-[0_14px_38px_rgba(0,0,0,0.055)] md:col-span-2">
+              <article className="hidden rounded-[28px] border border-primary/12 bg-white p-6 shadow-[0_14px_38px_rgba(0,0,0,0.055)] md:col-span-2 md:block">
                 <h3 className="text-2xl font-bold text-secondary">Privacy note</h3>
                 <p className="mt-3 text-sm leading-relaxed text-foreground/70">
                   Customer contact details are collected only to respond to repair, installation, quote, review, or product requests. Do not send sensitive lock codes or private access details through the form.
@@ -955,15 +970,15 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-white py-10 md:py-12">
+      <section className="bg-white py-8 md:py-12">
         <div className="container max-w-[1180px]">
           <div className="mb-6 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary">Questions Customers Ask</p>
             <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:text-4xl">A few answers before you book</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            {faqItems.map((item) => (
-              <article key={item.question} className="rounded-[24px] border border-primary/10 bg-background p-5">
+            {faqItems.map((item, index) => (
+              <article key={item.question} className={`rounded-[24px] border border-primary/10 bg-background p-5 ${index > 1 ? "hidden md:block" : ""}`}>
                 <h3 className="text-lg font-bold text-secondary">{item.question}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-foreground/70">{item.answer}</p>
               </article>
@@ -1161,11 +1176,6 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="fixed bottom-4 left-4 right-4 z-40 flex gap-2 md:hidden">
-        <a href="tel:+14383471823" className="flex-1 rounded-lg bg-primary px-3 py-2 text-center text-sm font-bold text-white">Call</a>
-        <a href="#contact" className="flex-1 rounded-lg bg-secondary px-3 py-2 text-center text-sm font-bold text-white">Book</a>
-      </div>
-
       <footer className="relative overflow-hidden bg-[radial-gradient(circle_at_12%_0%,_rgba(212,165,116,0.18),_transparent_34%),radial-gradient(circle_at_90%_100%,_rgba(138,90,45,0.28),_transparent_35%),linear-gradient(135deg,_#241a14,_#342318_58%,_#1b130f)] text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
         <div className="absolute left-[-8rem] top-[-8rem] h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
@@ -1309,6 +1319,35 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {cookieBannerOpen && (
+        <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-[680px] rounded-[22px] border border-primary/20 bg-white p-4 text-secondary shadow-[0_18px_55px_rgba(47,36,28,0.22)] sm:bottom-5 sm:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-display text-lg font-bold">Cookie Preferences</p>
+              <p className="mt-1 text-sm leading-relaxed text-foreground/70">
+                We use essential cookies for the website and admin login. You can accept or deny optional preference cookies.
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => saveCookiePreference("denied")}
+                className="rounded-2xl border border-secondary/15 px-4 py-2 text-sm font-bold text-secondary transition hover:border-primary hover:text-primary"
+              >
+                Deny
+              </button>
+              <button
+                type="button"
+                onClick={() => saveCookiePreference("accepted")}
+                className="rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white transition hover:bg-primary/90"
+              >
+                Accept
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

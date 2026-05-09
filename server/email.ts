@@ -30,6 +30,10 @@ function getPublicBaseUrl() {
   ).replace(/\/+$/, "");
 }
 
+function getGoogleMapsUrl(address: string) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+}
+
 function escapeHtml(value: unknown) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -217,6 +221,7 @@ class EmailService {
     const businessEmail = getBusinessEmail();
     const adminEmail = process.env.ADMIN_EMAIL || businessEmail || this.config.auth.user;
     const adminUrl = process.env.ADMIN_URL || "https://your-app-url.com/admin";
+    const mapsUrl = getGoogleMapsUrl(booking.address);
     const photoAttachments = getPhotoAttachments(booking);
     const subject = `New FixMyDoor Booking: ${cleanSubjectValue(booking.name)} - ${cleanSubjectValue(booking.repairType)}`;
     const text = [
@@ -227,6 +232,7 @@ class EmailService {
       `Phone: ${booking.phone}`,
       `Email: ${booking.email}`,
       `Address: ${booking.address}`,
+      `Google Maps: ${mapsUrl}`,
       `Service: ${booking.repairType}`,
       `Preferred Date: ${booking.preferredDate || "Not specified"}`,
       `Size / Measurements: ${booking.dimensions || "Not specified"}`,
@@ -256,6 +262,7 @@ class EmailService {
           <p><strong>Phone:</strong> ${escapeHtml(booking.phone)}</p>
           <p><strong>Email:</strong> <a href="mailto:${escapeHtml(booking.email)}">${escapeHtml(booking.email)}</a></p>
           <p><strong>Address:</strong> ${escapeHtml(booking.address)}</p>
+          <p><a href="${escapeHtml(mapsUrl)}" style="display:inline-block; background:#2f241c; color:#ffffff; padding:10px 14px; border-radius:10px; text-decoration:none; font-weight:700;">Open Customer Address in Google Maps</a></p>
           <p><strong>Service:</strong> ${escapeHtml(booking.repairType)}</p>
           <p><strong>Preferred Date:</strong> ${displayValue(booking.preferredDate)}</p>
           ${formatOptionalRow("Size / Measurements", booking.dimensions)}
