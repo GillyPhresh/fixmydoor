@@ -81,6 +81,7 @@ export interface ContentItem {
 }
 
 export type ContentCategory =
+  | "advert"
   | "serviceShowcase"
   | "productCategory"
   | "doorProduct"

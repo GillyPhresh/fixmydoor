@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Calendar, Download, Phone, User, MapPin, Mail, Search, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle } from "lucide-react";
+import { Calendar, Download, Phone, User, MapPin, Mail, Search, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
 
@@ -36,6 +36,7 @@ const emptyContentDraft: ContentItemRequest = {
 };
 
 const contentCategories: { value: ContentItem["category"]; label: string }[] = [
+  { value: "advert", label: "Advert / Promotion" },
   { value: "serviceShowcase", label: "Service Card" },
   { value: "productCategory", label: "Product Category" },
   { value: "doorProduct", label: "Door Product" },
@@ -361,6 +362,41 @@ export default function Admin() {
       toast.success("Content deleted");
     } catch (err) {
       toast.error("Failed to delete content item");
+    }
+  };
+
+  const handleContentImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image flyer or product photo.");
+      return;
+    }
+
+    if (file.size > 1_800_000) {
+      toast.error("Please use an image under 1.8MB so the website stays fast.");
+      return;
+    }
+
+    const readFile = (selectedFile: File) =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
+
+    try {
+      const dataUrl = await readFile(file);
+      setContentDraft((draft) => ({ ...draft, image: dataUrl }));
+      toast.success("Flyer image attached. Save the content item to publish it.");
+    } catch (err) {
+      toast.error("Unable to read the selected image.");
     }
   };
 
@@ -1018,7 +1054,7 @@ export default function Admin() {
           <CardHeader>
             <CardTitle>Website Content Manager</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Add or replace product cards, project cards, and service cards without editing code. Leave image fields as public image paths or full URLs.
+              Add adverts, flyers, product cards, project cards, and service cards without editing code. Uploaded flyers appear in the homepage advert carousel.
             </p>
           </CardHeader>
           <CardContent>
@@ -1036,11 +1072,11 @@ export default function Admin() {
               </div>
               <div>
                 <Label>Title</Label>
-                <Input value={contentDraft.title} onChange={(event) => setContentDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder="Card title" />
+                <Input value={contentDraft.title} onChange={(event) => setContentDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Holiday repair discount" : "Card title"} />
               </div>
               <div>
                 <Label>Tag / Category Label</Label>
-                <Input value={contentDraft.tag || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, tag: event.target.value }))} placeholder="Security, Door Kit, Before / After..." />
+                <Input value={contentDraft.tag || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, tag: event.target.value }))} placeholder={contentDraft.category === "advert" ? "New Arrival, Discount, Holiday Offer..." : "Security, Door Kit, Before / After..."} />
               </div>
               <div>
                 <Label>Booking Value</Label>
@@ -1048,11 +1084,11 @@ export default function Admin() {
               </div>
               <div className="md:col-span-2">
                 <Label>Description</Label>
-                <Textarea value={contentDraft.description || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, description: event.target.value }))} placeholder="Short customer-facing description" />
+                <Textarea value={contentDraft.description || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, description: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Tell customers what is new, discounted, or available for booking." : "Short customer-facing description"} />
               </div>
               <div className="md:col-span-2">
-                <Label>Items / Details</Label>
-                <Input value={contentDraft.items || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, items: event.target.value }))} placeholder="Handles, cylinders, hinges, lock bodies..." />
+                <Label>{contentDraft.category === "advert" ? "Button Text / Details" : "Items / Details"}</Label>
+                <Input value={contentDraft.items || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, items: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Book This Offer" : "Handles, cylinders, hinges, lock bodies..."} />
               </div>
               <div>
                 <Label>Main Image</Label>
@@ -1061,6 +1097,23 @@ export default function Admin() {
               <div>
                 <Label>Accent Image</Label>
                 <Input value={contentDraft.accentImage || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, accentImage: event.target.value }))} placeholder="Optional second image" />
+              </div>
+              <div className="rounded-2xl border border-dashed border-primary/25 bg-white p-4 md:col-span-2">
+                <Label htmlFor="content-flyer-upload" className="flex cursor-pointer flex-col items-center justify-center gap-2 text-center">
+                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Upload className="h-5 w-5" />
+                  </span>
+                  <span className="font-semibold text-foreground">Upload flyer or promotion photo</span>
+                  <span className="max-w-lg text-xs text-muted-foreground">
+                    Use this for advert flyers, product photos, or service images. Keep files under 1.8MB for faster loading.
+                  </span>
+                </Label>
+                <Input id="content-flyer-upload" type="file" accept="image/*" className="sr-only" onChange={handleContentImageUpload} />
+                {contentDraft.image && (
+                  <div className="mt-4 overflow-hidden rounded-2xl border bg-muted/20">
+                    <img src={contentDraft.image} alt="Selected content preview" className="max-h-56 w-full object-contain" />
+                  </div>
+                )}
               </div>
               <div>
                 <Label>Sort Order</Label>

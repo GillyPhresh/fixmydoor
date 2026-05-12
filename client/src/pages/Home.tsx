@@ -99,6 +99,33 @@ const serviceAreaNotes = [
   "International requests are welcome for product sourcing, measurements, and repair guidance.",
 ];
 
+const defaultAdverts = [
+  {
+    title: "Repair slots for doors, locks, and furniture",
+    description: "Send photos of the issue and we will help you decide whether it needs repair, replacement, or the right hardware part.",
+    tag: "Booking Open",
+    image: heroImage,
+    cta: "Book a Repair",
+    bookingValue: "door-repair",
+  },
+  {
+    title: "Need new doors or hardware?",
+    description: "Ask about entry doors, heavy-duty doors, handles, locks, hinges, drawer slides, and furniture parts before buying.",
+    tag: "Product Sourcing",
+    image: doorProducts[0].image,
+    cta: "Ask for a Quote",
+    bookingValue: "door-purchase",
+  },
+  {
+    title: "Home service support across Canada",
+    description: "Based in Canada with support for local repairs, buying guidance, measurements, and international product requests.",
+    tag: "Service Update",
+    image: hardwareProducts[0].image,
+    cta: "Send Request",
+    bookingValue: "consultation",
+  },
+];
+
 const faqItems = [
   {
     question: "Can I send photos before booking?",
@@ -125,6 +152,7 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
+  const [activeAdvertIndex, setActiveAdvertIndex] = useState(0);
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -295,11 +323,38 @@ export default function Home() {
     desc: item.description || "",
     category: item.tag || "Project",
   }));
+  const dynamicAdverts = dynamicItems("advert").map((item) => ({
+    title: item.title,
+    description: item.description || "See what is available now and send a request for details.",
+    tag: item.tag || "Promotion",
+    image: item.image || heroImage,
+    cta: item.items || "Send Request",
+    bookingValue: item.bookingValue || "consultation",
+  }));
   const displayedServiceShowcase = dynamicServiceShowcase.length > 0 ? dynamicServiceShowcase : serviceShowcase;
   const displayedProductCategories = dynamicProductCategories.length > 0 ? dynamicProductCategories : productCategories;
   const displayedDoorProducts = dynamicDoorProducts.length > 0 ? dynamicDoorProducts : doorProducts;
   const displayedHardwareProducts = dynamicHardwareProducts.length > 0 ? dynamicHardwareProducts : hardwareProducts;
   const displayedProjectGallery = dynamicProjectGallery.length > 0 ? dynamicProjectGallery : projectGallery;
+  const displayedAdverts = dynamicAdverts.length > 0 ? dynamicAdverts : defaultAdverts;
+
+  useEffect(() => {
+    setActiveAdvertIndex(0);
+  }, [displayedAdverts.length]);
+
+  useEffect(() => {
+    if (displayedAdverts.length <= 1) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setActiveAdvertIndex((currentIndex) => (currentIndex + 1) % displayedAdverts.length);
+    }, 5000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [displayedAdverts.length]);
 
   const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
@@ -526,6 +581,72 @@ export default function Home() {
                 <p className="mt-1 text-xs leading-relaxed text-foreground/70 md:mt-2 md:text-sm">
                   If a key goes missing or a lock starts acting up, we can rekey the entry and get the door feeling secure again.
                 </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-5 md:py-7">
+        <div className="container max-w-[1180px]">
+          <div className="overflow-hidden rounded-[28px] border border-primary/12 bg-[linear-gradient(135deg,_#fff8ed,_#ffffff_52%,_#f3e2cf)] shadow-[0_20px_55px_rgba(66,40,18,0.12)] md:rounded-[34px]">
+            <div className="flex transition-transform duration-700 ease-out" style={{ transform: `translateX(-${activeAdvertIndex * 100}%)` }}>
+              {displayedAdverts.map((advert, index) => (
+                <article key={`${advert.title}-${index}`} className="grid min-w-full gap-0 md:grid-cols-[1.08fr_0.92fr] md:items-stretch">
+                  <div className="flex flex-col justify-center p-5 sm:p-7 md:p-9">
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-primary px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.22em] text-white">
+                        {advert.tag}
+                      </span>
+                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/55">Current Advert</span>
+                    </div>
+                    <h2 className="font-display text-2xl font-bold leading-tight text-secondary sm:text-3xl md:text-4xl">
+                      {advert.title}
+                    </h2>
+                    <p className="mt-3 max-w-2xl text-sm leading-relaxed text-foreground/72 md:text-base">
+                      {advert.description}
+                    </p>
+                    <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                      <button
+                        type="button"
+                        onClick={() => handleCatalogPick(advert.bookingValue, advert.title)}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(47,36,28,0.14)] transition hover:-translate-y-0.5 hover:bg-primary"
+                      >
+                        {advert.cta}
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                      <a
+                        href={BUSINESS_WHATSAPP_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-primary/18 bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-[0_10px_24px_rgba(47,36,28,0.08)] transition hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        WhatsApp Us
+                      </a>
+                    </div>
+                  </div>
+                  <div className="relative min-h-[210px] overflow-hidden bg-[#f7efe4] md:min-h-[330px]">
+                    <img src={advert.image} alt={advert.title} loading={index === 0 ? "eager" : "lazy"} className="h-full min-h-[210px] w-full object-cover md:min-h-[330px]" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-secondary/45 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-secondary/12" />
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t border-primary/10 bg-white/70 px-5 py-3 backdrop-blur sm:px-7">
+              <p className="text-xs font-semibold text-secondary/65">
+                New products, discounts, and repair updates are managed from the admin dashboard.
+              </p>
+              <div className="flex shrink-0 gap-2">
+                {displayedAdverts.map((advert, index) => (
+                  <button
+                    key={advert.title}
+                    type="button"
+                    onClick={() => setActiveAdvertIndex(index)}
+                    className={`h-2.5 rounded-full transition-all ${activeAdvertIndex === index ? "w-8 bg-primary" : "w-2.5 bg-secondary/20 hover:bg-secondary/35"}`}
+                    aria-label={`Show advert ${index + 1}`}
+                  />
+                ))}
               </div>
             </div>
           </div>
