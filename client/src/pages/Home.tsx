@@ -53,6 +53,13 @@ const bookingSchema = z.object({
   phone: z.string().min(10, "Please enter a valid phone number"),
   email: z.string().email("Please enter a valid email address"),
   address: z.string().min(5, "Please enter your full address"),
+  city: z.string().optional(),
+  country: z.string().optional(),
+  timeZone: z.string().optional(),
+  preferredContactMethod: z.string().optional(),
+  urgency: z.string().optional(),
+  requestScope: z.string().optional(),
+  currency: z.string().optional(),
   repairType: z.string().min(1, "Please select a service type"),
   preferredDate: z.string().optional(),
   message: z.string().optional(),
@@ -146,6 +153,13 @@ export default function Home() {
       phone: "",
       email: "",
       address: "",
+      city: "",
+      country: "Canada",
+      timeZone: "",
+      preferredContactMethod: "WhatsApp",
+      urgency: "Standard",
+      requestScope: "Repair or service request",
+      currency: "CAD",
       repairType: "",
       preferredDate: "",
       message: "",
@@ -237,6 +251,13 @@ export default function Home() {
       phone: data.phone.trim(),
       email: data.email.trim(),
       address: data.address.trim(),
+      city: data.city?.trim() || undefined,
+      country: data.country?.trim() || undefined,
+      timeZone: data.timeZone?.trim() || undefined,
+      preferredContactMethod: data.preferredContactMethod?.trim() || undefined,
+      urgency: data.urgency?.trim() || undefined,
+      requestScope: data.requestScope?.trim() || undefined,
+      currency: data.currency?.trim() || undefined,
       repairType: data.repairType,
       preferredDate: data.preferredDate || undefined,
       message: data.message?.trim() || undefined,
@@ -419,10 +440,14 @@ export default function Home() {
       });
 
     try {
-      const previews = await Promise.all(validFiles.map(readFile));
+      const previews = await Promise.all(validFiles.map(async (file) => {
+        const dataUrl = await readFile(file);
+        const response = await axios.post<{ url: string }>("/api/media", { dataUrl, fileName: file.name });
+        return response.data.url;
+      }));
       setPhotoPreviews(previews);
     } catch (error) {
-      toast.error("Unable to read one of the selected photos.");
+      toast.error("Unable to upload one of the selected photos.");
       console.error("Photo read error:", error);
     }
   };
@@ -1240,6 +1265,81 @@ export default function Home() {
                 <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Phone *</FormLabel><FormControl><Input type="tel" placeholder="+1 (438) 000-0000" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Email *</FormLabel><FormControl><Input type="email" placeholder="your.email@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Address *</FormLabel><FormControl><Input placeholder="Where is the job located?" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <div className="sm:col-span-2 rounded-[22px] border border-primary/10 bg-[#fffaf2] p-4">
+                  <div className="flex items-center gap-2">
+                    <Globe2 className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-bold text-secondary">International request details</p>
+                      <p className="text-xs leading-relaxed text-foreground/65">These details help us respond at the right time and quote in the right context.</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">City / Province</FormLabel><FormControl><Input placeholder="Montreal, Quebec" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Country</FormLabel><FormControl><Input placeholder="Canada, USA, Ghana..." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="timeZone" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Time Zone</FormLabel><FormControl><Input placeholder="Example: EST, GMT, UTC+1" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="preferredContactMethod" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold text-foreground">Best Contact Method</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Choose one" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="WhatsApp">WhatsApp</SelectItem>
+                            <SelectItem value="Phone Call">Phone Call</SelectItem>
+                            <SelectItem value="Email">Email</SelectItem>
+                            <SelectItem value="SMS">SMS</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="urgency" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold text-foreground">Urgency</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Choose urgency" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="Standard">Standard</SelectItem>
+                            <SelectItem value="Urgent">Urgent</SelectItem>
+                            <SelectItem value="Same-day if available">Same-day if available</SelectItem>
+                            <SelectItem value="Emergency">Emergency</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="currency" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-semibold text-foreground">Preferred Currency</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Choose currency" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="CAD">CAD</SelectItem>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="GBP">GBP</SelectItem>
+                            <SelectItem value="EUR">EUR</SelectItem>
+                            <SelectItem value="GHS">GHS</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="requestScope" render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
+                        <FormLabel className="font-semibold text-foreground">Request Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Choose request type" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="Repair or service request">Repair or service request</SelectItem>
+                            <SelectItem value="Buy or source products">Buy or source products</SelectItem>
+                            <SelectItem value="International product guidance">International product guidance</SelectItem>
+                            <SelectItem value="Delivery or installation inquiry">Delivery or installation inquiry</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </div>
                 <FormField control={form.control} name="repairType" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="font-semibold text-foreground">What Do You Need? *</FormLabel>

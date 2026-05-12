@@ -169,6 +169,13 @@ class EmailService {
           <p><strong>Booking ID:</strong> ${escapeHtml(booking.id)}</p>
           <p><strong>Request:</strong> ${escapeHtml(booking.repairType)}</p>
           <p><strong>Address:</strong> ${escapeHtml(booking.address)}</p>
+          ${formatOptionalRow("City / Province", booking.city)}
+          ${formatOptionalRow("Country", booking.country)}
+          ${formatOptionalRow("Time Zone", booking.timeZone)}
+          ${formatOptionalRow("Preferred Contact", booking.preferredContactMethod)}
+          ${formatOptionalRow("Urgency", booking.urgency)}
+          ${formatOptionalRow("Request Type", booking.requestScope)}
+          ${formatOptionalRow("Currency", booking.currency)}
           <p><strong>Phone:</strong> ${escapeHtml(booking.phone)}</p>
           <p><strong>Preferred Date:</strong> ${displayValue(booking.preferredDate, "To be scheduled")}</p>
           ${formatOptionalRow("Size / Measurements", booking.dimensions)}
@@ -232,6 +239,13 @@ class EmailService {
       `Phone: ${booking.phone}`,
       `Email: ${booking.email}`,
       `Address: ${booking.address}`,
+      `City / Province: ${booking.city || "Not specified"}`,
+      `Country: ${booking.country || "Not specified"}`,
+      `Time Zone: ${booking.timeZone || "Not specified"}`,
+      `Preferred Contact: ${booking.preferredContactMethod || "Not specified"}`,
+      `Urgency: ${booking.urgency || "Not specified"}`,
+      `Request Type: ${booking.requestScope || "Not specified"}`,
+      `Currency: ${booking.currency || "Not specified"}`,
       `Google Maps: ${mapsUrl}`,
       `Service: ${booking.repairType}`,
       `Preferred Date: ${booking.preferredDate || "Not specified"}`,
@@ -262,6 +276,13 @@ class EmailService {
           <p><strong>Phone:</strong> ${escapeHtml(booking.phone)}</p>
           <p><strong>Email:</strong> <a href="mailto:${escapeHtml(booking.email)}">${escapeHtml(booking.email)}</a></p>
           <p><strong>Address:</strong> ${escapeHtml(booking.address)}</p>
+          ${formatOptionalRow("City / Province", booking.city)}
+          ${formatOptionalRow("Country", booking.country)}
+          ${formatOptionalRow("Time Zone", booking.timeZone)}
+          ${formatOptionalRow("Preferred Contact", booking.preferredContactMethod)}
+          ${formatOptionalRow("Urgency", booking.urgency)}
+          ${formatOptionalRow("Request Type", booking.requestScope)}
+          ${formatOptionalRow("Currency", booking.currency)}
           <p><a href="${escapeHtml(mapsUrl)}" style="display:inline-block; background:#2f241c; color:#ffffff; padding:10px 14px; border-radius:10px; text-decoration:none; font-weight:700;">Open Customer Address in Google Maps</a></p>
           <p><strong>Service:</strong> ${escapeHtml(booking.repairType)}</p>
           <p><strong>Preferred Date:</strong> ${displayValue(booking.preferredDate)}</p>
@@ -323,6 +344,8 @@ class EmailService {
             <p><strong>Current Status:</strong> ${escapeHtml(booking.status.replace("_", " "))}</p>
             ${formatOptionalRow("Appointment Time", booking.appointmentTime)}
             ${formatOptionalRow("Quote Amount", booking.quoteAmount)}
+            ${formatOptionalRow("Invoice Status", booking.invoiceStatus)}
+            ${formatOptionalRow("Payment Status", booking.paymentStatus)}
             ${formatOptionalRow("Staff Assigned", booking.staffAssigned)}
           </div>
           ${trackingUrl ? `<p><a href="${escapeHtml(trackingUrl)}" style="display:inline-block; background:#b46532; color:#ffffff; padding:12px 18px; border-radius:12px; text-decoration:none; font-weight:700;">View Request Status</a></p>` : ""}

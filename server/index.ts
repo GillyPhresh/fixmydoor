@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
+import { randomUUID } from "crypto";
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -29,6 +30,149 @@ declare module "express-session" {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const uploadDir = process.env.UPLOAD_DIR || (process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve(process.cwd(), "uploads"));
+const mediaTypes: Record<string, { extension: string; kind: "image" | "video" }> = {
+  "image/png": { extension: "png", kind: "image" },
+  "image/jpeg": { extension: "jpg", kind: "image" },
+  "image/jpg": { extension: "jpg", kind: "image" },
+  "image/webp": { extension: "webp", kind: "image" },
+  "video/mp4": { extension: "mp4", kind: "video" },
+  "video/webm": { extension: "webm", kind: "video" },
+  "video/ogg": { extension: "ogg", kind: "video" },
+};
+
+function saveDataUrlMedia(dataUrl: unknown, options: { allowVideo: boolean; maxBytes: number }) {
+  if (typeof dataUrl !== "string") {
+    throw new Error("Missing media data");
+  }
+
+  const match = dataUrl.match(/^data:([^;]+);base64,([a-z0-9+/=\s]+)$/i);
+  if (!match) {
+    throw new Error("Invalid media data");
+  }
+
+  const mimeType = match[1].toLowerCase();
+  const mediaType = mediaTypes[mimeType];
+  if (!mediaType || (!options.allowVideo && mediaType.kind === "video")) {
+    throw new Error("Unsupported media type");
+  }
+
+  const buffer = Buffer.from(match[2].replace(/\s/g, ""), "base64");
+  if (buffer.byteLength <= 0 || buffer.byteLength > options.maxBytes) {
+    throw new Error("Media file is too large");
+  }
+
+  fs.mkdirSync(uploadDir, { recursive: true });
+  const fileName = `${Date.now()}-${randomUUID()}.${mediaType.extension}`;
+  fs.writeFileSync(path.join(uploadDir, fileName), buffer, { flag: "wx" });
+
+  return `/uploads/${fileName}`;
+}
+
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function isInternationalBooking(booking: Booking) {
+  const country = (booking.country || "").trim().toLowerCase();
+  const scope = (booking.requestScope || "").trim().toLowerCase();
+  return Boolean(
+    scope.includes("international") ||
+    (country && !["canada", "ca", "can"].includes(country))
+  );
+}
+
+function matchesWorkflowFilter(booking: Booking, workflow: string) {
+  switch (workflow) {
+    case "INTERNATIONAL":
+      return isInternationalBooking(booking);
+    case "URGENT":
+      return /urgent|same-day|emergency/i.test(booking.urgency || "");
+    case "NEEDS_QUOTE":
+      return !booking.quoteAmount;
+    case "QUOTED":
+      return Boolean(booking.quoteAmount);
+    case "SCHEDULED":
+      return Boolean(booking.appointmentTime);
+    case "PAYMENT_PENDING":
+      return Boolean(booking.quoteAmount) && !/^\s*paid\s*$/i.test(booking.paymentStatus || "");
+    default:
+      return true;
+  }
+}
+
+function renderQuoteInvoiceHtml(booking: Booking) {
+  const lineItems = (booking.quoteNotes || "Labour, materials, sourcing, delivery, or installation details will be confirmed by FixMyDoor.").split(/\r?\n/).filter(Boolean);
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FixMyDoor Quote / Invoice - ${escapeHtml(booking.id)}</title>
+  <style>
+    body { margin: 0; background: #f7efe4; color: #2f241c; font-family: Arial, sans-serif; }
+    .page { max-width: 860px; margin: 24px auto; background: #fffaf2; border: 1px solid #ead8bf; border-radius: 24px; overflow: hidden; box-shadow: 0 18px 60px rgba(47,36,28,.14); }
+    header { display: flex; justify-content: space-between; gap: 24px; align-items: center; background: #2f241c; color: white; padding: 28px; }
+    header img { width: 160px; max-width: 40vw; background: white; border-radius: 16px; padding: 8px 12px; }
+    main { padding: 28px; }
+    h1, h2, h3 { margin: 0; color: #6B4423; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 18px 0; }
+    .box { background: #f5f1e8; border-radius: 16px; padding: 14px; }
+    .label { color: #7b6758; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+    .value { margin-top: 6px; font-weight: 700; }
+    .total { margin: 20px 0; padding: 20px; border-radius: 18px; background: #2f241c; color: white; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+    .total strong { font-size: 28px; }
+    ul { margin: 12px 0 0; padding-left: 20px; line-height: 1.7; }
+    .actions { margin-top: 24px; display: flex; gap: 10px; }
+    button { border: 0; border-radius: 12px; background: #b46532; color: white; padding: 12px 16px; font-weight: 800; cursor: pointer; }
+    @media print { body { background: white; } .page { margin: 0; box-shadow: none; border: 0; } .actions { display: none; } }
+    @media (max-width: 640px) { header, .grid { grid-template-columns: 1fr; display: grid; } }
+  </style>
+</head>
+<body>
+  <section class="page">
+    <header>
+      <div>
+        <img src="/img5150-transparent.png" alt="FixMyDoor" />
+        <p>Door & Furniture Repair Services</p>
+      </div>
+      <div>
+        <h1 style="color:white;">Quote / Invoice</h1>
+        <p>Booking ID: ${escapeHtml(booking.id)}</p>
+        <p>Date: ${escapeHtml(new Date().toLocaleDateString())}</p>
+      </div>
+    </header>
+    <main>
+      <div class="grid">
+        <div class="box"><div class="label">Customer</div><div class="value">${escapeHtml(booking.name)}</div></div>
+        <div class="box"><div class="label">Contact</div><div class="value">${escapeHtml(booking.phone)}<br>${escapeHtml(booking.email)}</div></div>
+        <div class="box"><div class="label">Location</div><div class="value">${escapeHtml([booking.city, booking.country].filter(Boolean).join(", ") || booking.address)}</div></div>
+        <div class="box"><div class="label">Request</div><div class="value">${escapeHtml(booking.repairType)}</div></div>
+        <div class="box"><div class="label">Invoice Status</div><div class="value">${escapeHtml(booking.invoiceStatus || "Not issued")}</div></div>
+        <div class="box"><div class="label">Payment Status</div><div class="value">${escapeHtml(booking.paymentStatus || "Not paid")}</div></div>
+      </div>
+      <div class="total"><span>Estimated Amount</span><strong>${escapeHtml(booking.quoteAmount || "To be confirmed")}</strong></div>
+      <div class="box">
+        <h2>Quote Details</h2>
+        <ul>${lineItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      </div>
+      <div class="box" style="margin-top:14px;">
+        <h3>Notes</h3>
+        <p>This quote/invoice is prepared from the booking details. Final cost may change if measurements, parts, delivery, or installation requirements change.</p>
+        <p><strong>FixMyDoor Services</strong><br>info.fixmydoor@gmail.com<br>+1 (438) 347-1823</p>
+      </div>
+      <div class="actions"><button onclick="window.print()">Print / Save PDF</button></div>
+    </main>
+  </section>
+</body>
+</html>`;
+}
 
 // Validate Database URL for production
 if (!process.env.DATABASE_URL) {
@@ -78,6 +222,7 @@ async function startServer() {
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:", "http:"],
+        mediaSrc: ["'self'", "data:", "https:", "http:"],
         scriptSrc: ["'self'"],
         connectSrc: ["'self'"],
         frameSrc: ["'none'"],
@@ -129,6 +274,10 @@ async function startServer() {
   }));
 
   app.use(express.json({ limit: "10mb" })); // Limit request body size
+  fs.mkdirSync(uploadDir, { recursive: true });
+  app.use("/uploads", express.static(uploadDir, {
+    maxAge: isProduction ? "30d" : 0,
+  }));
 
   // Auth middleware
   function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -274,6 +423,24 @@ async function startServer() {
     } catch (error) {
       console.error("Content load error:", error);
       return res.status(500).json({ success: false, error: "Failed to load content" });
+    }
+  });
+
+  app.post("/api/media", async (req, res) => {
+    try {
+      const url = saveDataUrlMedia(req.body?.dataUrl, { allowVideo: false, maxBytes: 1_800_000 });
+      return res.status(201).json({ success: true, url });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error?.message || "Invalid media upload" });
+    }
+  });
+
+  app.post("/api/admin/media", requireAuth, async (req, res) => {
+    try {
+      const url = saveDataUrlMedia(req.body?.dataUrl, { allowVideo: true, maxBytes: 5_500_000 });
+      return res.status(201).json({ success: true, url });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error?.message || "Invalid media upload" });
     }
   });
 
@@ -457,6 +624,8 @@ async function startServer() {
           status: safeBooking.status,
           appointmentTime: safeBooking.appointmentTime,
           quoteAmount: safeBooking.quoteAmount,
+          invoiceStatus: safeBooking.invoiceStatus,
+          paymentStatus: safeBooking.paymentStatus,
           staffAssigned: safeBooking.staffAssigned,
           statusHistory: safeBooking.statusHistory,
           createdAt: safeBooking.createdAt,
@@ -471,7 +640,7 @@ async function startServer() {
 
   app.get("/api/bookings", requireAuth, async (req, res) => {
     try {
-      const { search, status, page = "1", limit = "50" } = req.query;
+      const { search, status, workflow = "ALL", page = "1", limit = "50" } = req.query;
 
       // Validate pagination parameters
       const pageNum = Math.max(1, parseInt(page as string) || 1);
@@ -492,18 +661,35 @@ async function startServer() {
         where.status = status;
       }
 
-      const [bookings, totalCount] = await Promise.all([
-        prisma.booking.findMany({
+      const workflowFilter = typeof workflow === "string" ? workflow : "ALL";
+      let bookings: any[] = [];
+      let totalCount = 0;
+
+      if (workflowFilter && workflowFilter !== "ALL") {
+        const allMatchingBookings = (await prisma.booking.findMany({
           where,
           orderBy: { createdAt: "desc" },
-          skip: (pageNum - 1) * limitNum,
-          take: limitNum,
-        }),
-        prisma.booking.count({ where }),
-      ]);
+        })).map(toBooking).filter((booking) => matchesWorkflowFilter(booking, workflowFilter));
+
+        totalCount = allMatchingBookings.length;
+        bookings = allMatchingBookings.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+      } else {
+        const [pagedBookings, count] = await Promise.all([
+          prisma.booking.findMany({
+            where,
+            orderBy: { createdAt: "desc" },
+            skip: (pageNum - 1) * limitNum,
+            take: limitNum,
+          }),
+          prisma.booking.count({ where }),
+        ]);
+
+        bookings = pagedBookings;
+        totalCount = count;
+      }
 
       return res.json({
-        bookings: bookings.map(toBooking),
+        bookings: bookings.map((booking) => "statusHistory" in booking && Array.isArray(booking.statusHistory) ? booking : toBooking(booking)),
         pagination: {
           page: pageNum,
           limit: limitNum,
@@ -529,12 +715,21 @@ async function startServer() {
         "Phone",
         "Email",
         "Address",
+        "City",
+        "Country",
+        "Time Zone",
+        "Preferred Contact",
+        "Urgency",
+        "Request Scope",
         "Service",
         "Status",
         "Preferred Date",
         "Appointment Time",
         "Quote Amount",
+        "Invoice Status",
+        "Payment Status",
         "Staff Assigned",
+        "Currency",
         "Budget",
         "Dimensions",
         "Quantity",
@@ -549,12 +744,21 @@ async function startServer() {
         booking.phone,
         booking.email,
         booking.address,
+        booking.city,
+        booking.country,
+        booking.timeZone,
+        booking.preferredContactMethod,
+        booking.urgency,
+        booking.requestScope,
         booking.repairType,
         booking.status,
         booking.preferredDate,
         booking.appointmentTime,
         booking.quoteAmount,
+        booking.invoiceStatus,
+        booking.paymentStatus,
         booking.staffAssigned,
+        booking.currency,
         booking.budget,
         booking.dimensions,
         booking.quantity,
@@ -574,6 +778,27 @@ async function startServer() {
     } catch (error) {
       console.error("Booking export error:", error);
       return res.status(500).json({ success: false, error: "Failed to export bookings" });
+    }
+  });
+
+  app.get("/api/bookings/:id/quote", requireAuth, async (req, res) => {
+    const { id } = req.params;
+
+    if (!id || typeof id !== "string" || id.length > 50) {
+      return res.status(400).send("Invalid booking ID");
+    }
+
+    try {
+      const booking = await prisma.booking.findUnique({ where: { id } });
+      if (!booking) {
+        return res.status(404).send("Booking not found");
+      }
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.send(renderQuoteInvoiceHtml(toBooking(booking)));
+    } catch (error) {
+      console.error("Quote invoice render error:", error);
+      return res.status(500).send("Failed to render quote/invoice");
     }
   });
 
@@ -616,6 +841,9 @@ async function startServer() {
 
       if ("appointmentTime" in update) updateData.appointmentTime = cleanOptionalText(update.appointmentTime, 160);
       if ("quoteAmount" in update) updateData.quoteAmount = cleanOptionalText(update.quoteAmount, 80);
+      if ("quoteNotes" in update) updateData.quoteNotes = cleanOptionalText(update.quoteNotes, 1000);
+      if ("invoiceStatus" in update) updateData.invoiceStatus = cleanOptionalText(update.invoiceStatus, 80);
+      if ("paymentStatus" in update) updateData.paymentStatus = cleanOptionalText(update.paymentStatus, 80);
       if ("staffAssigned" in update) updateData.staffAssigned = cleanOptionalText(update.staffAssigned, 120);
       if ("adminNotes" in update) updateData.adminNotes = cleanOptionalText(update.adminNotes, 1000);
 
@@ -663,6 +891,8 @@ async function startServer() {
         pendingBookings,
         confirmedBookings,
         completedBookings,
+        internationalBookings,
+        urgentBookings,
         todayBookings,
         thisWeekBookings,
         thisMonthBookings,
@@ -671,6 +901,23 @@ async function startServer() {
         prisma.booking.count({ where: { status: "PENDING" } }),
         prisma.booking.count({ where: { status: "CONFIRMED" } }),
         prisma.booking.count({ where: { status: "COMPLETED" } }),
+        prisma.booking.count({
+          where: {
+            OR: [
+              { requestScope: { contains: "International" } },
+              { country: { notIn: ["Canada", "canada", "CA", "ca", ""] } },
+            ],
+          } as any,
+        }),
+        prisma.booking.count({
+          where: {
+            OR: [
+              { urgency: { contains: "Urgent" } },
+              { urgency: { contains: "Emergency" } },
+              { urgency: { contains: "Same-day" } },
+            ],
+          } as any,
+        }),
         prisma.booking.count({
           where: {
             createdAt: {
@@ -712,6 +959,8 @@ async function startServer() {
         pendingBookings,
         confirmedBookings,
         completedBookings,
+        internationalBookings,
+        urgentBookings,
         todayBookings,
         thisWeekBookings,
         thisMonthBookings,

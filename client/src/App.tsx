@@ -9,6 +9,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 const Home = lazy(() => import("./pages/Home"));
 const Admin = lazy(() => import("./pages/Admin"));
 const TrackBooking = lazy(() => import("./pages/TrackBooking"));
+const ServicePage = lazy(() => import("./pages/ServicePage"));
 
 function HomeRoute() {
   return <Home />;
@@ -22,11 +23,20 @@ function TrackBookingRoute() {
   return <TrackBooking />;
 }
 
+function ServicePageRoute() {
+  return <ServicePage />;
+}
+
 function Router() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-background p-8 text-center font-semibold text-secondary">Loading FixMyDoor...</div>}>
       <Switch>
         <Route path={"/"} component={HomeRoute} />
+        <Route path={"/door-repair"} component={ServicePageRoute} />
+        <Route path={"/lock-rekeying"} component={ServicePageRoute} />
+        <Route path={"/furniture-repair"} component={ServicePageRoute} />
+        <Route path={"/door-hardware"} component={ServicePageRoute} />
+        <Route path={"/international-requests"} component={ServicePageRoute} />
         <Route path={"/admin"} component={AdminRoute} />
         <Route path={"/track/:token"} component={TrackBookingRoute} />
         <Route path={"/404"} component={NotFound} />

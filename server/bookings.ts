@@ -4,6 +4,13 @@ import { prisma } from "./prisma";
 
 const VALID_STATUSES: BookingStatus[] = ["PENDING", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
 const OPTIONAL_TEXT_FIELDS = [
+  "city",
+  "country",
+  "timeZone",
+  "preferredContactMethod",
+  "urgency",
+  "requestScope",
+  "currency",
   "dimensions",
   "quantity",
   "material",
@@ -15,6 +22,7 @@ const OPTIONAL_TEXT_FIELDS = [
 ] as const;
 const MAX_PHOTO_COUNT = 3;
 const MAX_PHOTO_LENGTH = 2_500_000;
+const STORED_MEDIA_PATTERN = /^\/uploads\/[a-z0-9-]+\.(png|jpe?g|webp)$/i;
 
 function validateOptionalText(body: any, field: (typeof OPTIONAL_TEXT_FIELDS)[number], maxLength = 180) {
   return body[field] === undefined || (typeof body[field] === "string" && body[field].trim().length <= maxLength);
@@ -29,11 +37,17 @@ function validatePhotos(photos: unknown) {
     return false;
   }
 
-  return photos.every((photo) =>
-    typeof photo === "string" &&
-    photo.length <= MAX_PHOTO_LENGTH &&
-    /^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=\s]+$/i.test(photo)
-  );
+  return photos.every((photo) => {
+    if (typeof photo !== "string") {
+      return false;
+    }
+
+    if (STORED_MEDIA_PATTERN.test(photo)) {
+      return true;
+    }
+
+    return photo.length <= MAX_PHOTO_LENGTH && /^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=\s]+$/i.test(photo);
+  });
 }
 
 function parseJsonArray<T>(value: string | null | undefined, fallback: T[] = []): T[] {
@@ -64,6 +78,13 @@ export function toBooking(record: any): Booking {
     message: record.message ?? undefined,
     customerToken: record.customerToken ?? undefined,
     photos: parseJsonArray<string>(record.photos),
+    city: record.city ?? undefined,
+    country: record.country ?? undefined,
+    timeZone: record.timeZone ?? undefined,
+    preferredContactMethod: record.preferredContactMethod ?? undefined,
+    urgency: record.urgency ?? undefined,
+    requestScope: record.requestScope ?? undefined,
+    currency: record.currency ?? undefined,
     dimensions: record.dimensions ?? undefined,
     quantity: record.quantity ?? undefined,
     material: record.material ?? undefined,
@@ -74,6 +95,9 @@ export function toBooking(record: any): Booking {
     budget: record.budget ?? undefined,
     appointmentTime: record.appointmentTime ?? undefined,
     quoteAmount: record.quoteAmount ?? undefined,
+    quoteNotes: record.quoteNotes ?? undefined,
+    invoiceStatus: record.invoiceStatus ?? undefined,
+    paymentStatus: record.paymentStatus ?? undefined,
     staffAssigned: record.staffAssigned ?? undefined,
     adminNotes: record.adminNotes ?? undefined,
     statusHistory: parseStatusHistory(record.statusHistory),
@@ -91,7 +115,7 @@ export function validateBooking(body: any): body is BookingRequest {
     body.name.trim().length <= 100 &&
     typeof body.phone === "string" &&
     body.phone.trim().length > 0 &&
-    body.phone.trim().length <= 20 &&
+    body.phone.trim().length <= 35 &&
     typeof body.email === "string" &&
     body.email.trim().length > 0 &&
     body.email.trim().length <= 100 &&
@@ -129,6 +153,13 @@ export async function saveBooking(booking: BookingRequest): Promise<Booking> {
     phone: booking.phone.trim(),
     email: booking.email.trim().toLowerCase(),
     address: booking.address.trim(),
+    city: booking.city?.trim() || null,
+    country: booking.country?.trim() || null,
+    timeZone: booking.timeZone?.trim() || null,
+    preferredContactMethod: booking.preferredContactMethod?.trim() || null,
+    urgency: booking.urgency?.trim() || null,
+    requestScope: booking.requestScope?.trim() || null,
+    currency: booking.currency?.trim() || null,
     repairType: booking.repairType.trim(),
     preferredDate: booking.preferredDate?.trim() || null,
     message: booking.message?.trim() || null,

@@ -3,6 +3,13 @@ export interface BookingRequest {
   phone: string;
   email: string;
   address: string;
+  city?: string;
+  country?: string;
+  timeZone?: string;
+  preferredContactMethod?: string;
+  urgency?: string;
+  requestScope?: string;
+  currency?: string;
   repairType: string;
   preferredDate?: string;
   message?: string;
@@ -25,6 +32,9 @@ export interface Booking extends BookingRequest {
   customerToken?: string;
   appointmentTime?: string;
   quoteAmount?: string;
+  quoteNotes?: string;
+  invoiceStatus?: string;
+  paymentStatus?: string;
   staffAssigned?: string;
   adminNotes?: string;
   statusHistory?: BookingStatusHistoryEntry[];
@@ -44,6 +54,9 @@ export interface BookingUpdateRequest {
   status?: BookingStatus;
   appointmentTime?: string;
   quoteAmount?: string;
+  quoteNotes?: string;
+  invoiceStatus?: string;
+  paymentStatus?: string;
   staffAssigned?: string;
   adminNotes?: string;
 }

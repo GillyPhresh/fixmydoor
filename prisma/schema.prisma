@@ -13,6 +13,13 @@ model Booking {
   phone              String
   email              String
   address            String
+  city               String?
+  country            String?
+  timeZone           String?
+  preferredContactMethod String?
+  urgency            String?
+  requestScope       String?
+  currency           String?
   repairType         String
   preferredDate      String?
   message            String?
@@ -30,6 +37,9 @@ model Booking {
   customerConsent    Boolean     @default(false)
   appointmentTime    String?
   quoteAmount        String?
+  quoteNotes         String?
+  invoiceStatus      String?
+  paymentStatus      String?
   staffAssigned      String?
   adminNotes         String?
   statusHistory      String?

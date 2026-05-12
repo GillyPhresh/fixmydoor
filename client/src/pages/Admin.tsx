@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Calendar, Download, Phone, User, MapPin, Mail, Search, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload } from "lucide-react";
+import { Calendar, Download, Phone, User, MapPin, Mail, Search, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
 
@@ -94,6 +94,7 @@ export default function Admin() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [workflowFilter, setWorkflowFilter] = useState<string>("ALL");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [bookingDraft, setBookingDraft] = useState<BookingUpdateRequest>({});
   const [statusUpdateLoading, setStatusUpdateLoading] = useState<string | null>(null);
@@ -137,7 +138,7 @@ export default function Admin() {
     if (authenticated && debouncedSearch !== undefined) {
       fetchBookings();
     }
-  }, [authenticated, debouncedSearch, statusFilter, currentPage]);
+  }, [authenticated, debouncedSearch, statusFilter, workflowFilter, currentPage]);
 
   const checkAuthStatus = async () => {
     try {
@@ -198,6 +199,7 @@ export default function Admin() {
       const params = new URLSearchParams();
       if (debouncedSearch) params.append("search", debouncedSearch);
       if (statusFilter !== "ALL") params.append("status", statusFilter);
+      if (workflowFilter !== "ALL") params.append("workflow", workflowFilter);
       params.append("page", currentPage.toString());
       params.append("limit", "20");
 
@@ -244,6 +246,9 @@ export default function Admin() {
     setBookingDraft({
       appointmentTime: booking.appointmentTime || "",
       quoteAmount: booking.quoteAmount || "",
+      quoteNotes: booking.quoteNotes || "",
+      invoiceStatus: booking.invoiceStatus || "Not issued",
+      paymentStatus: booking.paymentStatus || "Not paid",
       staffAssigned: booking.staffAssigned || "",
       adminNotes: booking.adminNotes || "",
     });
@@ -393,15 +398,20 @@ export default function Admin() {
 
     try {
       const dataUrl = await readFile(file);
-      setContentDraft((draft) => ({ ...draft, image: dataUrl }));
-      toast.success("Advert media attached. Save the content item to publish it.");
+      const response = await axios.post<{ url: string }>("/api/admin/media", { dataUrl, fileName: file.name });
+      setContentDraft((draft) => ({ ...draft, image: response.data.url }));
+      toast.success("Advert media uploaded. Save the content item to publish it.");
     } catch (err) {
-      toast.error("Unable to read the selected image.");
+      toast.error("Unable to upload the selected media.");
     }
   };
 
   const exportBookings = () => {
     window.open("/api/bookings/export", "_blank");
+  };
+
+  const openQuoteInvoice = (bookingId: string) => {
+    window.open(`/api/bookings/${bookingId}/quote`, "_blank", "noopener,noreferrer");
   };
 
   const updateBookingStatus = async (id: string, status: BookingStatus) => {
@@ -669,7 +679,7 @@ export default function Admin() {
               />
             </div>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
             <SelectTrigger className="w-48">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Filter by status" />
@@ -681,6 +691,21 @@ export default function Admin() {
               <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
               <SelectItem value="COMPLETED">Completed</SelectItem>
               <SelectItem value="CANCELLED">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={workflowFilter} onValueChange={(value) => { setWorkflowFilter(value); setCurrentPage(1); }}>
+            <SelectTrigger className="w-56">
+              <Filter className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Workflow filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Workflows</SelectItem>
+              <SelectItem value="INTERNATIONAL">International Requests</SelectItem>
+              <SelectItem value="URGENT">Urgent / Emergency</SelectItem>
+              <SelectItem value="NEEDS_QUOTE">Needs Quote</SelectItem>
+              <SelectItem value="QUOTED">Quoted</SelectItem>
+              <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+              <SelectItem value="PAYMENT_PENDING">Payment Pending</SelectItem>
             </SelectContent>
           </Select>
           <Button type="button" variant="outline" onClick={exportBookings} className="lg:w-auto">
@@ -752,6 +777,12 @@ export default function Admin() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">{booking.repairType}</Badge>
+                        {(booking.country || booking.urgency) && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {booking.country && <Badge variant="outline">{booking.country}</Badge>}
+                            {booking.urgency && booking.urgency !== "Standard" && <Badge className="bg-red-100 text-red-800">{booking.urgency}</Badge>}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Select
@@ -834,6 +865,27 @@ export default function Admin() {
                                       <Label>Address</Label>
                                       <p className="font-medium">{selectedBooking.address}</p>
                                     </div>
+                                    {(selectedBooking.city || selectedBooking.country || selectedBooking.timeZone || selectedBooking.preferredContactMethod || selectedBooking.urgency || selectedBooking.requestScope || selectedBooking.currency) && (
+                                      <div className="col-span-2 rounded-xl border bg-muted/30 p-4">
+                                        <Label>International / Contact Details</Label>
+                                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                          {[
+                                            ["City / Province", selectedBooking.city],
+                                            ["Country", selectedBooking.country],
+                                            ["Time Zone", selectedBooking.timeZone],
+                                            ["Preferred Contact", selectedBooking.preferredContactMethod],
+                                            ["Urgency", selectedBooking.urgency],
+                                            ["Request Type", selectedBooking.requestScope],
+                                            ["Currency", selectedBooking.currency],
+                                          ].filter(([, value]) => value).map(([label, value]) => (
+                                            <div key={label} className="rounded-lg bg-background p-3">
+                                              <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+                                              <p className="font-medium">{value}</p>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                     <div>
                                       <Label>Preferred Date</Label>
                                       <p className="font-medium">
@@ -888,10 +940,16 @@ export default function Admin() {
                                   <div className="rounded-xl border p-4">
                                     <div className="mb-3 flex items-center justify-between gap-3">
                                       <Label>Admin Workflow</Label>
-                                      <Button type="button" size="sm" onClick={saveBookingWorkflow}>
-                                        <Save className="mr-2 h-4 w-4" />
-                                        Save Details
-                                      </Button>
+                                      <div className="flex flex-wrap gap-2">
+                                        <Button type="button" size="sm" variant="outline" onClick={() => openQuoteInvoice(selectedBooking.id)}>
+                                          <FileText className="mr-2 h-4 w-4" />
+                                          Quote / Invoice
+                                        </Button>
+                                        <Button type="button" size="sm" onClick={saveBookingWorkflow}>
+                                          <Save className="mr-2 h-4 w-4" />
+                                          Save Details
+                                        </Button>
+                                      </div>
                                     </div>
                                     <div className="grid gap-3 sm:grid-cols-3">
                                       <div>
@@ -916,6 +974,38 @@ export default function Admin() {
                                           value={bookingDraft.staffAssigned || ""}
                                           onChange={(event) => setBookingDraft((draft) => ({ ...draft, staffAssigned: event.target.value }))}
                                           placeholder="Richard / Team"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label>Invoice Status</Label>
+                                        <Select value={bookingDraft.invoiceStatus || "Not issued"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, invoiceStatus: value }))}>
+                                          <SelectTrigger><SelectValue /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="Not issued">Not issued</SelectItem>
+                                            <SelectItem value="Quote sent">Quote sent</SelectItem>
+                                            <SelectItem value="Invoice sent">Invoice sent</SelectItem>
+                                            <SelectItem value="Revised">Revised</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div>
+                                        <Label>Payment Status</Label>
+                                        <Select value={bookingDraft.paymentStatus || "Not paid"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, paymentStatus: value }))}>
+                                          <SelectTrigger><SelectValue /></SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="Not paid">Not paid</SelectItem>
+                                            <SelectItem value="Deposit requested">Deposit requested</SelectItem>
+                                            <SelectItem value="Partially paid">Partially paid</SelectItem>
+                                            <SelectItem value="Paid">Paid</SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                      <div className="sm:col-span-3">
+                                        <Label>Quote / Invoice Notes</Label>
+                                        <Textarea
+                                          value={bookingDraft.quoteNotes || ""}
+                                          onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteNotes: event.target.value }))}
+                                          placeholder="Line items, labour, materials, delivery, tax notes, payment link, or quote terms..."
                                         />
                                       </div>
                                       <div className="sm:col-span-3">
@@ -946,6 +1036,9 @@ export default function Admin() {
                               )}
                             </DialogContent>
                           </Dialog>
+                          <Button variant="outline" size="sm" onClick={() => openQuoteInvoice(booking.id)}>
+                            <FileText className="w-4 h-4" />
+                          </Button>
 
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
