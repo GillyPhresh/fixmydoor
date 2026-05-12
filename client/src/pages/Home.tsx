@@ -78,6 +78,7 @@ const reviewSchema = z.object({
 
 type ReviewFormData = z.infer<typeof reviewSchema>;
 type CookiePreference = "accepted" | "denied";
+type MobileSliderKey = "paths" | "services" | "categories" | "doors" | "hardware" | "projects" | "reviews";
 
 const navLinks = [
   { href: "#services", label: "Services" },
@@ -93,37 +94,13 @@ const BUSINESS_WHATSAPP_DISPLAY = "+233 24 201 1305";
 const CLIENT_WHATSAPP_MESSAGE = "Hello FixMyDoor, I need help with a door, lock, furniture, or hardware request. Please contact me.";
 const BUSINESS_WHATSAPP_URL = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${encodeURIComponent(CLIENT_WHATSAPP_MESSAGE)}`;
 
+const isVideoMedia = (media?: string) =>
+  Boolean(media && (media.startsWith("data:video/") || /\.(mp4|webm|ogg)(\?.*)?$/i.test(media)));
+
 const serviceAreaNotes = [
   "Montreal-based head office for local coordination.",
   "Canada-wide booking support for homes, rentals, offices, and small commercial spaces.",
   "International requests are welcome for product sourcing, measurements, and repair guidance.",
-];
-
-const defaultAdverts = [
-  {
-    title: "Repair slots for doors, locks, and furniture",
-    description: "Send photos of the issue and we will help you decide whether it needs repair, replacement, or the right hardware part.",
-    tag: "Booking Open",
-    image: heroImage,
-    cta: "Book a Repair",
-    bookingValue: "door-repair",
-  },
-  {
-    title: "Need new doors or hardware?",
-    description: "Ask about entry doors, heavy-duty doors, handles, locks, hinges, drawer slides, and furniture parts before buying.",
-    tag: "Product Sourcing",
-    image: doorProducts[0].image,
-    cta: "Ask for a Quote",
-    bookingValue: "door-purchase",
-  },
-  {
-    title: "Home service support across Canada",
-    description: "Based in Canada with support for local repairs, buying guidance, measurements, and international product requests.",
-    tag: "Service Update",
-    image: hardwareProducts[0].image,
-    cta: "Send Request",
-    bookingValue: "consultation",
-  },
 ];
 
 const faqItems = [
@@ -153,6 +130,15 @@ export default function Home() {
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
   const [activeAdvertIndex, setActiveAdvertIndex] = useState(0);
+  const [activeMobileSlides, setActiveMobileSlides] = useState<Record<MobileSliderKey, number>>({
+    paths: 0,
+    services: 0,
+    categories: 0,
+    doors: 0,
+    hardware: 0,
+    projects: 0,
+    reviews: 0,
+  });
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -328,6 +314,7 @@ export default function Home() {
     description: item.description || "See what is available now and send a request for details.",
     tag: item.tag || "Promotion",
     image: item.image || heroImage,
+    isVideo: isVideoMedia(item.image),
     cta: item.items || "Send Request",
     bookingValue: item.bookingValue || "consultation",
   }));
@@ -336,7 +323,19 @@ export default function Home() {
   const displayedDoorProducts = dynamicDoorProducts.length > 0 ? dynamicDoorProducts : doorProducts;
   const displayedHardwareProducts = dynamicHardwareProducts.length > 0 ? dynamicHardwareProducts : hardwareProducts;
   const displayedProjectGallery = dynamicProjectGallery.length > 0 ? dynamicProjectGallery : projectGallery;
-  const displayedAdverts = dynamicAdverts.length > 0 ? dynamicAdverts : defaultAdverts;
+  const displayedAdverts = dynamicAdverts;
+
+  const mobileSliderLengths: Record<MobileSliderKey, number> = {
+    paths: customerPaths.length,
+    services: displayedServiceShowcase.length,
+    categories: displayedProductCategories.length,
+    doors: displayedDoorProducts.length,
+    hardware: displayedHardwareProducts.length,
+    projects: displayedProjectGallery.length,
+    reviews: featuredReviews.length,
+  };
+
+  const isActiveMobileSlide = (key: MobileSliderKey, index: number) => activeMobileSlides[key] === index;
 
   useEffect(() => {
     setActiveAdvertIndex(0);
@@ -355,6 +354,39 @@ export default function Home() {
       window.clearInterval(timer);
     };
   }, [displayedAdverts.length]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveMobileSlides((currentSlides) => ({
+        paths: (currentSlides.paths + 1) % Math.max(mobileSliderLengths.paths, 1),
+        services: (currentSlides.services + 1) % Math.max(mobileSliderLengths.services, 1),
+        categories: (currentSlides.categories + 1) % Math.max(mobileSliderLengths.categories, 1),
+        doors: (currentSlides.doors + 1) % Math.max(mobileSliderLengths.doors, 1),
+        hardware: (currentSlides.hardware + 1) % Math.max(mobileSliderLengths.hardware, 1),
+        projects: (currentSlides.projects + 1) % Math.max(mobileSliderLengths.projects, 1),
+        reviews: (currentSlides.reviews + 1) % Math.max(mobileSliderLengths.reviews, 1),
+      }));
+    }, 4200);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [
+    mobileSliderLengths.paths,
+    mobileSliderLengths.services,
+    mobileSliderLengths.categories,
+    mobileSliderLengths.doors,
+    mobileSliderLengths.hardware,
+    mobileSliderLengths.projects,
+    mobileSliderLengths.reviews,
+  ]);
+
+  const scrollToContactForm = () => {
+    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      document.getElementById("repair-type-trigger")?.focus();
+    }, 350);
+  };
 
   const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
@@ -423,10 +455,7 @@ export default function Home() {
       shouldValidate: true,
     });
 
-    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => {
-      document.getElementById("repair-type-trigger")?.focus();
-    }, 350);
+    scrollToContactForm();
 
     toast.success(`${service.title} selected. Add your details and we'll follow up.`);
   };
@@ -445,13 +474,26 @@ export default function Home() {
       });
     }
 
-    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.setTimeout(() => {
-      document.getElementById("repair-type-trigger")?.focus();
-    }, 350);
+    scrollToContactForm();
 
     toast.success(`${label} selected. Add your details and we'll follow up.`);
   };
+
+  const renderMobileDots = (key: MobileSliderKey, length: number) => (
+    length > 1 ? (
+      <div className="mt-4 flex justify-center gap-2 md:hidden">
+        {Array.from({ length }).map((_, index) => (
+          <button
+            key={`${key}-${index}`}
+            type="button"
+            onClick={() => setActiveMobileSlides((slides) => ({ ...slides, [key]: index }))}
+            className={`h-2.5 rounded-full transition-all ${isActiveMobileSlide(key, index) ? "w-8 bg-primary" : "w-2.5 bg-primary/25"}`}
+            aria-label={`Show ${key} slide ${index + 1}`}
+          />
+        ))}
+      </div>
+    ) : null
+  );
 
   const saveCookiePreference = (preference: CookiePreference) => {
     window.localStorage.setItem("fixmydoor-cookie-choice", preference);
@@ -538,10 +580,10 @@ export default function Home() {
               If a door sticks, a lock feels loose, or furniture hardware keeps giving trouble, we help you fix it properly or find the right replacement.
             </p>
             <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
-              <a href="#contact" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.24)] transition hover:-translate-y-0.5 hover:bg-primary/90">
+              <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.24)] transition hover:-translate-y-0.5 hover:bg-primary/90">
                 Book a Repair
                 <ArrowRight className="h-4 w-4" />
-              </a>
+              </button>
               <a href="#shop" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-secondary/15 bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-[0_10px_24px_rgba(47,36,28,0.08)] transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">
                 <ShoppingBag className="h-4 w-4" />
                 Shop Doors & Hardware
@@ -587,6 +629,7 @@ export default function Home() {
         </div>
       </section>
 
+      {displayedAdverts.length > 0 && (
       <section className="bg-white py-5 md:py-7">
         <div className="container max-w-[1180px]">
           <div className="overflow-hidden rounded-[28px] border border-primary/12 bg-[linear-gradient(135deg,_#fff8ed,_#ffffff_52%,_#f3e2cf)] shadow-[0_20px_55px_rgba(66,40,18,0.12)] md:rounded-[34px]">
@@ -627,7 +670,11 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="relative min-h-[210px] overflow-hidden bg-[#f7efe4] md:min-h-[330px]">
-                    <img src={advert.image} alt={advert.title} loading={index === 0 ? "eager" : "lazy"} className="h-full min-h-[210px] w-full object-cover md:min-h-[330px]" />
+                    {advert.isVideo ? (
+                      <video src={advert.image} className="h-full min-h-[210px] w-full object-cover md:min-h-[330px]" autoPlay muted loop playsInline controls />
+                    ) : (
+                      <img src={advert.image} alt={advert.title} loading={index === 0 ? "eager" : "lazy"} className="h-full min-h-[210px] w-full object-cover md:min-h-[330px]" />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-secondary/45 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-secondary/12" />
                   </div>
                 </article>
@@ -652,6 +699,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      )}
 
       <section className="bg-[#2f241c] py-9 text-white md:py-10">
         <div className="container max-w-[1180px]">
@@ -672,7 +720,7 @@ export default function Home() {
                 href={path.href}
                 className={`group overflow-hidden rounded-[24px] border border-white/10 p-5 shadow-[0_14px_38px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 ${
                   index === 0 ? "bg-white text-secondary" : "bg-primary text-white"
-                }`}
+                } ${isActiveMobileSlide("paths", index) ? "block" : "hidden"} md:block`}
               >
                 <span className={`inline-flex rounded-full px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.22em] ${
                   index === 0 ? "bg-primary/10 text-primary" : "bg-white/18 text-white"
@@ -688,6 +736,7 @@ export default function Home() {
               </a>
             ))}
           </div>
+          {renderMobileDots("paths", customerPaths.length)}
         </div>
       </section>
 
@@ -717,8 +766,8 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {featuredServiceCollage.map((item) => (
-                    <figure key={item.title} className={`group relative overflow-hidden rounded-[24px] border border-white/10 bg-white/5 ${item.featured ? "sm:col-span-2" : ""}`}>
+                  {featuredServiceCollage.map((item, index) => (
+                    <figure key={item.title} className={`group relative overflow-hidden rounded-[24px] border border-white/10 bg-white/5 ${item.featured ? "sm:col-span-2" : ""} ${index > 0 ? "hidden sm:block" : ""}`}>
                       <img
                         src={item.src}
                         alt={item.title}
@@ -738,7 +787,7 @@ export default function Home() {
 
             <div className="grid gap-5 sm:grid-cols-2">
               {displayedServiceShowcase.map((service, index) => (
-                <article key={service.title} className={`overflow-hidden rounded-[24px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 md:rounded-[28px] ${index > 1 ? "hidden md:block" : ""}`}>
+                <article key={service.title} className={`overflow-hidden rounded-[24px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 md:rounded-[28px] ${isActiveMobileSlide("services", index) ? "block" : "hidden"} md:block`}>
                   <img
                     src={service.src}
                     alt={service.title}
@@ -754,6 +803,7 @@ export default function Home() {
               ))}
             </div>
           </div>
+          {renderMobileDots("services", displayedServiceShowcase.length)}
 
         </div>
       </section>
@@ -768,14 +818,14 @@ export default function Home() {
                 Tell us what you are trying to fix or replace. We can help you narrow down the right product before you spend money on the wrong item.
               </p>
             </div>
-            <a href="#contact" className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.2)] transition hover:-translate-y-0.5 hover:bg-primary/90">
+            <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.2)] transition hover:-translate-y-0.5 hover:bg-primary/90">
               Ask for a Quote
-            </a>
+            </button>
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
             {displayedProductCategories.map((category, index) => (
-              <article key={category.title} className={`overflow-hidden rounded-[28px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)] md:rounded-[32px] ${index > 1 ? "hidden md:block" : ""}`}>
+              <article key={category.title} className={`overflow-hidden rounded-[28px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)] md:rounded-[32px] ${isActiveMobileSlide("categories", index) ? "block" : "hidden"} md:block`}>
                 <div className="relative h-52 overflow-hidden bg-[#f8f4ec] md:h-64">
                   <img src={category.image} alt={category.title} loading="lazy" className="h-full w-full object-cover" />
                   <img src={category.accent} alt="" loading="lazy" className="absolute bottom-4 right-4 h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-xl" />
@@ -796,6 +846,7 @@ export default function Home() {
               </article>
             ))}
           </div>
+          {renderMobileDots("categories", displayedProductCategories.length)}
 
           <div className="mt-8 rounded-[28px] bg-[#2f241c] p-5 text-white shadow-[0_22px_70px_rgba(47,36,28,0.2)] sm:p-8 md:mt-12 md:rounded-[34px]">
             <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -821,7 +872,7 @@ export default function Home() {
                   key={product.title}
                   type="button"
                   onClick={() => handleCatalogPick("door-purchase", product.title)}
-                  className={`group overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12 ${index > 1 ? "hidden md:block" : ""}`}
+                  className={`group overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12 ${isActiveMobileSlide("doors", index) ? "block" : "hidden"} md:block`}
                 >
                   <img src={product.image} alt={product.title} loading="lazy" className="h-48 w-full bg-white object-cover transition duration-500 group-hover:scale-[1.03] md:h-56" />
                   <div className="p-4">
@@ -831,6 +882,7 @@ export default function Home() {
                 </button>
               ))}
             </div>
+            {renderMobileDots("doors", displayedDoorProducts.length)}
           </div>
 
           <div className="mt-8 rounded-[28px] border border-primary/12 bg-white p-5 shadow-[0_18px_50px_rgba(0,0,0,0.06)] sm:p-8 md:mt-10 md:rounded-[34px]">
@@ -854,7 +906,7 @@ export default function Home() {
                   key={product.title}
                   type="button"
                   onClick={() => handleCatalogPick(product.tag.includes("Drawer") || product.tag.includes("Cabinet") ? "furniture-hardware-purchase" : "door-hardware-purchase", product.title)}
-                  className={`group overflow-hidden rounded-[22px] border border-primary/10 bg-[#fffaf2] text-left transition hover:-translate-y-1 ${index > 2 ? "hidden md:block" : ""}`}
+                  className={`group overflow-hidden rounded-[22px] border border-primary/10 bg-[#fffaf2] text-left transition hover:-translate-y-1 ${isActiveMobileSlide("hardware", index) ? "block" : "hidden"} md:block`}
                 >
                   <img src={product.image} alt={product.title} loading="lazy" className="h-40 w-full bg-white object-contain p-3 transition duration-500 group-hover:scale-[1.03] md:h-48" />
                   <div className="p-4">
@@ -864,6 +916,7 @@ export default function Home() {
                 </button>
               ))}
             </div>
+            {renderMobileDots("hardware", displayedHardwareProducts.length)}
           </div>
         </div>
       </section>
@@ -880,7 +933,7 @@ export default function Home() {
 
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {displayedProjectGallery.map((project, index) => (
-              <article key={project.title} className={`overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px] ${index > 2 ? "hidden md:block" : ""}`}>
+              <article key={project.title} className={`overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px] ${isActiveMobileSlide("projects", index) ? "block" : "hidden"} md:block`}>
                 <img src={project.src} alt={project.title} loading="lazy" className="h-56 w-full object-cover md:h-[300px]" />
                 <div className="p-5 md:p-6">
                   <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{project.category}</span>
@@ -890,6 +943,7 @@ export default function Home() {
               </article>
             ))}
           </div>
+          {renderMobileDots("projects", displayedProjectGallery.length)}
         </div>
       </section>
 
@@ -949,7 +1003,7 @@ export default function Home() {
           <div className="grid gap-5 lg:grid-cols-[1fr_0.62fr] lg:items-start">
             <div className="grid gap-4 md:grid-cols-3">
               {featuredReviews.map((review, index) => (
-                <article key={review.id} className={`rounded-[22px] border border-primary/10 bg-white p-4 shadow-[0_12px_34px_rgba(0,0,0,0.05)] ${index > 1 ? "hidden md:block" : ""}`}>
+                <article key={review.id} className={`rounded-[22px] border border-primary/10 bg-white p-4 shadow-[0_12px_34px_rgba(0,0,0,0.05)] ${isActiveMobileSlide("reviews", index) ? "block" : "hidden"} md:block`}>
                   <div className="mb-3 flex gap-1">
                     {Array.from({ length: 5 }).map((_, index) => (
                       <Star
@@ -964,6 +1018,7 @@ export default function Home() {
                 </article>
               ))}
             </div>
+            {renderMobileDots("reviews", featuredReviews.length)}
 
             <div id="write-review" className="rounded-[24px] border border-primary/12 bg-white p-5 shadow-[0_14px_40px_rgba(0,0,0,0.06)]">
               <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Share Feedback</p>
@@ -1027,9 +1082,9 @@ export default function Home() {
               <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">How It Works</p>
               <h2 className="mt-2 font-display text-3xl font-bold text-secondary md:text-4xl">Simple from the first message to the finished job.</h2>
             </div>
-            <a href="#contact" className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.2)] transition hover:-translate-y-0.5 hover:bg-primary/90">
+            <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.2)] transition hover:-translate-y-0.5 hover:bg-primary/90">
               Start Booking
-            </a>
+            </button>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-[22px] border border-primary/10 bg-background p-5">
@@ -1308,14 +1363,14 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="relative overflow-hidden bg-[radial-gradient(circle_at_12%_0%,_rgba(212,165,116,0.18),_transparent_34%),radial-gradient(circle_at_90%_100%,_rgba(138,90,45,0.28),_transparent_35%),linear-gradient(135deg,_#241a14,_#342318_58%,_#1b130f)] text-white">
+      <footer className="relative overflow-hidden bg-[radial-gradient(circle_at_12%_0%,_rgba(212,165,116,0.14),_transparent_30%),radial-gradient(circle_at_90%_100%,_rgba(138,90,45,0.2),_transparent_32%),linear-gradient(135deg,_#241a14,_#342318_58%,_#1b130f)] text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-        <div className="absolute left-[-8rem] top-[-8rem] h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute bottom-[-10rem] right-[-6rem] h-80 w-80 rounded-full bg-[#8a5a2d]/25 blur-3xl" />
+        <div className="absolute left-[-8rem] top-[-8rem] h-56 w-56 rounded-full bg-primary/16 blur-3xl" />
+        <div className="absolute bottom-[-9rem] right-[-6rem] h-64 w-64 rounded-full bg-[#8a5a2d]/18 blur-3xl" />
         <svg
           aria-hidden="true"
           viewBox="0 0 1000 420"
-          className="pointer-events-none absolute left-1/2 top-8 h-[28rem] w-[72rem] -translate-x-1/2 text-primary opacity-[0.13] md:top-1"
+          className="pointer-events-none absolute left-1/2 top-8 hidden h-[20rem] w-[56rem] -translate-x-1/2 text-primary opacity-[0.08] md:block"
         >
           <g fill="currentColor">
             <path d="M120 118c28-35 84-44 134-31 20 5 39 2 57-8 18-9 39-5 48 12 7 14-7 26-20 32-17 8-25 24-35 38-13 19-38 19-58 27-21 9-25 35-47 41-22 5-44-13-46-35-2-20-26-24-42-33-18-10-8-31 9-43Z" />
@@ -1336,17 +1391,17 @@ export default function Home() {
             <circle cx="772" cy="278" r="5" />
           </g>
         </svg>
-        <div className="container relative max-w-[1180px] py-8 md:py-10">
-          <div className="mb-8 overflow-hidden rounded-[34px] border border-primary/25 bg-[linear-gradient(135deg,_rgba(255,250,242,0.16),_rgba(255,255,255,0.05))] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.26)] backdrop-blur md:p-7">
-            <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+        <div className="container relative max-w-[1180px] py-5 md:py-6">
+          <div className="mb-5 overflow-hidden rounded-[26px] border border-primary/20 bg-[linear-gradient(135deg,_rgba(255,250,242,0.13),_rgba(255,255,255,0.04))] p-4 shadow-[0_16px_45px_rgba(0,0,0,0.2)] backdrop-blur md:p-5">
+            <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
               <div>
                 <p className="inline-flex rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.28em] text-primary">Ready When You Are</p>
-                <h2 className="mt-3 max-w-2xl font-display text-3xl font-bold leading-tight md:text-4xl">
+                <h2 className="mt-2 max-w-2xl font-display text-2xl font-bold leading-tight md:text-3xl">
                   Send the issue, photo, or product request. We will help you choose the right next step.
                 </h2>
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
                   {["Repair requests", "Door & hardware sourcing", "Canada-based support"].map((item) => (
-                    <div key={item} className="flex items-center gap-2 rounded-2xl bg-white/8 px-3 py-2 text-sm font-semibold text-white/88">
+                    <div key={item} className="flex items-center gap-2 rounded-xl bg-white/8 px-3 py-2 text-xs font-semibold text-white/88">
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
                       {item}
                     </div>
@@ -1354,11 +1409,11 @@ export default function Home() {
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                <a href="#contact" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-[0_16px_32px_rgba(180,101,50,0.28)] transition hover:-translate-y-0.5 hover:bg-primary/90">
+                <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_16px_32px_rgba(180,101,50,0.28)] transition hover:-translate-y-0.5 hover:bg-primary/90">
                   Send Request
                   <ArrowRight className="h-4 w-4" />
-                </a>
-                <a href="tel:+14383471823" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-secondary shadow-[0_16px_32px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 hover:bg-[#fff7ed]">
+                </button>
+                <a href="tel:+14383471823" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-[0_16px_32px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 hover:bg-[#fff7ed]">
                   <Phone className="h-4 w-4" />
                   Call +1 (438) 347-1823
                 </a>
@@ -1366,26 +1421,26 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1.15fr_0.8fr_0.8fr_1fr]">
-            <div className="overflow-hidden rounded-[30px] border border-primary/20 bg-[linear-gradient(180deg,_rgba(255,255,255,0.10),_rgba(255,255,255,0.045))] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.16)]">
-              <div className="rounded-[26px] border border-primary/25 bg-[linear-gradient(145deg,_#fffaf2,_#f0d8b7)] p-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.75),_0_18px_36px_rgba(0,0,0,0.18)]">
-                <div className="mx-auto flex max-w-[230px] items-center justify-center rounded-[22px] bg-white/78 px-4 py-3 shadow-[0_12px_24px_rgba(66,40,18,0.12)]">
-                  <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-24 w-auto max-w-full object-contain drop-shadow-[0_8px_12px_rgba(66,40,18,0.16)]" />
+          <div className="grid gap-4 lg:grid-cols-[1.05fr_0.75fr_0.75fr_1fr]">
+            <div className="overflow-hidden rounded-[24px] border border-primary/18 bg-[linear-gradient(180deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.04))] p-3 shadow-[0_14px_36px_rgba(0,0,0,0.14)]">
+              <div className="rounded-[20px] border border-primary/20 bg-[linear-gradient(145deg,_#fffaf2,_#f0d8b7)] p-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.75),_0_12px_24px_rgba(0,0,0,0.14)]">
+                <div className="mx-auto flex max-w-[180px] items-center justify-center rounded-[18px] bg-white/78 px-3 py-2 shadow-[0_10px_20px_rgba(66,40,18,0.1)]">
+                  <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-16 w-auto max-w-full object-contain drop-shadow-[0_8px_12px_rgba(66,40,18,0.16)]" />
                 </div>
-                <h3 className="mt-3 font-display text-xl font-bold text-secondary">FixMyDoor</h3>
+                <h3 className="mt-2 font-display text-lg font-bold text-secondary">FixMyDoor</h3>
                 <p className="mt-1 text-xs font-bold uppercase tracking-[0.22em] text-secondary/70">Door & Furniture Repairs</p>
               </div>
-              <p className="mt-4 max-w-sm text-sm leading-relaxed text-white/78">
+              <p className="mt-3 max-w-sm text-xs leading-relaxed text-white/76">
                 FixMyDoor helps homeowners, landlords, offices, and businesses with door repairs, lock care, furniture fixes, and product sourcing from Canada.
               </p>
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold text-white/88">Door repairs</span>
                 <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold text-white/88">Locks & hinges</span>
                 <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold text-white/88">Furniture parts</span>
               </div>
             </div>
 
-            <div className="rounded-[30px] border border-white/10 bg-white/[0.055] p-5 shadow-[0_14px_40px_rgba(0,0,0,0.12)]">
+            <div className="rounded-[24px] border border-white/10 bg-white/[0.055] p-4 shadow-[0_14px_34px_rgba(0,0,0,0.1)]">
               <h4 className="font-display text-lg font-bold">Explore</h4>
               <div className="mt-2 h-1 w-12 rounded-full bg-primary" />
               <div className="mt-4 grid gap-2">
@@ -1398,7 +1453,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="rounded-[30px] border border-white/10 bg-white/[0.055] p-5 shadow-[0_14px_40px_rgba(0,0,0,0.12)]">
+            <div className="rounded-[24px] border border-white/10 bg-white/[0.055] p-4 shadow-[0_14px_34px_rgba(0,0,0,0.1)]">
               <h4 className="font-display text-lg font-bold">Services</h4>
               <div className="mt-2 h-1 w-12 rounded-full bg-primary" />
               <div className="mt-4 grid gap-2">
@@ -1416,7 +1471,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="rounded-[30px] border border-white/10 bg-white/[0.075] p-5 shadow-[0_14px_40px_rgba(0,0,0,0.12)]">
+            <div className="rounded-[24px] border border-white/10 bg-white/[0.075] p-4 shadow-[0_14px_34px_rgba(0,0,0,0.1)]">
               <h4 className="font-display text-lg font-bold">Contact</h4>
               <div className="mt-2 h-1 w-12 rounded-full bg-primary" />
               <div className="mt-4 space-y-3">
@@ -1445,7 +1500,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-7 flex flex-col gap-3 border-t border-white/10 pt-5 text-sm text-white/60 md:flex-row md:items-center md:justify-between">
+          <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4 text-xs text-white/60 md:flex-row md:items-center md:justify-between">
             <p>&copy; 2026 FixMyDoor. Door and furniture repair support from Canada.</p>
             <p>Canada-based service. International requests welcome.</p>
           </div>

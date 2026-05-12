@@ -373,13 +373,13 @@ export default function Admin() {
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image flyer or product photo.");
+    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+      toast.error("Please upload an image flyer, product photo, or short advert video.");
       return;
     }
 
-    if (file.size > 1_800_000) {
-      toast.error("Please use an image under 1.8MB so the website stays fast.");
+    if (file.size > 5_500_000) {
+      toast.error("Please use a file under 5.5MB so the website stays fast.");
       return;
     }
 
@@ -394,7 +394,7 @@ export default function Admin() {
     try {
       const dataUrl = await readFile(file);
       setContentDraft((draft) => ({ ...draft, image: dataUrl }));
-      toast.success("Flyer image attached. Save the content item to publish it.");
+      toast.success("Advert media attached. Save the content item to publish it.");
     } catch (err) {
       toast.error("Unable to read the selected image.");
     }
@@ -1054,7 +1054,7 @@ export default function Admin() {
           <CardHeader>
             <CardTitle>Website Content Manager</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Add adverts, flyers, product cards, project cards, and service cards without editing code. Uploaded flyers appear in the homepage advert carousel.
+              Add adverts, flyers, videos, product cards, project cards, and service cards without editing code. Uploaded advert media appears in the homepage carousel.
             </p>
           </CardHeader>
           <CardContent>
@@ -1091,8 +1091,8 @@ export default function Admin() {
                 <Input value={contentDraft.items || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, items: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Book This Offer" : "Handles, cylinders, hinges, lock bodies..."} />
               </div>
               <div>
-                <Label>Main Image</Label>
-                <Input value={contentDraft.image || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="/src/pages/Images/..." />
+                <Label>Main Media</Label>
+                <Input value={contentDraft.image || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="Image/video URL or uploaded media" />
               </div>
               <div>
                 <Label>Accent Image</Label>
@@ -1103,15 +1103,19 @@ export default function Admin() {
                   <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Upload className="h-5 w-5" />
                   </span>
-                  <span className="font-semibold text-foreground">Upload flyer or promotion photo</span>
+                  <span className="font-semibold text-foreground">Upload flyer, promotion photo, or short video</span>
                   <span className="max-w-lg text-xs text-muted-foreground">
-                    Use this for advert flyers, product photos, or service images. Keep files under 1.8MB for faster loading.
+                    Use this for advert flyers, product photos, service images, or short advert videos. Keep files under 5.5MB for faster loading.
                   </span>
                 </Label>
-                <Input id="content-flyer-upload" type="file" accept="image/*" className="sr-only" onChange={handleContentImageUpload} />
+                <Input id="content-flyer-upload" type="file" accept="image/*,video/*" className="sr-only" onChange={handleContentImageUpload} />
                 {contentDraft.image && (
                   <div className="mt-4 overflow-hidden rounded-2xl border bg-muted/20">
-                    <img src={contentDraft.image} alt="Selected content preview" className="max-h-56 w-full object-contain" />
+                    {contentDraft.image.startsWith("data:video/") || /\.(mp4|webm|ogg)(\?.*)?$/i.test(contentDraft.image) ? (
+                      <video src={contentDraft.image} className="max-h-56 w-full object-contain" controls muted />
+                    ) : (
+                      <img src={contentDraft.image} alt="Selected content preview" className="max-h-56 w-full object-contain" />
+                    )}
                   </div>
                 )}
               </div>
