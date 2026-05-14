@@ -106,6 +106,87 @@ function matchesWorkflowFilter(booking: Booking, workflow: string) {
   }
 }
 
+class PrismaSessionStore extends session.Store {
+  get(sid: string, callback: (err: any, session?: session.SessionData | null) => void) {
+    prisma.session.findUnique({ where: { sid } })
+      .then(async (record) => {
+        if (!record) {
+          callback(null, null);
+          return;
+        }
+
+        if (record.expiresAt <= new Date()) {
+          await prisma.session.delete({ where: { sid } }).catch(() => undefined);
+          callback(null, null);
+          return;
+        }
+
+        callback(null, JSON.parse(record.data));
+      })
+      .catch((error) => callback(error));
+  }
+
+  set(sid: string, sessionData: session.SessionData, callback?: (err?: any) => void) {
+    const expiresAt = sessionData.cookie?.expires
+      ? new Date(sessionData.cookie.expires)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    prisma.session.upsert({
+      where: { sid },
+      create: { sid, data: JSON.stringify(sessionData), expiresAt },
+      update: { data: JSON.stringify(sessionData), expiresAt },
+    })
+      .then(() => callback?.())
+      .catch((error) => callback?.(error));
+  }
+
+  destroy(sid: string, callback?: (err?: any) => void) {
+    prisma.session.deleteMany({ where: { sid } })
+      .then(() => callback?.())
+      .catch((error) => callback?.(error));
+  }
+
+  touch(sid: string, sessionData: session.SessionData, callback?: (err?: any) => void) {
+    const expiresAt = sessionData.cookie?.expires
+      ? new Date(sessionData.cookie.expires)
+      : new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    prisma.session.updateMany({ where: { sid }, data: { expiresAt } })
+      .then(() => callback?.())
+      .catch((error) => callback?.(error));
+  }
+}
+
+function normalizeOrigin(value?: string) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const url = new URL(value);
+    return url.origin;
+  } catch {
+    return "";
+  }
+}
+
+function allowedOriginsForRequest(req: express.Request) {
+  const host = req.get("host");
+  const origins = new Set([
+    normalizeOrigin(process.env.PUBLIC_SITE_URL),
+    normalizeOrigin(process.env.ADMIN_URL),
+    normalizeOrigin(process.env.VITE_PUBLIC_SITE_URL),
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+  ].filter(Boolean));
+
+  if (host) {
+    origins.add(`${req.protocol}://${host}`);
+  }
+
+  return origins;
+}
+
 function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
   const lineItems = (booking.quoteNotes || "Labour, materials, sourcing, delivery, or installation details will be confirmed by FixMyDoor.").split(/\r?\n/).filter(Boolean);
 
@@ -256,13 +337,35 @@ async function startServer() {
     legacyHeaders: false,
   });
 
+  const uploadLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 20,
+    message: "Too many uploads from this IP, please try again later.",
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   app.use(limiter);
 
   // Compression
   app.use(compression());
 
+  app.use((req, res, next) => {
+    if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+      return next();
+    }
+
+    const origin = normalizeOrigin(req.get("origin"));
+    if (!origin || allowedOriginsForRequest(req).has(origin)) {
+      return next();
+    }
+
+    return res.status(403).json({ success: false, error: "Request origin is not allowed" });
+  });
+
   // Session configuration
   app.use(session({
+    store: new PrismaSessionStore(),
     secret: sessionSecret as string,
     resave: false,
     saveUninitialized: false,
@@ -276,11 +379,23 @@ async function startServer() {
     name: "fixmydoor.sid", // Change default session name
   }));
 
-  app.use(express.json({ limit: "10mb" })); // Limit request body size
+  prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } }).catch((error) => {
+    console.error("Expired session cleanup failed:", error);
+  });
+  const sessionCleanupTimer = setInterval(() => {
+    prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } }).catch((error) => {
+      console.error("Expired session cleanup failed:", error);
+    });
+  }, 60 * 60 * 1000);
+  sessionCleanupTimer.unref?.();
+
+  app.use(express.json({ limit: "8mb" })); // Limit request body size
   fs.mkdirSync(uploadDir, { recursive: true });
   app.use("/uploads", express.static(uploadDir, {
     maxAge: isProduction ? "30d" : 0,
   }));
+  app.use("/api/media", uploadLimiter);
+  app.use("/api/admin/media", uploadLimiter);
 
   // Auth middleware
   function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {

@@ -9,11 +9,20 @@ const VALID_CATEGORIES: ContentCategory[] = [
   "hardwareProduct",
   "projectGallery",
 ];
+const CONTENT_MEDIA_PATTERN = /^(\/uploads\/[a-z0-9-]+\.(png|jpe?g|webp|mp4|webm|ogg)|https?:\/\/[^\s<>"']{1,900})$/i;
 
 function cleanOptional(value: unknown, maxLength = 1000) {
   return typeof value === "string" && value.trim().length > 0
     ? value.trim().slice(0, maxLength)
     : null;
+}
+
+function validateOptionalMedia(value: unknown) {
+  return (
+    value === undefined ||
+    value === "" ||
+    (typeof value === "string" && value.length <= 1000 && CONTENT_MEDIA_PATTERN.test(value.trim()))
+  );
 }
 
 export function validateContentCategory(category: unknown): category is ContentCategory {
@@ -30,8 +39,8 @@ export function validateContentItem(body: any): body is ContentItemRequest {
     body.title.trim().length <= 120 &&
     (body.description === undefined || (typeof body.description === "string" && body.description.length <= 1000)) &&
     (body.tag === undefined || (typeof body.tag === "string" && body.tag.length <= 80)) &&
-    (body.image === undefined || (typeof body.image === "string" && body.image.length <= 8_000_000)) &&
-    (body.accentImage === undefined || (typeof body.accentImage === "string" && body.accentImage.length <= 8_000_000)) &&
+    validateOptionalMedia(body.image) &&
+    validateOptionalMedia(body.accentImage) &&
     (body.items === undefined || (typeof body.items === "string" && body.items.length <= 500)) &&
     (body.bookingValue === undefined || (typeof body.bookingValue === "string" && body.bookingValue.length <= 100)) &&
     (body.sortOrder === undefined || Number.isInteger(body.sortOrder)) &&
@@ -81,8 +90,8 @@ export async function createContentItem(item: ContentItemRequest) {
       title: item.title.trim(),
       description: cleanOptional(item.description),
       tag: cleanOptional(item.tag, 80),
-      image: cleanOptional(item.image, 8_000_000),
-      accentImage: cleanOptional(item.accentImage, 8_000_000),
+      image: cleanOptional(item.image, 1000),
+      accentImage: cleanOptional(item.accentImage, 1000),
       items: cleanOptional(item.items, 500),
       bookingValue: cleanOptional(item.bookingValue, 100),
       sortOrder: Number.isInteger(item.sortOrder) ? item.sortOrder : 0,
@@ -101,8 +110,8 @@ export async function updateContentItem(id: string, item: ContentItemRequest) {
       title: item.title.trim(),
       description: cleanOptional(item.description),
       tag: cleanOptional(item.tag, 80),
-      image: cleanOptional(item.image, 8_000_000),
-      accentImage: cleanOptional(item.accentImage, 8_000_000),
+      image: cleanOptional(item.image, 1000),
+      accentImage: cleanOptional(item.accentImage, 1000),
       items: cleanOptional(item.items, 500),
       bookingValue: cleanOptional(item.bookingValue, 100),
       sortOrder: Number.isInteger(item.sortOrder) ? item.sortOrder : 0,

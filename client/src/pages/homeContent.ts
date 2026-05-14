@@ -105,7 +105,7 @@ export const customerPaths = [
     title: "Fix the door, lock, hinge, drawer, or furniture piece",
     desc: "Tell us what is not working. We will help with sticking doors, loose handles, damaged frames, drawer slides, cabinet hinges, and furniture repairs.",
     cta: "Book a Repair",
-    href: "#contact",
+    href: "#booking-form",
   },
   {
     label: "Buy & Source",

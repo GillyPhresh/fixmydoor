@@ -1,5 +1,5 @@
 import axios from "axios";
-import { type ChangeEvent, useEffect, useState } from "react";
+import { type ChangeEvent, type CSSProperties, useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -87,6 +87,12 @@ type ReviewFormData = z.infer<typeof reviewSchema>;
 type CookiePreference = "accepted" | "denied";
 type MobileSliderKey = "paths" | "services" | "categories" | "doors" | "hardware" | "projects" | "reviews";
 
+const ADVERT_SLIDE_DURATION_MS = 7000;
+const MOBILE_SLIDE_DURATION_MS = 6200;
+const SLIDE_HOLD_PAUSE_MS = 12000;
+const DOT_SELECTION_PAUSE_MS = 9000;
+const mobileSliderTrackClass = "flex [transform:translateX(calc(var(--mobile-slide-index)*-100%))] transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform md:[transform:none]";
+
 const navLinks = [
   { href: "#services", label: "Services" },
   { href: "#shop", label: "Shop" },
@@ -146,6 +152,8 @@ export default function Home() {
     projects: 0,
     reviews: 0,
   });
+  const advertPauseUntilRef = useRef(0);
+  const mobileSliderPauseUntilRef = useRef<Partial<Record<MobileSliderKey, number>>>({});
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -357,6 +365,22 @@ export default function Home() {
   };
 
   const isActiveMobileSlide = (key: MobileSliderKey, index: number) => activeMobileSlides[key] === index;
+  const pauseAdvertSlider = (duration = SLIDE_HOLD_PAUSE_MS) => {
+    advertPauseUntilRef.current = Date.now() + duration;
+  };
+  const pauseMobileSlider = (key: MobileSliderKey, duration = SLIDE_HOLD_PAUSE_MS) => {
+    mobileSliderPauseUntilRef.current[key] = Date.now() + duration;
+  };
+  const mobileSliderStyle = (key: MobileSliderKey) => ({
+    "--mobile-slide-index": activeMobileSlides[key],
+  }) as CSSProperties;
+  const mobileSliderHoldProps = (key: MobileSliderKey) => ({
+    onPointerDown: () => pauseMobileSlider(key),
+    onPointerUp: () => pauseMobileSlider(key, DOT_SELECTION_PAUSE_MS),
+    onPointerCancel: () => pauseMobileSlider(key, DOT_SELECTION_PAUSE_MS),
+    onMouseEnter: () => pauseMobileSlider(key, DOT_SELECTION_PAUSE_MS),
+    onFocus: () => pauseMobileSlider(key, DOT_SELECTION_PAUSE_MS),
+  });
 
   useEffect(() => {
     setActiveAdvertIndex(0);
@@ -368,8 +392,12 @@ export default function Home() {
     }
 
     const timer = window.setInterval(() => {
+      if (Date.now() < advertPauseUntilRef.current) {
+        return;
+      }
+
       setActiveAdvertIndex((currentIndex) => (currentIndex + 1) % displayedAdverts.length);
-    }, 5000);
+    }, ADVERT_SLIDE_DURATION_MS);
 
     return () => {
       window.clearInterval(timer);
@@ -378,16 +406,20 @@ export default function Home() {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
+      const now = Date.now();
+      const shouldAdvance = (key: MobileSliderKey) =>
+        mobileSliderLengths[key] > 1 && now >= (mobileSliderPauseUntilRef.current[key] || 0);
+
       setActiveMobileSlides((currentSlides) => ({
-        paths: (currentSlides.paths + 1) % Math.max(mobileSliderLengths.paths, 1),
-        services: (currentSlides.services + 1) % Math.max(mobileSliderLengths.services, 1),
-        categories: (currentSlides.categories + 1) % Math.max(mobileSliderLengths.categories, 1),
-        doors: (currentSlides.doors + 1) % Math.max(mobileSliderLengths.doors, 1),
-        hardware: (currentSlides.hardware + 1) % Math.max(mobileSliderLengths.hardware, 1),
-        projects: (currentSlides.projects + 1) % Math.max(mobileSliderLengths.projects, 1),
-        reviews: (currentSlides.reviews + 1) % Math.max(mobileSliderLengths.reviews, 1),
+        paths: shouldAdvance("paths") ? (currentSlides.paths + 1) % mobileSliderLengths.paths : currentSlides.paths,
+        services: shouldAdvance("services") ? (currentSlides.services + 1) % mobileSliderLengths.services : currentSlides.services,
+        categories: shouldAdvance("categories") ? (currentSlides.categories + 1) % mobileSliderLengths.categories : currentSlides.categories,
+        doors: shouldAdvance("doors") ? (currentSlides.doors + 1) % mobileSliderLengths.doors : currentSlides.doors,
+        hardware: shouldAdvance("hardware") ? (currentSlides.hardware + 1) % mobileSliderLengths.hardware : currentSlides.hardware,
+        projects: shouldAdvance("projects") ? (currentSlides.projects + 1) % mobileSliderLengths.projects : currentSlides.projects,
+        reviews: shouldAdvance("reviews") ? (currentSlides.reviews + 1) % mobileSliderLengths.reviews : currentSlides.reviews,
       }));
-    }, 4200);
+    }, MOBILE_SLIDE_DURATION_MS);
 
     return () => {
       window.clearInterval(timer);
@@ -402,11 +434,31 @@ export default function Home() {
     mobileSliderLengths.reviews,
   ]);
 
+  useEffect(() => {
+    setActiveMobileSlides((currentSlides) => ({
+      paths: Math.min(currentSlides.paths, Math.max(mobileSliderLengths.paths - 1, 0)),
+      services: Math.min(currentSlides.services, Math.max(mobileSliderLengths.services - 1, 0)),
+      categories: Math.min(currentSlides.categories, Math.max(mobileSliderLengths.categories - 1, 0)),
+      doors: Math.min(currentSlides.doors, Math.max(mobileSliderLengths.doors - 1, 0)),
+      hardware: Math.min(currentSlides.hardware, Math.max(mobileSliderLengths.hardware - 1, 0)),
+      projects: Math.min(currentSlides.projects, Math.max(mobileSliderLengths.projects - 1, 0)),
+      reviews: Math.min(currentSlides.reviews, Math.max(mobileSliderLengths.reviews - 1, 0)),
+    }));
+  }, [
+    mobileSliderLengths.paths,
+    mobileSliderLengths.services,
+    mobileSliderLengths.categories,
+    mobileSliderLengths.doors,
+    mobileSliderLengths.hardware,
+    mobileSliderLengths.projects,
+    mobileSliderLengths.reviews,
+  ]);
+
   const scrollToContactForm = () => {
-    document.getElementById("contact")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("booking-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
     window.setTimeout(() => {
-      document.getElementById("repair-type-trigger")?.focus();
-    }, 350);
+      document.querySelector<HTMLInputElement>("#booking-form input[name='name']")?.focus({ preventScroll: true });
+    }, 500);
   };
 
   const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -511,7 +563,10 @@ export default function Home() {
           <button
             key={`${key}-${index}`}
             type="button"
-            onClick={() => setActiveMobileSlides((slides) => ({ ...slides, [key]: index }))}
+            onClick={() => {
+              pauseMobileSlider(key, DOT_SELECTION_PAUSE_MS);
+              setActiveMobileSlides((slides) => ({ ...slides, [key]: index }));
+            }}
             className={`h-2.5 rounded-full transition-all ${isActiveMobileSlide(key, index) ? "w-8 bg-primary" : "w-2.5 bg-primary/25"}`}
             aria-label={`Show ${key} slide ${index + 1}`}
           />
@@ -657,8 +712,14 @@ export default function Home() {
       {displayedAdverts.length > 0 && (
       <section className="bg-white py-5 md:py-7">
         <div className="container max-w-[1180px]">
-          <div className="overflow-hidden rounded-[28px] border border-primary/12 bg-[linear-gradient(135deg,_#fff8ed,_#ffffff_52%,_#f3e2cf)] shadow-[0_20px_55px_rgba(66,40,18,0.12)] md:rounded-[34px]">
-            <div className="flex transition-transform duration-700 ease-out" style={{ transform: `translateX(-${activeAdvertIndex * 100}%)` }}>
+          <div
+            className="overflow-hidden rounded-[28px] border border-primary/12 bg-[linear-gradient(135deg,_#fff8ed,_#ffffff_52%,_#f3e2cf)] shadow-[0_20px_55px_rgba(66,40,18,0.12)] md:rounded-[34px]"
+            onPointerDown={() => pauseAdvertSlider()}
+            onPointerUp={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
+            onPointerCancel={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
+            onMouseEnter={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
+          >
+            <div className="flex transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform" style={{ transform: `translateX(-${activeAdvertIndex * 100}%)` }}>
               {displayedAdverts.map((advert, index) => (
                 <article key={`${advert.title}-${index}`} className="grid min-w-full gap-0 md:grid-cols-[1.08fr_0.92fr] md:items-stretch">
                   <div className="flex flex-col justify-center p-5 sm:p-7 md:p-9">
@@ -714,7 +775,10 @@ export default function Home() {
                   <button
                     key={advert.title}
                     type="button"
-                    onClick={() => setActiveAdvertIndex(index)}
+                    onClick={() => {
+                      pauseAdvertSlider(DOT_SELECTION_PAUSE_MS);
+                      setActiveAdvertIndex(index);
+                    }}
                     className={`h-2.5 rounded-full transition-all ${activeAdvertIndex === index ? "w-8 bg-primary" : "w-2.5 bg-secondary/20 hover:bg-secondary/35"}`}
                     aria-label={`Show advert ${index + 1}`}
                   />
@@ -738,14 +802,15 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="overflow-hidden md:overflow-visible" {...mobileSliderHoldProps("paths")}>
+            <div className={`${mobileSliderTrackClass} md:grid md:grid-cols-2 md:gap-4`} style={mobileSliderStyle("paths")}>
             {customerPaths.map((path, index) => (
               <a
                 key={path.title}
                 href={path.href}
-                className={`group overflow-hidden rounded-[24px] border border-white/10 p-5 shadow-[0_14px_38px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 ${
+                className={`group min-w-full shrink-0 overflow-hidden rounded-[24px] border border-white/10 p-5 shadow-[0_14px_38px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 md:min-w-0 ${
                   index === 0 ? "bg-white text-secondary" : "bg-primary text-white"
-                } ${isActiveMobileSlide("paths", index) ? "block" : "hidden"} md:block`}
+                }`}
               >
                 <span className={`inline-flex rounded-full px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.22em] ${
                   index === 0 ? "bg-primary/10 text-primary" : "bg-white/18 text-white"
@@ -760,6 +825,7 @@ export default function Home() {
                 </span>
               </a>
             ))}
+            </div>
           </div>
           {renderMobileDots("paths", customerPaths.length)}
         </div>
@@ -810,9 +876,10 @@ export default function Home() {
               </div>
             </article>
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="overflow-hidden md:overflow-visible" {...mobileSliderHoldProps("services")}>
+              <div className={`${mobileSliderTrackClass} md:grid md:grid-cols-2 md:gap-5`} style={mobileSliderStyle("services")}>
               {displayedServiceShowcase.map((service, index) => (
-                <article key={service.title} className={`overflow-hidden rounded-[24px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 md:rounded-[28px] ${isActiveMobileSlide("services", index) ? "block" : "hidden"} md:block`}>
+                <article key={service.title} className="min-w-full shrink-0 overflow-hidden rounded-[24px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 md:min-w-0 md:rounded-[28px]">
                   <img
                     src={service.src}
                     alt={service.title}
@@ -826,6 +893,7 @@ export default function Home() {
                   </div>
                 </article>
               ))}
+              </div>
             </div>
           </div>
           {renderMobileDots("services", displayedServiceShowcase.length)}
@@ -848,9 +916,10 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="overflow-hidden md:overflow-visible" {...mobileSliderHoldProps("categories")}>
+            <div className={`${mobileSliderTrackClass} md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-3`} style={mobileSliderStyle("categories")}>
             {displayedProductCategories.map((category, index) => (
-              <article key={category.title} className={`overflow-hidden rounded-[28px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)] md:rounded-[32px] ${isActiveMobileSlide("categories", index) ? "block" : "hidden"} md:block`}>
+              <article key={category.title} className="min-w-full shrink-0 overflow-hidden rounded-[28px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)] md:min-w-0 md:rounded-[32px]">
                 <div className="relative h-52 overflow-hidden bg-[#f8f4ec] md:h-64">
                   <img src={category.image} alt={category.title} loading="lazy" className="h-full w-full object-cover" />
                   <img src={category.accent} alt="" loading="lazy" className="absolute bottom-4 right-4 h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-xl" />
@@ -870,6 +939,7 @@ export default function Home() {
                 </div>
               </article>
             ))}
+            </div>
           </div>
           {renderMobileDots("categories", displayedProductCategories.length)}
 
@@ -891,13 +961,14 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="overflow-hidden md:overflow-visible" {...mobileSliderHoldProps("doors")}>
+              <div className={`${mobileSliderTrackClass} md:grid md:grid-cols-3 md:gap-4 lg:grid-cols-5`} style={mobileSliderStyle("doors")}>
               {displayedDoorProducts.map((product, index) => (
                 <button
                   key={product.title}
                   type="button"
                   onClick={() => handleCatalogPick("door-purchase", product.title)}
-                  className={`group overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12 ${isActiveMobileSlide("doors", index) ? "block" : "hidden"} md:block`}
+                  className="group min-w-full shrink-0 overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12 md:min-w-0"
                 >
                   <img src={product.image} alt={product.title} loading="lazy" className="h-48 w-full bg-white object-cover transition duration-500 group-hover:scale-[1.03] md:h-56" />
                   <div className="p-4">
@@ -906,6 +977,7 @@ export default function Home() {
                   </div>
                 </button>
               ))}
+              </div>
             </div>
             {renderMobileDots("doors", displayedDoorProducts.length)}
           </div>
@@ -925,13 +997,14 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="overflow-hidden md:overflow-visible" {...mobileSliderHoldProps("hardware")}>
+              <div className={`${mobileSliderTrackClass} md:grid md:grid-cols-3 md:gap-4 lg:grid-cols-5`} style={mobileSliderStyle("hardware")}>
               {displayedHardwareProducts.map((product, index) => (
                 <button
                   key={product.title}
                   type="button"
                   onClick={() => handleCatalogPick(product.tag.includes("Drawer") || product.tag.includes("Cabinet") ? "furniture-hardware-purchase" : "door-hardware-purchase", product.title)}
-                  className={`group overflow-hidden rounded-[22px] border border-primary/10 bg-[#fffaf2] text-left transition hover:-translate-y-1 ${isActiveMobileSlide("hardware", index) ? "block" : "hidden"} md:block`}
+                  className="group min-w-full shrink-0 overflow-hidden rounded-[22px] border border-primary/10 bg-[#fffaf2] text-left transition hover:-translate-y-1 md:min-w-0"
                 >
                   <img src={product.image} alt={product.title} loading="lazy" className="h-40 w-full bg-white object-contain p-3 transition duration-500 group-hover:scale-[1.03] md:h-48" />
                   <div className="p-4">
@@ -940,6 +1013,7 @@ export default function Home() {
                   </div>
                 </button>
               ))}
+              </div>
             </div>
             {renderMobileDots("hardware", displayedHardwareProducts.length)}
           </div>
@@ -956,9 +1030,10 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="overflow-hidden md:overflow-visible" {...mobileSliderHoldProps("projects")}>
+            <div className={`${mobileSliderTrackClass} md:grid md:grid-cols-2 md:gap-6 xl:grid-cols-3`} style={mobileSliderStyle("projects")}>
             {displayedProjectGallery.map((project, index) => (
-              <article key={project.title} className={`overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px] ${isActiveMobileSlide("projects", index) ? "block" : "hidden"} md:block`}>
+              <article key={project.title} className="min-w-full shrink-0 overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:min-w-0 md:rounded-[30px]">
                 <img src={project.src} alt={project.title} loading="lazy" className="h-56 w-full object-cover md:h-[300px]" />
                 <div className="p-5 md:p-6">
                   <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{project.category}</span>
@@ -967,6 +1042,7 @@ export default function Home() {
                 </div>
               </article>
             ))}
+            </div>
           </div>
           {renderMobileDots("projects", displayedProjectGallery.length)}
         </div>
@@ -1026,9 +1102,10 @@ export default function Home() {
           </div>
 
           <div className="grid gap-5 lg:grid-cols-[1fr_0.62fr] lg:items-start">
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="overflow-hidden md:overflow-visible" {...mobileSliderHoldProps("reviews")}>
+              <div className={`${mobileSliderTrackClass} md:grid md:grid-cols-3 md:gap-4`} style={mobileSliderStyle("reviews")}>
               {featuredReviews.map((review, index) => (
-                <article key={review.id} className={`rounded-[22px] border border-primary/10 bg-white p-4 shadow-[0_12px_34px_rgba(0,0,0,0.05)] ${isActiveMobileSlide("reviews", index) ? "block" : "hidden"} md:block`}>
+                <article key={review.id} className="min-w-full shrink-0 rounded-[22px] border border-primary/10 bg-white p-4 shadow-[0_12px_34px_rgba(0,0,0,0.05)] md:min-w-0">
                   <div className="mb-3 flex gap-1">
                     {Array.from({ length: 5 }).map((_, index) => (
                       <Star
@@ -1042,6 +1119,7 @@ export default function Home() {
                   <p className="text-sm text-foreground/60">{review.location || "Canada"}</p>
                 </article>
               ))}
+              </div>
             </div>
             {renderMobileDots("reviews", featuredReviews.length)}
 
@@ -1256,7 +1334,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="rounded-[26px] border border-primary/12 bg-white p-5 shadow-[0_16px_42px_rgba(0,0,0,0.055)] sm:p-6">
+          <div id="booking-form" className="scroll-mt-28 rounded-[26px] border border-primary/12 bg-white p-5 shadow-[0_16px_42px_rgba(0,0,0,0.055)] sm:scroll-mt-32 sm:p-6 md:scroll-mt-28">
             <h3 className="text-2xl font-semibold text-secondary">Tell Us What You Need</h3>
             <p className="mt-2 text-sm leading-relaxed text-foreground/68">Tell us what is happening. A short description is enough to start the conversation.</p>
             <Form {...form}>
