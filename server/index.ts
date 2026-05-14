@@ -106,7 +106,7 @@ function matchesWorkflowFilter(booking: Booking, workflow: string) {
   }
 }
 
-function renderQuoteInvoiceHtml(booking: Booking) {
+function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
   const lineItems = (booking.quoteNotes || "Labour, materials, sourcing, delivery, or installation details will be confirmed by FixMyDoor.").split(/\r?\n/).filter(Boolean);
 
   return `<!doctype html>
@@ -167,9 +167,12 @@ function renderQuoteInvoiceHtml(booking: Booking) {
         <p>This quote/invoice is prepared from the booking details. Final cost may change if measurements, parts, delivery, or installation requirements change.</p>
         <p><strong>FixMyDoor Services</strong><br>info.fixmydoor@gmail.com<br>+1 (438) 347-1823</p>
       </div>
-      <div class="actions"><button onclick="window.print()">Print / Save PDF</button></div>
+      <div class="actions"><button id="print-quote" type="button">Print / Save PDF</button></div>
     </main>
   </section>
+  <script nonce="${nonce}">
+    document.getElementById("print-quote")?.addEventListener("click", () => window.print());
+  </script>
 </body>
 </html>`;
 }
@@ -411,6 +414,23 @@ async function startServer() {
     }
   });
 
+  app.post("/api/admin/email-test", requireAuth, async (_req, res) => {
+    try {
+      const sent = await emailService.sendTestEmail();
+      if (!sent) {
+        return res.status(500).json({
+          success: false,
+          error: "Email test failed. Check SMTP_HOST, SMTP_USER, SMTP_PASS, FROM_EMAIL, BUSINESS_EMAIL, and ADMIN_EMAIL in Railway.",
+        });
+      }
+
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Email test error:", error);
+      return res.status(500).json({ success: false, error: "Email test failed" });
+    }
+  });
+
   // Booking endpoints
   app.get("/api/services", (_req, res) => {
     res.json({ services: serviceCatalog });
@@ -582,17 +602,26 @@ async function startServer() {
     try {
       const savedBooking = await saveBooking(booking) as Booking;
 
-      // Send confirmation email to customer (async, don't wait)
-      emailService.sendBookingConfirmation(savedBooking).catch(err =>
-        console.error("Failed to send customer confirmation:", err)
-      );
+      const [customerEmailSent, adminEmailSent] = await Promise.all([
+        emailService.sendBookingConfirmation(savedBooking),
+        emailService.sendAdminNotification(savedBooking),
+      ]);
 
-      // Send notification to admin (async, don't wait)
-      emailService.sendAdminNotification(savedBooking).catch(err =>
-        console.error("Failed to send admin notification:", err)
-      );
+      if (!customerEmailSent || !adminEmailSent) {
+        console.error("Booking saved, but one or more emails failed.", {
+          bookingId: savedBooking.id,
+          customerEmailSent,
+          adminEmailSent,
+        });
+      }
 
-      return res.status(201).json({ success: true });
+      return res.status(201).json({
+        success: true,
+        email: {
+          customer: Boolean(customerEmailSent),
+          admin: Boolean(adminEmailSent),
+        },
+      });
     } catch (error) {
       console.error("Booking creation error:", error);
       return res.status(500).json({ success: false, error: "Failed to create booking" });
@@ -794,8 +823,13 @@ async function startServer() {
         return res.status(404).send("Booking not found");
       }
 
+      const nonce = randomUUID().replace(/-/g, "");
+      res.setHeader(
+        "Content-Security-Policy",
+        `default-src 'self'; img-src 'self' data: https: http:; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-${nonce}'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'`,
+      );
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      return res.send(renderQuoteInvoiceHtml(toBooking(booking)));
+      return res.send(renderQuoteInvoiceHtml(toBooking(booking), nonce));
     } catch (error) {
       console.error("Quote invoice render error:", error);
       return res.status(500).send("Failed to render quote/invoice");

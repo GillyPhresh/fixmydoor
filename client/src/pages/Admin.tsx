@@ -111,6 +111,8 @@ export default function Admin() {
     confirmPassword: "",
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [emailTestLoading, setEmailTestLoading] = useState(false);
 
   useEffect(() => {
     checkAuthStatus();
@@ -336,6 +338,7 @@ export default function Admin() {
         newPassword: "",
         confirmPassword: "",
       });
+      setPasswordDialogOpen(false);
       toast.success("Admin password changed successfully");
     } catch (err: any) {
       toast.error(err?.response?.data?.error || "Failed to change password");
@@ -408,6 +411,18 @@ export default function Admin() {
 
   const exportBookings = () => {
     window.open("/api/bookings/export", "_blank");
+  };
+
+  const sendTestEmail = async () => {
+    setEmailTestLoading(true);
+    try {
+      await axios.post("/api/admin/email-test");
+      toast.success("Test email sent to the business inbox");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Email test failed");
+    } finally {
+      setEmailTestLoading(false);
+    }
   };
 
   const openQuoteInvoice = (bookingId: string) => {
@@ -536,14 +551,6 @@ export default function Admin() {
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center md:absolute md:right-6 md:top-6 md:mt-0">
-            <Button
-              type="button"
-              onClick={() => document.getElementById("admin-password-card")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="bg-[#8a5a2d] text-white hover:bg-[#71451f]"
-            >
-              <KeyRound className="w-4 h-4 mr-2" />
-              Change Password
-            </Button>
             <Button onClick={handleLogout} variant="outline">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -553,7 +560,7 @@ export default function Admin() {
 
         {/* Stats Dashboard */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Bookings</CardTitle>
@@ -572,10 +579,26 @@ export default function Admin() {
             </Card>
             <Card>
               <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Urgent</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{stats.urgentBookings}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">This Week</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-blue-600">{stats.thisWeekBookings}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">International</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-700">{stats.internationalBookings}</div>
               </CardContent>
             </Card>
             <Card>
@@ -589,57 +612,82 @@ export default function Admin() {
           </div>
         )}
 
-        <Card id="admin-password-card" className="mb-8 scroll-mt-6 border-[#ead8bf]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <KeyRound className="h-5 w-5" />
-              Change Admin Password
-            </CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Use this after the first Railway login so the default password is replaced with your own private password.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={changePassword} className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
-              <div>
-                <Label htmlFor="current-admin-password">Current Password</Label>
-                <Input
-                  id="current-admin-password"
-                  type="password"
-                  value={passwordDraft.currentPassword}
-                  onChange={(event) => setPasswordDraft((draft) => ({ ...draft, currentPassword: event.target.value }))}
-                  autoComplete="current-password"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="new-admin-password">New Password</Label>
-                <Input
-                  id="new-admin-password"
-                  type="password"
-                  value={passwordDraft.newPassword}
-                  onChange={(event) => setPasswordDraft((draft) => ({ ...draft, newPassword: event.target.value }))}
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="confirm-admin-password">Confirm New Password</Label>
-                <Input
-                  id="confirm-admin-password"
-                  type="password"
-                  value={passwordDraft.confirmPassword}
-                  onChange={(event) => setPasswordDraft((draft) => ({ ...draft, confirmPassword: event.target.value }))}
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                />
-              </div>
-              <Button type="submit" disabled={passwordLoading}>
-                {passwordLoading ? "Saving..." : "Update Password"}
+        <Card className="mb-6 border-[#ead8bf] bg-[#fffaf2] shadow-sm">
+          <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a5a2d]">Owner Controls</p>
+              <h2 className="mt-1 text-xl font-display font-bold text-secondary">Manage security, email, bookings, and website content</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Use these quick actions first, then review Recent Bookings and Booking Requests below.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" className="bg-[#8a5a2d] text-white hover:bg-[#71451f]">
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Change Admin Password
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Change Admin Password</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={changePassword} className="space-y-4">
+                    <div>
+                      <Label htmlFor="current-admin-password">Current Password</Label>
+                      <Input
+                        id="current-admin-password"
+                        type="password"
+                        value={passwordDraft.currentPassword}
+                        onChange={(event) => setPasswordDraft((draft) => ({ ...draft, currentPassword: event.target.value }))}
+                        autoComplete="current-password"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="new-admin-password">New Password</Label>
+                      <Input
+                        id="new-admin-password"
+                        type="password"
+                        value={passwordDraft.newPassword}
+                        onChange={(event) => setPasswordDraft((draft) => ({ ...draft, newPassword: event.target.value }))}
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="confirm-admin-password">Confirm New Password</Label>
+                      <Input
+                        id="confirm-admin-password"
+                        type="password"
+                        value={passwordDraft.confirmPassword}
+                        onChange={(event) => setPasswordDraft((draft) => ({ ...draft, confirmPassword: event.target.value }))}
+                        autoComplete="new-password"
+                        minLength={8}
+                        required
+                      />
+                    </div>
+                    <Button type="submit" disabled={passwordLoading} className="w-full">
+                      {passwordLoading ? "Saving..." : "Update Admin Password"}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+              <Button type="button" variant="outline" onClick={sendTestEmail} disabled={emailTestLoading}>
+                <Mail className="mr-2 h-4 w-4" />
+                {emailTestLoading ? "Testing..." : "Test Email"}
               </Button>
-            </form>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById("website-content-manager")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Website Content
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -1098,7 +1146,7 @@ export default function Admin() {
           </div>
         )}
 
-        <Card className="mt-8">
+        <Card id="website-content-manager" className="mt-8 scroll-mt-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Star className="h-5 w-5" />

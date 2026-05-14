@@ -17,15 +17,33 @@ interface EmailConfig {
 const DEFAULT_BUSINESS_EMAIL = "info.fixmydoor@gmail.com";
 const LOGO_CID = "fixmydoor-logo";
 
+function normalizeEnvValue(value?: string) {
+  const trimmed = (value || "").trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  const quote = trimmed[0];
+  if ((quote === `"` || quote === `'`) && trimmed.endsWith(quote)) {
+    return trimmed.slice(1, -1).trim();
+  }
+
+  return trimmed;
+}
+
+function normalizeSmtpPassword(value: string, host: string) {
+  return /gmail|googlemail/i.test(host) ? value.replace(/\s+/g, "") : value;
+}
+
 function getBusinessEmail() {
-  return process.env.BUSINESS_EMAIL || process.env.ADMIN_EMAIL || DEFAULT_BUSINESS_EMAIL;
+  return normalizeEnvValue(process.env.BUSINESS_EMAIL) || normalizeEnvValue(process.env.ADMIN_EMAIL) || DEFAULT_BUSINESS_EMAIL;
 }
 
 function getPublicBaseUrl() {
   return (
-    process.env.PUBLIC_SITE_URL ||
-    process.env.VITE_PUBLIC_SITE_URL ||
-    process.env.ADMIN_URL?.replace(/\/admin\/?$/, "") ||
+    normalizeEnvValue(process.env.PUBLIC_SITE_URL) ||
+    normalizeEnvValue(process.env.VITE_PUBLIC_SITE_URL) ||
+    normalizeEnvValue(process.env.ADMIN_URL).replace(/\/admin\/?$/, "") ||
     "http://localhost:3000"
   ).replace(/\/+$/, "");
 }
@@ -116,11 +134,11 @@ class EmailService {
   private config: EmailConfig | null = null;
 
   initialize() {
-    const host = process.env.SMTP_HOST;
-    const port = parseInt(process.env.SMTP_PORT || "587", 10);
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
-    const from = process.env.FROM_EMAIL || "noreply@fixmydoor.com";
+    const host = normalizeEnvValue(process.env.SMTP_HOST);
+    const port = parseInt(normalizeEnvValue(process.env.SMTP_PORT) || "587", 10);
+    const user = normalizeEnvValue(process.env.SMTP_USER);
+    const pass = normalizeSmtpPassword(normalizeEnvValue(process.env.SMTP_PASS), host);
+    const from = normalizeEnvValue(process.env.FROM_EMAIL) || `FixMyDoor <${getBusinessEmail()}>`;
 
     if (!host || !user || !pass) {
       console.warn("Email service not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS to enable email notifications.");
@@ -136,13 +154,17 @@ class EmailService {
     };
 
     this.transporter = nodemailer.createTransport(this.config);
+    this.transporter.verify().then(
+      () => console.log("Email service verified and ready."),
+      (error: unknown) => console.error("Email service verification failed:", error),
+    );
     return true;
   }
 
   async sendBookingConfirmation(booking: Booking) {
     if (!this.transporter || !this.config) {
       console.warn("Email service not initialized");
-      return;
+      return false;
     }
 
     const businessEmail = getBusinessEmail();
@@ -214,22 +236,28 @@ class EmailService {
         attachments: logoAttachment ? [logoAttachment] : undefined,
       });
       console.log(`Booking confirmation email sent to ${booking.email}`);
+      return true;
     } catch (error) {
       console.error("Failed to send booking confirmation email:", error);
+      return false;
     }
   }
 
   async sendAdminNotification(booking: Booking) {
     if (!this.transporter || !this.config) {
       console.warn("Email service not initialized");
-      return;
+      return false;
     }
 
     const businessEmail = getBusinessEmail();
-    const adminEmail = process.env.ADMIN_EMAIL || businessEmail || this.config.auth.user;
-    const adminUrl = process.env.ADMIN_URL || "https://your-app-url.com/admin";
+    const adminEmail = normalizeEnvValue(process.env.ADMIN_EMAIL) || businessEmail || this.config.auth.user;
+    const adminUrl = normalizeEnvValue(process.env.ADMIN_URL) || "https://fixmydoorservices.up.railway.app/admin";
     const mapsUrl = getGoogleMapsUrl(booking.address);
     const photoAttachments = getPhotoAttachments(booking);
+    const logoAttachment = getLogoAttachment();
+    const logoHtml = logoAttachment
+      ? `<div style="text-align:center; background:#2f241c; padding:22px; border-radius:18px 18px 0 0;"><span style="display:inline-block; background:#ffffff; border-radius:16px; padding:12px 18px;"><img src="cid:${LOGO_CID}" alt="FixMyDoor" style="display:block; width:180px; max-width:100%; height:auto;" /></span></div>`
+      : `<div style="text-align:center; background:#2f241c; padding:22px; border-radius:18px 18px 0 0;"><span style="display:inline-block; background:#ffffff; border-radius:16px; padding:12px 18px; color:#6B4423; font-size:28px; font-weight:800;">FixMyDoor</span></div>`;
     const subject = `New FixMyDoor Booking: ${cleanSubjectValue(booking.name)} - ${cleanSubjectValue(booking.repairType)}`;
     const text = [
       "New FixMyDoor booking received",
@@ -265,9 +293,11 @@ class EmailService {
       `Admin Dashboard: ${adminUrl}`,
     ].join("\n");
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #D97706;">New Booking Alert!</h1>
-        <p>A new booking has been received:</p>
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; background:#fffaf2; border:1px solid #ead8bf; border-radius:18px; overflow:hidden;">
+        ${logoHtml}
+        <div style="padding:24px;">
+        <h1 style="color: #6B4423; margin-top:0;">New Booking Alert</h1>
+        <p>A new booking has been received. Review the details below and follow up with the customer.</p>
 
         <div style="background: #F5F1E8; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3>Customer Details:</h3>
@@ -302,6 +332,7 @@ class EmailService {
 
         <p>Please log in to the admin dashboard to manage this booking.</p>
         <p><a href="${escapeHtml(adminUrl)}" style="background: #D97706; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View in Admin Dashboard</a></p>
+        </div>
       </div>
     `;
 
@@ -313,18 +344,20 @@ class EmailService {
         subject,
         text,
         html,
-        attachments: photoAttachments,
+        attachments: [...(logoAttachment ? [logoAttachment] : []), ...photoAttachments],
       });
       console.log("Admin notification email sent");
+      return true;
     } catch (error) {
       console.error("Failed to send admin notification email:", error);
+      return false;
     }
   }
 
   async sendStatusUpdate(booking: Booking) {
     if (!this.transporter || !this.config) {
       console.warn("Email service not initialized");
-      return;
+      return false;
     }
 
     const businessEmail = getBusinessEmail();
@@ -364,8 +397,51 @@ class EmailService {
         html,
       });
       console.log(`Status update email sent to ${booking.email}`);
+      return true;
     } catch (error) {
       console.error("Failed to send status update email:", error);
+      return false;
+    }
+  }
+
+  async sendTestEmail(to = getBusinessEmail()) {
+    if (!this.transporter || !this.config) {
+      console.warn("Email service not initialized");
+      return false;
+    }
+
+    const logoAttachment = getLogoAttachment();
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fffaf2;border:1px solid #ead8bf;border-radius:20px;overflow:hidden;">
+        <div style="background:#2f241c;padding:22px;text-align:center;">
+          ${
+            logoAttachment
+              ? `<span style="display:inline-block;background:#ffffff;border-radius:16px;padding:12px 18px;"><img src="cid:${LOGO_CID}" alt="FixMyDoor" style="display:block;width:180px;max-width:100%;height:auto;" /></span>`
+              : `<span style="display:inline-block;background:#ffffff;border-radius:16px;padding:12px 18px;color:#6B4423;font-size:28px;font-weight:800;">FixMyDoor</span>`
+          }
+        </div>
+        <div style="padding:24px;color:#3a281f;">
+          <h1 style="color:#6B4423;margin-top:0;">FixMyDoor email test</h1>
+          <p>This confirms the website can send emails through the configured SMTP account.</p>
+          <p>If you received this message, booking emails should also deliver to customers and admin.</p>
+        </div>
+      </div>
+    `;
+
+    try {
+      await this.transporter.sendMail({
+        from: this.config.from,
+        to,
+        replyTo: getBusinessEmail(),
+        subject: "FixMyDoor email test",
+        html,
+        attachments: logoAttachment ? [logoAttachment] : undefined,
+      });
+      console.log(`Test email sent to ${to}`);
+      return true;
+    } catch (error) {
+      console.error("Failed to send test email:", error);
+      return false;
     }
   }
 }
