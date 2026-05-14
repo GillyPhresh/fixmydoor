@@ -142,6 +142,7 @@ export default function Home() {
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
   const [activeAdvertIndex, setActiveAdvertIndex] = useState(0);
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const advertPauseUntilRef = useRef(0);
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
@@ -433,6 +434,7 @@ export default function Home() {
         setReviews((currentReviews) => [response.data.review, ...currentReviews].slice(0, 9));
       }
       reviewForm.reset({ name: "", location: "", rating: 5, quote: "" });
+      setReviewFormOpen(false);
       toast.success("Thank you. Your review was sent and will appear after approval.");
     } catch (error) {
       toast.error("Unable to submit review right now. Please try again later.");
@@ -469,6 +471,13 @@ export default function Home() {
     scrollToContactForm();
 
     toast.success(`${label} selected. Add your details and we'll follow up.`);
+  };
+
+  const openReviewForm = () => {
+    setReviewFormOpen(true);
+    window.setTimeout(() => {
+      document.getElementById("write-review")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
   };
 
   const saveCookiePreference = (preference: CookiePreference) => {
@@ -569,21 +578,21 @@ export default function Home() {
                 Call +1 (438) 347-1823
               </a>
             </div>
-            <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
-              <div className="rounded-2xl bg-white p-3.5 shadow-lg shadow-primary/5">
-                <Zap className="mb-2 h-5 w-5 text-primary" />
-                <p className="font-bold text-secondary">Fast Scheduling</p>
-                <p className="mt-1 text-xs leading-relaxed text-foreground/65">Send the issue and we will guide the next step.</p>
+            <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-2.5">
+              <div className="rounded-2xl bg-white p-2.5 text-center shadow-lg shadow-primary/5 sm:p-3.5 sm:text-left">
+                <Zap className="mx-auto mb-1.5 h-4 w-4 text-primary sm:mx-0 sm:mb-2 sm:h-5 sm:w-5" />
+                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Fast Scheduling</p>
+                <p className="mt-1 hidden text-xs leading-relaxed text-foreground/65 sm:block">Send the issue and we will guide the next step.</p>
               </div>
-              <div className="rounded-2xl bg-white p-3.5 shadow-lg shadow-primary/5">
-                <div className="mb-2 text-xl font-black text-primary">C$</div>
-                <p className="font-bold text-secondary">Fair Pricing</p>
-                <p className="mt-1 text-xs leading-relaxed text-foreground/65">Straight answers before work begins.</p>
+              <div className="rounded-2xl bg-white p-2.5 text-center shadow-lg shadow-primary/5 sm:p-3.5 sm:text-left">
+                <div className="mb-1.5 text-base font-black text-primary sm:mb-2 sm:text-xl">C$</div>
+                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Fair Pricing</p>
+                <p className="mt-1 hidden text-xs leading-relaxed text-foreground/65 sm:block">Straight answers before work begins.</p>
               </div>
-              <div className="rounded-2xl bg-white p-3.5 shadow-lg shadow-primary/5">
-                <CheckCircle2 className="mb-2 h-5 w-5 text-primary" />
-                <p className="font-bold text-secondary">Clean Finish</p>
-                <p className="mt-1 text-xs leading-relaxed text-foreground/65">Careful work without messy shortcuts.</p>
+              <div className="rounded-2xl bg-white p-2.5 text-center shadow-lg shadow-primary/5 sm:p-3.5 sm:text-left">
+                <CheckCircle2 className="mx-auto mb-1.5 h-4 w-4 text-primary sm:mx-0 sm:mb-2 sm:h-5 sm:w-5" />
+                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Clean Finish</p>
+                <p className="mt-1 hidden text-xs leading-relaxed text-foreground/65 sm:block">Careful work without messy shortcuts.</p>
               </div>
             </div>
           </div>
@@ -968,10 +977,6 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <a href="tel:+14383471823" className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.2)] transition hover:-translate-y-0.5 hover:bg-primary/90">Schedule Now</a>
-              <a href="mailto:info.fixmydoor@gmail.com" className="inline-flex items-center justify-center rounded-2xl bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(47,36,28,0.14)] transition hover:-translate-y-0.5 hover:bg-secondary/90">Send Email</a>
-            </div>
           </div>
         </div>
       </section>
@@ -986,12 +991,12 @@ export default function Home() {
                 After a job, customers can leave their own review here so others know what to expect.
               </p>
             </div>
-            <a href="#write-review" className="inline-flex items-center justify-center rounded-2xl bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(47,36,28,0.14)] transition hover:-translate-y-0.5 hover:bg-secondary/90">
+            <button type="button" onClick={openReviewForm} className="inline-flex items-center justify-center rounded-2xl bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(47,36,28,0.14)] transition hover:-translate-y-0.5 hover:bg-secondary/90">
               Write a Review
-            </a>
+            </button>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-[1fr_0.62fr] lg:items-start">
+          <div className={`grid gap-5 ${reviewFormOpen ? "lg:grid-cols-[1fr_0.62fr]" : ""} lg:items-start`}>
             <div className="overflow-hidden md:overflow-visible">
               <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-3 md:gap-4`}>
               {featuredReviews.map((review, index) => (
@@ -1012,7 +1017,8 @@ export default function Home() {
               </div>
             </div>
 
-            <div id="write-review" className="rounded-[24px] border border-primary/12 bg-white p-5 shadow-[0_14px_40px_rgba(0,0,0,0.06)]">
+            {reviewFormOpen && (
+            <div id="write-review" className="scroll-mt-28 rounded-[24px] border border-primary/12 bg-white p-5 shadow-[0_14px_40px_rgba(0,0,0,0.06)]">
               <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Share Feedback</p>
               <h3 className="mt-2 text-xl font-bold text-secondary">Write your review</h3>
               <p className="mt-1 text-sm leading-relaxed text-foreground/68">
@@ -1063,36 +1069,43 @@ export default function Home() {
                 </form>
               </Form>
             </div>
+            )}
           </div>
         </div>
       </section>
 
-      <section id="how-it-works" className="section-divider bg-white py-8 md:py-10">
+      <section id="how-it-works" className="section-divider bg-white py-6 md:py-8">
         <div className="container max-w-[1180px]">
-          <div className="mb-5 flex flex-col gap-2 text-center md:flex-row md:items-end md:justify-between md:text-left">
+          <div className="mb-4 flex flex-col gap-2 text-center md:flex-row md:items-center md:justify-between md:text-left">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">How It Works</p>
-              <h2 className="mt-2 font-display text-3xl font-bold text-secondary md:text-4xl">Simple from the first message to the finished job.</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">How It Works</p>
+              <h2 className="mt-1 font-display text-2xl font-bold text-secondary md:text-3xl">Simple from first message to finished job.</h2>
             </div>
-            <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.2)] transition hover:-translate-y-0.5 hover:bg-primary/90">
+            <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.18)] transition hover:-translate-y-0.5 hover:bg-primary/90">
               Start Booking
             </button>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-[22px] border border-primary/10 bg-background p-5">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-lg font-bold text-white">1</div>
-              <h3 className="text-lg font-semibold text-secondary">Contact Us</h3>
-              <p className="mt-2 text-sm leading-relaxed text-foreground/70">Call <a href="tel:+14383471823" className="font-semibold text-primary hover:underline">+1 (438) 347-1823</a> or send a few details about what you need.</p>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="flex gap-3 rounded-[20px] border border-primary/10 bg-background p-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">1</div>
+              <div>
+                <h3 className="text-base font-semibold text-secondary">Contact Us</h3>
+                <p className="mt-1 text-sm leading-relaxed text-foreground/70">Send the issue, photos, and location.</p>
+              </div>
             </div>
-            <div className="rounded-[22px] border border-primary/10 bg-background p-5">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-lg font-bold text-white">2</div>
-              <h3 className="text-lg font-semibold text-secondary">Confirm the Plan</h3>
-              <p className="mt-2 text-sm leading-relaxed text-foreground/70">We look at the issue, ask the right questions, and agree on the next step.</p>
+            <div className="flex gap-3 rounded-[20px] border border-primary/10 bg-background p-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-white">2</div>
+              <div>
+                <h3 className="text-base font-semibold text-secondary">Confirm the Plan</h3>
+                <p className="mt-1 text-sm leading-relaxed text-foreground/70">We review details and agree on the next step.</p>
+              </div>
             </div>
-            <div className="rounded-[22px] border border-primary/10 bg-background p-5">
-              <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-lg font-bold text-white">3</div>
-              <h3 className="text-lg font-semibold text-secondary">Fix or Source It</h3>
-              <p className="mt-2 text-sm leading-relaxed text-foreground/70">We finish the repair neatly, or help match the right product to the job.</p>
+            <div className="flex gap-3 rounded-[20px] border border-primary/10 bg-background p-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">3</div>
+              <div>
+                <h3 className="text-base font-semibold text-secondary">Fix or Source It</h3>
+                <p className="mt-1 text-sm leading-relaxed text-foreground/70">We repair neatly or help find the right item.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1458,61 +1471,33 @@ export default function Home() {
             <circle cx="772" cy="278" r="5" />
           </g>
         </svg>
-        <div className="container relative max-w-[1180px] py-5 md:py-6">
-          <div className="mb-5 overflow-hidden rounded-[26px] border border-primary/20 bg-[linear-gradient(135deg,_rgba(255,250,242,0.13),_rgba(255,255,255,0.04))] p-4 shadow-[0_16px_45px_rgba(0,0,0,0.2)] backdrop-blur md:p-5">
-            <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr] lg:items-center">
-              <div>
-                <p className="inline-flex rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.28em] text-primary">Ready When You Are</p>
-                <h2 className="mt-2 max-w-2xl font-display text-2xl font-bold leading-tight md:text-3xl">
-                  Send the issue, photo, or product request. We will help you choose the right next step.
-                </h2>
-                <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                  {["Repair requests", "Door & hardware sourcing", "Canada-based support"].map((item) => (
-                    <div key={item} className="flex items-center gap-2 rounded-xl bg-white/8 px-3 py-2 text-xs font-semibold text-white/88">
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-                <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_16px_32px_rgba(180,101,50,0.28)] transition hover:-translate-y-0.5 hover:bg-primary/90">
-                  Send Request
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-                <a href="tel:+14383471823" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-[0_16px_32px_rgba(0,0,0,0.18)] transition hover:-translate-y-0.5 hover:bg-[#fff7ed]">
-                  <Phone className="h-4 w-4" />
-                  Call +1 (438) 347-1823
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-[1.05fr_0.75fr_0.75fr_1fr]">
+        <div className="container relative max-w-[1180px] py-4 md:py-5">
+          <div className="grid gap-3 md:grid-cols-[1.1fr_0.75fr_0.75fr_1fr]">
             <div className="overflow-hidden rounded-[24px] border border-primary/18 bg-[linear-gradient(180deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.04))] p-3 shadow-[0_14px_36px_rgba(0,0,0,0.14)]">
-              <div className="rounded-[20px] border border-primary/20 bg-[linear-gradient(145deg,_#fffaf2,_#f0d8b7)] p-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.75),_0_12px_24px_rgba(0,0,0,0.14)]">
-                <div className="mx-auto flex max-w-[180px] items-center justify-center rounded-[18px] bg-white/78 px-3 py-2 shadow-[0_10px_20px_rgba(66,40,18,0.1)]">
-                  <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-16 w-auto max-w-full object-contain drop-shadow-[0_8px_12px_rgba(66,40,18,0.16)]" />
+              <div className="flex items-center gap-3">
+                <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-[18px] bg-white/88 px-2 py-1.5 shadow-[0_10px_20px_rgba(66,40,18,0.1)]">
+                  <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-12 w-auto max-w-full object-contain drop-shadow-[0_8px_12px_rgba(66,40,18,0.16)]" />
                 </div>
-                <h3 className="mt-2 font-display text-lg font-bold text-secondary">FixMyDoor</h3>
-                <p className="mt-1 text-xs font-bold uppercase tracking-[0.22em] text-secondary/70">Door & Furniture Repairs</p>
+                <div>
+                  <h3 className="font-display text-lg font-bold">FixMyDoor</h3>
+                  <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.18em] text-white/68">Door & Furniture Repairs</p>
+                </div>
               </div>
-              <p className="mt-3 max-w-sm text-xs leading-relaxed text-white/76">
+              <p className="mt-3 text-xs leading-relaxed text-white/76">
                 FixMyDoor helps homeowners, landlords, offices, and businesses with door repairs, lock care, furniture fixes, and product sourcing from Canada.
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold text-white/88">Door repairs</span>
                 <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold text-white/88">Locks & hinges</span>
-                <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold text-white/88">Furniture parts</span>
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.055] p-4 shadow-[0_14px_34px_rgba(0,0,0,0.1)]">
-              <h4 className="font-display text-lg font-bold">Explore</h4>
+            <div className="rounded-[22px] border border-white/10 bg-white/[0.055] p-3 shadow-[0_14px_34px_rgba(0,0,0,0.1)]">
+              <h4 className="font-display text-base font-bold">Explore</h4>
               <div className="mt-2 h-1 w-12 rounded-full bg-primary" />
-              <div className="mt-4 grid gap-2">
-                {navLinks.map((link) => (
-                  <a key={link.href} href={link.href} className="group flex items-center justify-between rounded-2xl px-3 py-2 text-sm font-semibold text-white/78 transition hover:bg-white/8 hover:text-primary">
+              <div className="mt-3 grid gap-1.5">
+                {navLinks.slice(0, 5).map((link) => (
+                  <a key={link.href} href={link.href} className="group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-sm font-semibold text-white/78 transition hover:bg-white/8 hover:text-primary">
                     {link.label}
                     <ArrowRight className="h-3.5 w-3.5 opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100" />
                   </a>
@@ -1520,16 +1505,16 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.055] p-4 shadow-[0_14px_34px_rgba(0,0,0,0.1)]">
-              <h4 className="font-display text-lg font-bold">Services</h4>
+            <div className="rounded-[22px] border border-white/10 bg-white/[0.055] p-3 shadow-[0_14px_34px_rgba(0,0,0,0.1)]">
+              <h4 className="font-display text-base font-bold">Services</h4>
               <div className="mt-2 h-1 w-12 rounded-full bg-primary" />
-              <div className="mt-4 grid gap-2">
-                {footerServices.slice(0, 6).map((service) => (
+              <div className="mt-3 grid gap-1.5">
+                {footerServices.slice(0, 4).map((service) => (
                   <button
                     key={service.slug}
                     type="button"
                     onClick={() => handleServicePick(service)}
-                    className="group flex items-center justify-between rounded-2xl px-3 py-2 text-left text-sm font-semibold text-white/78 transition hover:bg-white/8 hover:text-primary"
+                    className="group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-left text-sm font-semibold text-white/78 transition hover:bg-white/8 hover:text-primary"
                   >
                     {service.title}
                     <ArrowRight className="h-3.5 w-3.5 opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100" />
@@ -1538,31 +1523,27 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.075] p-4 shadow-[0_14px_34px_rgba(0,0,0,0.1)]">
-              <h4 className="font-display text-lg font-bold">Contact</h4>
+            <div className="rounded-[22px] border border-white/10 bg-white/[0.075] p-3 shadow-[0_14px_34px_rgba(0,0,0,0.1)]">
+              <h4 className="font-display text-base font-bold">Contact</h4>
               <div className="mt-2 h-1 w-12 rounded-full bg-primary" />
-              <div className="mt-4 space-y-3">
-                <a href="tel:+14383471823" className="flex gap-3 rounded-2xl bg-white/8 p-3 transition hover:bg-white/12">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15"><Phone className="h-4 w-4 text-primary" /></span>
+              <div className="mt-3 space-y-2">
+                <a href="tel:+14383471823" className="flex gap-2 rounded-xl bg-white/8 p-2 transition hover:bg-white/12">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15"><Phone className="h-3.5 w-3.5 text-primary" /></span>
                   <span className="text-sm font-semibold text-white/86">+1 (438) 347-1823</span>
                 </a>
-                <a href="mailto:info.fixmydoor@gmail.com" className="flex gap-3 rounded-2xl bg-white/8 p-3 transition hover:bg-white/12">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15"><Mail className="h-4 w-4 text-primary" /></span>
+                <a href="mailto:info.fixmydoor@gmail.com" className="flex gap-2 rounded-xl bg-white/8 p-2 transition hover:bg-white/12">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15"><Mail className="h-3.5 w-3.5 text-primary" /></span>
                   <span className="break-all text-sm font-semibold text-white/86">info.fixmydoor@gmail.com</span>
                 </a>
-                <a href={BUSINESS_WHATSAPP_URL} target="_blank" rel="noreferrer" className="flex gap-3 rounded-2xl bg-white/8 p-3 transition hover:bg-white/12">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15"><MessageCircle className="h-4 w-4 text-primary" /></span>
+                <a href={BUSINESS_WHATSAPP_URL} target="_blank" rel="noreferrer" className="flex gap-2 rounded-xl bg-white/8 p-2 transition hover:bg-white/12">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15"><MessageCircle className="h-3.5 w-3.5 text-primary" /></span>
                   <span className="text-sm font-semibold text-white/86">WhatsApp: {BUSINESS_WHATSAPP_DISPLAY}</span>
                 </a>
-                <div className="flex gap-3 rounded-2xl bg-white/8 p-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15"><MapPin className="h-4 w-4 text-primary" /></span>
-                  <span className="text-sm leading-relaxed text-white/76">10158 Rue Berri, Montreal, Quebec H3L 2G6, Canada</span>
-                </div>
               </div>
-              <div className="mt-4 flex gap-3">
-                <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-primary hover:text-white" aria-label="Instagram"><Instagram className="h-5 w-5" /></a>
-                <a href="https://x.com/fixmydoor?s=11" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-primary hover:text-white" aria-label="X (Twitter)"><Twitter className="h-5 w-5" /></a>
-                <a href="https://www.facebook.com/share/1Mc9zS8fXa/?mibextid=wwXIfr" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-primary hover:text-white" aria-label="Facebook"><Facebook className="h-5 w-5" /></a>
+              <div className="mt-3 flex gap-2">
+                <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-primary hover:text-white" aria-label="Instagram"><Instagram className="h-4 w-4" /></a>
+                <a href="https://x.com/fixmydoor?s=11" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-primary hover:text-white" aria-label="X (Twitter)"><Twitter className="h-4 w-4" /></a>
+                <a href="https://www.facebook.com/share/1Mc9zS8fXa/?mibextid=wwXIfr" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-primary hover:text-white" aria-label="Facebook"><Facebook className="h-4 w-4" /></a>
               </div>
             </div>
           </div>
