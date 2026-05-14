@@ -107,6 +107,9 @@ export function toBooking(record: any): Booking {
 }
 
 export function validateBooking(body: any): body is BookingRequest {
+  const submittedAt = typeof body?.submittedAt === "string" ? Date.parse(body.submittedAt) : Number.NaN;
+  const submissionAgeMs = Date.now() - submittedAt;
+
   return (
     typeof body === "object" &&
     body !== null &&
@@ -128,6 +131,10 @@ export function validateBooking(body: any): body is BookingRequest {
     body.repairType.trim().length <= 100 &&
     (body.preferredDate === undefined || typeof body.preferredDate === "string") &&
     (body.message === undefined || (typeof body.message === "string" && body.message.length <= 1000)) &&
+    (body.website === undefined || body.website === "") &&
+    Number.isFinite(submittedAt) &&
+    submissionAgeMs >= 2500 &&
+    submissionAgeMs <= 24 * 60 * 60 * 1000 &&
     OPTIONAL_TEXT_FIELDS.every((field) => validateOptionalText(body, field)) &&
     validatePhotos(body.photos) &&
     body.customerConsent === true

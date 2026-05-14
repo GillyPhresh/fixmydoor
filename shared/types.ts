@@ -24,6 +24,7 @@ export interface BookingRequest {
   budget?: string;
   customerConsent?: boolean;
   submittedAt?: string;
+  website?: string;
 }
 
 export interface Booking extends BookingRequest {

@@ -110,27 +110,27 @@ const isVideoMedia = (media?: string) =>
   Boolean(media && (media.startsWith("data:video/") || /\.(mp4|webm|ogg)(\?.*)?$/i.test(media)));
 
 const serviceAreaNotes = [
-  "Montreal-based head office for local coordination.",
-  "Canada-wide booking support for homes, rentals, offices, and small commercial spaces.",
-  "International requests are welcome for product sourcing, measurements, and repair guidance.",
+  "Head office in Montreal for local coordination.",
+  "Booking support across Canada for homes, rentals, offices, and small business spaces.",
+  "International requests are welcome for sourcing, measurements, and repair guidance.",
 ];
 
 const faqItems = [
   {
     question: "Can I send photos before booking?",
-    answer: "Yes. Add up to three photos in the request form so we can understand the door, lock, furniture, or part before calling you.",
+    answer: "Yes. Add up to three photos in the request form. It helps us understand the door, lock, furniture, or part before we call you.",
   },
   {
     question: "Can you help me buy the right door or hardware?",
-    answer: "Yes. Share the size, quantity, finish, swing direction, and whether you need delivery or installation. We will help narrow the options.",
+    answer: "Yes. Share the size, quantity, finish, swing direction, and whether you need delivery or installation. We will help narrow down the options.",
   },
   {
     question: "Do you work only in Montreal?",
-    answer: "The business address is in Montreal, but FixMyDoor supports Canada-based requests and international product or repair questions.",
+    answer: "The business address is in Montreal, but FixMyDoor supports requests across Canada and can also discuss international product or repair needs.",
   },
   {
     question: "Will I receive updates after booking?",
-    answer: "Yes. Your confirmation email includes a tracking link, and admin status changes can send an update email.",
+    answer: "Yes. Your confirmation email includes a tracking link. When your request is updated, you can also receive an email update.",
   },
 ];
 
@@ -141,9 +141,11 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
+  const [humanCheckConfirmed, setHumanCheckConfirmed] = useState(false);
   const [activeAdvertIndex, setActiveAdvertIndex] = useState(0);
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const advertPauseUntilRef = useRef(0);
+  const formReadyAtRef = useRef(Date.now());
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -183,8 +185,13 @@ export default function Home() {
   });
 
   useEffect(() => {
-    const savedPreference = window.localStorage.getItem("fixmydoor-cookie-choice");
-    if (savedPreference !== "accepted" && savedPreference !== "denied") {
+    const savedPreference = window.localStorage.getItem("fixmydoor-cookie-choice-v2");
+    const savedHumanCheck = window.localStorage.getItem("fixmydoor-human-check-v2");
+    const isVerified = savedHumanCheck === "verified";
+
+    setHumanCheckConfirmed(isVerified);
+
+    if ((savedPreference !== "accepted" && savedPreference !== "denied") || !isVerified) {
       setCookieBannerOpen(true);
     }
   }, []);
@@ -269,6 +276,8 @@ export default function Home() {
       installationNeeded: data.installationNeeded?.trim() || undefined,
       budget: data.budget?.trim() || undefined,
       customerConsent: data.customerConsent,
+      submittedAt: new Date(formReadyAtRef.current).toISOString(),
+      website: "",
     };
 
     try {
@@ -276,6 +285,7 @@ export default function Home() {
       toast.success("Thanks, your request was sent. Check your email for the tracking link.");
       form.reset();
       setPhotoPreviews([]);
+      formReadyAtRef.current = Date.now();
     } catch (error) {
       toast.error("Unable to submit booking at this time. Please try again later.");
       console.error("Booking submission error:", error);
@@ -481,7 +491,13 @@ export default function Home() {
   };
 
   const saveCookiePreference = (preference: CookiePreference) => {
-    window.localStorage.setItem("fixmydoor-cookie-choice", preference);
+    if (!humanCheckConfirmed) {
+      toast.error("Please confirm you are a real visitor before continuing.");
+      return;
+    }
+
+    window.localStorage.setItem("fixmydoor-cookie-choice-v2", preference);
+    window.localStorage.setItem("fixmydoor-human-check-v2", "verified");
     setCookieBannerOpen(false);
     toast.success(preference === "accepted" ? "Cookie preference saved." : "Optional cookies declined.");
   };
@@ -489,26 +505,17 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <nav className="sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/96 shadow-[0_8px_28px_rgba(47,36,28,0.06)] backdrop-blur">
-        <div className="border-b border-primary/10 bg-[#3a281f] text-white">
-          <div className="container flex max-w-[1180px] flex-wrap items-center justify-center gap-x-5 gap-y-1 py-1 text-center text-[0.68rem] font-semibold sm:justify-between sm:text-[0.72rem]">
-            <span>Based in Canada. Helping with repairs, installs, doors, and hardware requests worldwide.</span>
-            <span className="inline-flex items-center gap-2">
-              <Phone className="h-3.5 w-3.5 text-primary" />
-              <a href="tel:+14383471823" className="hover:text-primary">+1 (438) 347-1823</a>
-            </span>
-          </div>
-        </div>
-        <div className="container flex max-w-[1180px] items-center justify-between gap-3 py-1.5 sm:gap-4 md:py-2">
+        <div className="container flex max-w-[1180px] items-center justify-between gap-3 py-2 sm:gap-4 md:py-2.5">
           <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
             <a href="/" className="flex shrink-0 items-center">
-              <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-14 w-auto object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.14)] sm:h-16 md:h-[4.5rem]" />
+              <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-16 w-auto object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.14)] sm:h-[4.5rem] md:h-20" />
             </a>
             <div className="min-w-0">
               <p className="font-display text-sm font-bold leading-tight text-secondary sm:text-base md:text-lg">
                 FixMyDoor | Door & Furniture Repairs
               </p>
-              <p className="mt-0.5 hidden text-[0.6rem] uppercase tracking-[0.18em] text-secondary/65 sm:block md:text-[0.64rem]">
-                Canada-based service. International requests welcome.
+              <p className="mt-0.5 hidden text-[0.63rem] uppercase tracking-[0.16em] text-secondary/65 sm:block md:text-[0.68rem]">
+                Repairs, installations, doors, furniture, and hardware sourcing.
               </p>
             </div>
           </div>
@@ -556,22 +563,22 @@ export default function Home() {
           <div className="max-w-lg">
             <div className="mb-2 inline-flex items-center gap-2 rounded-2xl border border-primary/18 bg-white px-3.5 py-1.5 text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-secondary shadow-sm">
               <Globe2 className="h-4 w-4 text-primary" />
-              Based in Canada. Available for international requests.
+              Canada-based. You can ask from anywhere.
             </div>
             <h1 className="font-display text-[2.05rem] font-bold leading-[1.04] text-secondary sm:text-4xl md:text-[3.05rem] xl:text-[3.35rem]">
-              Doors that close right. Hardware that fits.
+              Door trouble? We will help you sort it out.
             </h1>
             <p className="mt-3 max-w-[32rem] text-[0.96rem] leading-relaxed text-foreground/75 md:text-[1.03rem]">
-              If a door sticks, a lock feels loose, or furniture hardware keeps giving trouble, we help you fix it properly or find the right replacement.
+              Send a photo, a quick note, or the size you have. We will tell you what can be repaired, what should be replaced, and the next step that makes sense.
             </p>
             <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
               <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.24)] transition hover:-translate-y-0.5 hover:bg-primary/90">
-                Book a Repair
+                Book a repair
                 <ArrowRight className="h-4 w-4" />
               </button>
               <a href="#shop" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-secondary/15 bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-[0_10px_24px_rgba(47,36,28,0.08)] transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">
                 <ShoppingBag className="h-4 w-4" />
-                Shop Doors & Hardware
+                Shop doors & hardware
               </a>
               <a href="tel:+14383471823" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(47,36,28,0.18)] transition hover:-translate-y-0.5 hover:bg-secondary/90">
                 <Phone className="h-4 w-4" />
@@ -581,17 +588,17 @@ export default function Home() {
             <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-2.5">
               <div className="rounded-2xl bg-white p-2.5 text-center shadow-lg shadow-primary/5 sm:p-3.5 sm:text-left">
                 <Zap className="mx-auto mb-1.5 h-4 w-4 text-primary sm:mx-0 sm:mb-2 sm:h-5 sm:w-5" />
-                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Fast Scheduling</p>
-                <p className="mt-1 hidden text-xs leading-relaxed text-foreground/65 sm:block">Send the issue and we will guide the next step.</p>
+                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Quick Reply</p>
+                <p className="mt-1 hidden text-xs leading-relaxed text-foreground/65 sm:block">Tell us the issue and we will guide you from there.</p>
               </div>
               <div className="rounded-2xl bg-white p-2.5 text-center shadow-lg shadow-primary/5 sm:p-3.5 sm:text-left">
                 <div className="mb-1.5 text-base font-black text-primary sm:mb-2 sm:text-xl">C$</div>
-                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Fair Pricing</p>
-                <p className="mt-1 hidden text-xs leading-relaxed text-foreground/65 sm:block">Straight answers before work begins.</p>
+                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Fair C$ Pricing</p>
+                <p className="mt-1 hidden text-xs leading-relaxed text-foreground/65 sm:block">Clear answers before any work starts.</p>
               </div>
               <div className="rounded-2xl bg-white p-2.5 text-center shadow-lg shadow-primary/5 sm:p-3.5 sm:text-left">
                 <CheckCircle2 className="mx-auto mb-1.5 h-4 w-4 text-primary sm:mx-0 sm:mb-2 sm:h-5 sm:w-5" />
-                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Clean Finish</p>
+                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Neat Finish</p>
                 <p className="mt-1 hidden text-xs leading-relaxed text-foreground/65 sm:block">Careful work without messy shortcuts.</p>
               </div>
             </div>
@@ -606,7 +613,7 @@ export default function Home() {
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
                 <h2 className="mt-1 text-xl font-bold text-secondary md:mt-2 md:text-2xl">Front Door Rekeying</h2>
                 <p className="mt-1 text-xs leading-relaxed text-foreground/70 md:mt-2 md:text-sm">
-                  If a key goes missing or a lock starts acting up, we can rekey the entry and get the door feeling secure again.
+                  If a key goes missing or the lock starts acting up, we can rekey the entry and help the door feel secure again.
                 </p>
               </div>
             </div>
@@ -811,7 +818,7 @@ export default function Home() {
               <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary md:text-sm md:tracking-[0.4em]">Buy & Source</p>
               <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:mt-4 md:text-5xl">Need a door, handle, lock, hinge, or furniture part?</h2>
               <p className="mt-3 max-w-3xl text-sm leading-relaxed text-foreground/70 md:mt-4 md:text-lg">
-                Tell us what you are trying to fix or replace. We can help you narrow down the right product before you spend money on the wrong item.
+                Tell us what you want to fix, replace, or buy. We will help you choose the right option before you spend money on the wrong item.
               </p>
             </div>
             <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.2)] transition hover:-translate-y-0.5 hover:bg-primary/90">
@@ -1116,9 +1123,9 @@ export default function Home() {
           <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
             <article className="rounded-[28px] bg-[#2f241c] p-6 text-white shadow-[0_18px_50px_rgba(47,36,28,0.18)] md:p-7">
               <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">Service Areas</p>
-              <h2 className="mt-3 font-display text-3xl font-bold md:text-4xl">Canada-based, with support for international requests</h2>
+              <h2 className="mt-3 font-display text-3xl font-bold md:text-4xl">Canada-based, open to international requests</h2>
               <p className="mt-3 text-sm leading-relaxed text-white/75">
-                FixMyDoor is organized from Montreal, but the service conversation is not limited to one city. Send your repair, installation, door, or hardware request and we will confirm what is realistic for your location.
+                FixMyDoor is organized from Montreal, but you can contact us from other locations too. Send the repair, installation, door, or hardware request and we will let you know what is realistic.
               </p>
               <div className="mt-4 grid gap-3 md:mt-5">
                 {serviceAreaNotes.map((note, index) => (
@@ -1177,7 +1184,7 @@ export default function Home() {
         <div className="container grid max-w-[1180px] gap-6 md:grid-cols-[0.9fr_1.1fr] md:items-stretch">
           <div className="rounded-[26px] border border-primary/12 bg-white p-5 shadow-[0_16px_42px_rgba(0,0,0,0.055)] sm:p-6">
             <h2 className="font-display text-3xl font-bold text-secondary md:text-4xl">Get in Touch</h2>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-foreground/68">Send the details you have, even if you are not sure what the problem is called. We will help you sort out the next step.</p>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-foreground/68">Send the details you have, even if you are not sure what the problem is called. We will help you choose the next step.</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 md:grid-cols-1">
               <div className="flex gap-3 rounded-[20px] bg-background p-4 shadow-sm">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Phone className="h-5 w-5 text-primary" /></div>
@@ -1229,7 +1236,7 @@ export default function Home() {
                   </div>
                   <div className="rounded-2xl bg-white/8 p-3">
                     <p className="font-semibold">For buying</p>
-                    <p className="mt-1 text-xs leading-relaxed text-white/76">Share the item you want, size if known, preferred color, quantity, and a photo or screenshot of the door, furniture, handle, lock, or hardware style.</p>
+                    <p className="mt-1 text-xs leading-relaxed text-white/76">Share the item you want, the size if known, preferred color, quantity, and a photo or screenshot of the style you like.</p>
                   </div>
                 </div>
               </div>
@@ -1238,9 +1245,17 @@ export default function Home() {
 
           <div id="booking-form" className="scroll-mt-28 rounded-[26px] border border-primary/12 bg-white p-5 shadow-[0_16px_42px_rgba(0,0,0,0.055)] sm:scroll-mt-32 sm:p-6 md:scroll-mt-28">
             <h3 className="text-2xl font-semibold text-secondary">Tell Us What You Need</h3>
-            <p className="mt-2 text-sm leading-relaxed text-foreground/68">Tell us what is happening. A short description is enough to start the conversation.</p>
+            <p className="mt-2 text-sm leading-relaxed text-foreground/68">Tell us what is happening. A short note, your location, and a photo are enough to start.</p>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="mt-5 grid gap-4 sm:grid-cols-2">
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  className="hidden"
+                />
                 <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Name *</FormLabel><FormControl><Input placeholder="Your full name" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Phone *</FormLabel><FormControl><Input type="tel" placeholder="+1 (438) 000-0000" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Email *</FormLabel><FormControl><Input type="email" placeholder="your.email@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -1556,28 +1571,51 @@ export default function Home() {
       </footer>
 
       {cookieBannerOpen && (
-        <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-[680px] rounded-[22px] border border-primary/20 bg-white p-4 text-secondary shadow-[0_18px_55px_rgba(47,36,28,0.22)] sm:bottom-5 sm:p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-display text-lg font-bold">Cookie Preferences</p>
-              <p className="mt-1 text-sm leading-relaxed text-foreground/70">
-                We use essential cookies for the website and admin login. You can accept or deny optional preference cookies.
-              </p>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#1f1712]/72 px-4 py-6 backdrop-blur-sm">
+          <div className="w-full max-w-[560px] rounded-[28px] border border-primary/20 bg-white p-5 text-secondary shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                <ShieldCheck className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-primary">Security Check</p>
+                <p className="mt-1 font-display text-2xl font-bold">Before you continue</p>
+                <p className="mt-2 text-sm leading-relaxed text-foreground/70">
+                  This quick check helps protect booking requests from spam. Essential cookies keep the website, booking form, and admin login working properly.
+                </p>
+              </div>
             </div>
-            <div className="flex shrink-0 gap-2">
+
+            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-[20px] border border-primary/12 bg-[#fffaf2] p-4">
+              <Checkbox
+                checked={humanCheckConfirmed}
+                onCheckedChange={(checked) => setHumanCheckConfirmed(checked === true)}
+                className="mt-0.5"
+              />
+              <span>
+                <span className="block font-bold text-secondary">I am a real visitor, not an automated bot.</span>
+                <span className="mt-1 block text-xs leading-relaxed text-foreground/65">
+                  You only need to confirm this once on this device unless your browser storage is cleared.
+                </span>
+              </span>
+            </label>
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => saveCookiePreference("denied")}
-                className="rounded-2xl border border-secondary/15 px-4 py-2 text-sm font-bold text-secondary transition hover:border-primary hover:text-primary"
+                className="rounded-2xl border border-secondary/15 px-4 py-3 text-sm font-bold text-secondary transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!humanCheckConfirmed}
               >
-                Deny
+                Deny optional cookies
               </button>
               <button
                 type="button"
                 onClick={() => saveCookiePreference("accepted")}
-                className="rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white transition hover:bg-primary/90"
+                className="rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!humanCheckConfirmed}
               >
-                Accept
+                Accept and continue
               </button>
             </div>
           </div>

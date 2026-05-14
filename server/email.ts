@@ -48,8 +48,12 @@ function getPublicBaseUrl() {
   ).replace(/\/+$/, "");
 }
 
-function getGoogleMapsUrl(address: string) {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+function getBookingMapQuery(booking: Booking) {
+  return [booking.address, booking.city, booking.country].filter(Boolean).join(", ");
+}
+
+function getGoogleMapsUrl(booking: Booking) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getBookingMapQuery(booking))}`;
 }
 
 function escapeHtml(value: unknown) {
@@ -252,7 +256,8 @@ class EmailService {
     const businessEmail = getBusinessEmail();
     const adminEmail = normalizeEnvValue(process.env.ADMIN_EMAIL) || businessEmail || this.config.auth.user;
     const adminUrl = normalizeEnvValue(process.env.ADMIN_URL) || "https://fixmydoorservices.up.railway.app/admin";
-    const mapsUrl = getGoogleMapsUrl(booking.address);
+    const mapQuery = getBookingMapQuery(booking);
+    const mapsUrl = getGoogleMapsUrl(booking);
     const photoAttachments = getPhotoAttachments(booking);
     const logoAttachment = getLogoAttachment();
     const logoHtml = logoAttachment
@@ -274,6 +279,7 @@ class EmailService {
       `Urgency: ${booking.urgency || "Not specified"}`,
       `Request Type: ${booking.requestScope || "Not specified"}`,
       `Currency: ${booking.currency || "Not specified"}`,
+      `Map Search: ${mapQuery}`,
       `Google Maps: ${mapsUrl}`,
       `Service: ${booking.repairType}`,
       `Preferred Date: ${booking.preferredDate || "Not specified"}`,
@@ -313,7 +319,8 @@ class EmailService {
           ${formatOptionalRow("Urgency", booking.urgency)}
           ${formatOptionalRow("Request Type", booking.requestScope)}
           ${formatOptionalRow("Currency", booking.currency)}
-          <p><a href="${escapeHtml(mapsUrl)}" style="display:inline-block; background:#2f241c; color:#ffffff; padding:10px 14px; border-radius:10px; text-decoration:none; font-weight:700;">Open Customer Address in Google Maps</a></p>
+          <p><strong>Map Search:</strong> ${escapeHtml(mapQuery)}</p>
+          <p><a href="${escapeHtml(mapsUrl)}" style="display:inline-block; background:#2f241c; color:#ffffff; padding:10px 14px; border-radius:10px; text-decoration:none; font-weight:700;">Open Customer Location in Google Maps</a></p>
           <p><strong>Service:</strong> ${escapeHtml(booking.repairType)}</p>
           <p><strong>Preferred Date:</strong> ${displayValue(booking.preferredDate)}</p>
           ${formatOptionalRow("Size / Measurements", booking.dimensions)}

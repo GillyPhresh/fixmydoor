@@ -41,8 +41,8 @@ export { heroImage, technicianImage };
 
 export const featuredService = {
   tag: "Security Upgrade",
-  title: "Front-door security, plus the everyday repairs people call us for.",
-  desc: "From rekeying a front door to fixing furniture hardware, this is the kind of work we handle when something at home or at work stops feeling right.",
+  title: "Front-door security and the small fixes people need every day.",
+  desc: "From rekeying a front door to fixing furniture hardware, we handle the jobs that make a home or workspace easier to use again.",
 };
 
 export const featuredServiceCollage = [
@@ -74,26 +74,26 @@ export const serviceShowcase = [
   {
     src: heroImage,
     title: "Front Door Rekeying",
-    desc: "A simple way to feel safer when keys are missing, tenants change, or a lock no longer feels trustworthy.",
+    desc: "Useful when keys are missing, tenants change, or the lock no longer feels safe.",
     tag: "Security Upgrade",
   },
   {
     src: entryDoorImage,
     title: "Entry Door Replacement",
-    desc: "A better-fitting front door that opens smoothly, closes properly, and gives the entrance a cleaner look.",
+    desc: "A better-fitting front door that opens smoothly, closes properly, and looks cleaner from outside.",
     tag: "Exterior Doors",
   },
   {
     src: officeDeskRepairImage,
     title: "Desk & Cabinet Repairs",
-    desc: "Small repairs that make desks, cabinets, and storage pieces easier to use again.",
+    desc: "Fixes for desks, cabinets, drawers, and storage pieces that still have life left in them.",
     tag: "Workspace Care",
     contain: true,
   },
   {
     src: executiveDeskShowcaseImage,
     title: "Office Furniture Refresh",
-    desc: "A simple clean-up for office furniture that looks worn but still has plenty of life left.",
+    desc: "Help for office furniture that looks worn, feels loose, or needs better hardware.",
     tag: "Office Care",
     contain: true,
   },
@@ -103,14 +103,14 @@ export const customerPaths = [
   {
     label: "Repair & Installation",
     title: "Fix the door, lock, hinge, drawer, or furniture piece",
-    desc: "Tell us what is not working. We will help with sticking doors, loose handles, damaged frames, drawer slides, cabinet hinges, and furniture repairs.",
-    cta: "Book a Repair",
+    desc: "Tell us what is not working. We help with sticking doors, loose handles, damaged frames, drawer slides, cabinet hinges, and furniture repairs.",
+    cta: "Book a repair",
     href: "#booking-form",
   },
   {
     label: "Buy & Source",
     title: "Find the right door, part, or hardware before you buy",
-    desc: "Looking for doors, handles, locks, cylinders, hinges, drawer slides, or furniture parts? We help you choose what fits the job.",
+    desc: "Looking for doors, handles, locks, cylinders, hinges, drawer slides, or furniture parts? We help you choose what fits before you spend money.",
     cta: "Browse Products",
     href: "#shop",
   },
@@ -127,7 +127,7 @@ export const productCategories = [
   },
   {
     title: "Locks, Handles & Door Hardware",
-    desc: "Handles, lock bodies, cylinders, hinges, knobs, and backplates for simple replacements or full door upgrades.",
+    desc: "Handles, lock bodies, cylinders, hinges, knobs, and backplates for replacements or full door upgrades.",
     items: "Handles, cylinders, hinges, lock bodies, backplates, and knob locks",
     image: silverMortiseHandleCylinderKitImage,
     accent: chromeBackplateHandleLockKitImage,
@@ -173,37 +173,37 @@ export const projectGallery = [
   {
     src: brokenDoorImage,
     title: "Damaged Frame Repair",
-    desc: "When a door frame is damaged after a break-in or hard impact, we focus on making the entry safe and usable again.",
+    desc: "When a door frame is damaged by impact or forced entry, the first goal is to make it safe and usable again.",
     category: "Frame Repair",
   },
   {
     src: locksmithImage,
     title: "Lock Rekeying",
-    desc: "A good option when keys are missing, access needs to change, or the lock simply feels worn out.",
+    desc: "A good option when keys are missing, access needs to change, or the lock feels worn out.",
     category: "Lock Service",
   },
   {
     src: entryDoorImage,
     title: "Entry Door Install",
-    desc: "A front-door update with cleaner gaps, smoother swing, and a better everyday feel.",
+    desc: "A front-door update with cleaner gaps, a smoother swing, and better daily use.",
     category: "Door Upgrade",
   },
   {
     src: warmEntryImage,
     title: "Entryway Refresh",
-    desc: "A cleaner entrance that looks better from outside and still works well day to day.",
+    desc: "A cleaner entrance that looks better from outside and works well day to day.",
     category: "Exterior Finish",
   },
   {
     src: whiteDoorImage,
     title: "Interior Door Tune-Up",
-    desc: "Alignment work for interior doors that scrape, swing badly, or will not sit properly in the frame.",
+    desc: "Alignment help for interior doors that scrape, swing badly, or will not sit properly in the frame.",
     category: "Interior Repair",
   },
   {
     src: modernDoorImage,
     title: "Modern Door Installation",
-    desc: "A cleaner modern door setup with straighter lines and a more finished look.",
+    desc: "A cleaner modern door setup with straight lines and a finished look.",
     category: "Design Upgrade",
   },
 ];
@@ -229,7 +229,7 @@ export const customerReviews = [
 export const quickHighlights = [
   {
     title: "Canada-Based Reach",
-    text: "Based in Canada, while also helping customers who contact us from abroad.",
+    text: "Based in Canada, with support for customers who contact us from abroad.",
   },
   {
     title: "Trusted Workmanship",
@@ -237,6 +237,6 @@ export const quickHighlights = [
   },
   {
     title: "Fast Response",
-    text: "Quick replies, clear timing, and follow-up you can understand.",
+    text: "Quick replies, clear timing, and follow-up that is easy to understand.",
   },
 ];
