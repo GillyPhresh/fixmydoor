@@ -17,7 +17,7 @@ interface EmailConfig {
 const DEFAULT_BUSINESS_EMAIL = "info.fixmydoor@gmail.com";
 const DEFAULT_PUBLIC_SITE_URL = "https://fixmydoorservices.up.railway.app";
 const LOGO_CID = "fixmydoor-logo";
-const EMAIL_LOGO_CARD_STYLE = "display:inline-block; background:#ffffff; border:1px solid #ead8bf; border-radius:22px; padding:14px 22px; margin:0 auto 14px; box-shadow:0 14px 32px rgba(0,0,0,0.16);";
+const EMAIL_LOGO_CARD_STYLE = "background:#ffffff; background-color:#ffffff; border:1px solid #ead8bf; border-radius:22px; padding:14px 22px; margin:0 auto 14px; box-shadow:0 14px 32px rgba(0,0,0,0.16);";
 const EMAIL_LOGO_IMG_STYLE = "display:block; width:220px; max-width:100%; height:auto; margin:0 auto;";
 
 function normalizeEnvValue(value?: string) {
@@ -134,6 +134,24 @@ function getLogoAttachment() {
     : undefined;
 }
 
+function renderEmailLogo(logoAttachment: ReturnType<typeof getLogoAttachment>, options: { marginBottom?: string; textSize?: string } = {}) {
+  const marginBottom = options.marginBottom ?? "14px";
+  const textSize = options.textSize ?? "30px";
+  const content = logoAttachment
+    ? `<img src="cid:${LOGO_CID}" alt="FixMyDoor" width="220" style="${EMAIL_LOGO_IMG_STYLE} background:#ffffff; background-color:#ffffff;" />`
+    : `<span style="display:block; color:#6B4423; font-size:${textSize}; font-weight:800; line-height:1.1;">FixMyDoor</span>`;
+
+  return `
+    <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="${EMAIL_LOGO_CARD_STYLE} margin-bottom:${marginBottom};">
+      <tr>
+        <td align="center" bgcolor="#ffffff" style="background:#ffffff; background-color:#ffffff; border-radius:22px;">
+          ${content}
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
 function formatSubmittedAt(value: string) {
   const submittedAt = new Date(value);
   return Number.isNaN(submittedAt.getTime()) ? escapeHtml(value) : submittedAt.toLocaleString();
@@ -239,9 +257,7 @@ class EmailService {
     const subject = "FixMyDoor - Booking Confirmation";
     const logoAttachment = getLogoAttachment();
     const trackingUrl = booking.customerToken ? `${getPublicBaseUrl()}/track/${booking.customerToken}` : "";
-    const logoHtml = logoAttachment
-      ? `<div style="${EMAIL_LOGO_CARD_STYLE}"><img src="cid:${LOGO_CID}" alt="FixMyDoor" style="${EMAIL_LOGO_IMG_STYLE}" /></div>`
-      : `<div style="${EMAIL_LOGO_CARD_STYLE} font-size:30px; font-weight:800; color:#6B4423;">FixMyDoor</div>`;
+    const logoHtml = renderEmailLogo(logoAttachment);
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; background:#fffaf2; border:1px solid #ead8bf; border-radius:22px; overflow:hidden;">
         <div style="background:#2f241c; padding:24px 24px 20px; text-align:center;">
@@ -350,9 +366,7 @@ class EmailService {
     const mapsUrl = getGoogleMapsUrl(booking);
     const photoAttachments = getPhotoAttachments(booking);
     const logoAttachment = getLogoAttachment();
-    const logoHtml = logoAttachment
-      ? `<div style="text-align:center; background:#2f241c; padding:24px; border-radius:18px 18px 0 0;"><span style="${EMAIL_LOGO_CARD_STYLE} margin-bottom:0;"><img src="cid:${LOGO_CID}" alt="FixMyDoor" style="${EMAIL_LOGO_IMG_STYLE}" /></span></div>`
-      : `<div style="text-align:center; background:#2f241c; padding:24px; border-radius:18px 18px 0 0;"><span style="${EMAIL_LOGO_CARD_STYLE} margin-bottom:0; color:#6B4423; font-size:28px; font-weight:800;">FixMyDoor</span></div>`;
+    const logoHtml = `<div style="text-align:center; background:#2f241c; padding:24px; border-radius:18px 18px 0 0;">${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px" })}</div>`;
     const subject = `New FixMyDoor Booking: ${cleanSubjectValue(booking.name)} - ${cleanSubjectValue(booking.repairType)}`;
     const text = [
       "New FixMyDoor booking received",
@@ -463,10 +477,11 @@ class EmailService {
     const businessEmail = getBusinessEmail();
     const trackingUrl = booking.customerToken ? `${getPublicBaseUrl()}/track/${booking.customerToken}` : "";
     const subject = `FixMyDoor request update: ${booking.status.replace("_", " ")}`;
+    const logoAttachment = getLogoAttachment();
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; background:#fffaf2; border:1px solid #ead8bf; border-radius:20px; overflow:hidden;">
         <div style="background:#2f241c; padding:22px; text-align:center;">
-          <div style="display:inline-block; background:#ffffff; border-radius:16px; padding:12px 18px; color:#6B4423; font-size:28px; font-weight:800;">FixMyDoor</div>
+          ${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px" })}
         </div>
         <div style="padding:26px; color:#3a281f;">
           <h1 style="color:#6B4423; margin-top:0;">Your request status changed</h1>
@@ -495,6 +510,7 @@ class EmailService {
         replyTo: businessEmail,
         subject,
         html,
+        attachments: logoAttachment ? [logoAttachment] : undefined,
       }, "Status update");
       if (!sent) {
         return false;
@@ -518,9 +534,7 @@ class EmailService {
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fffaf2;border:1px solid #ead8bf;border-radius:20px;overflow:hidden;">
         <div style="background:#2f241c;padding:22px;text-align:center;">
           ${
-            logoAttachment
-              ? `<span style="${EMAIL_LOGO_CARD_STYLE} margin-bottom:0;"><img src="cid:${LOGO_CID}" alt="FixMyDoor" style="${EMAIL_LOGO_IMG_STYLE}" /></span>`
-              : `<span style="${EMAIL_LOGO_CARD_STYLE} margin-bottom:0;color:#6B4423;font-size:28px;font-weight:800;">FixMyDoor</span>`
+            renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px" })
           }
         </div>
         <div style="padding:24px;color:#3a281f;">
