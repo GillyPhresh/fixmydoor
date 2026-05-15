@@ -16,6 +16,8 @@ interface EmailConfig {
 
 const DEFAULT_BUSINESS_EMAIL = "info.fixmydoor@gmail.com";
 const LOGO_CID = "fixmydoor-logo";
+const EMAIL_LOGO_CARD_STYLE = "display:inline-block; background:#ffffff; border:1px solid #ead8bf; border-radius:22px; padding:14px 22px; margin:0 auto 14px; box-shadow:0 14px 32px rgba(0,0,0,0.16);";
+const EMAIL_LOGO_IMG_STYLE = "display:block; width:220px; max-width:100%; height:auto; margin:0 auto;";
 
 function normalizeEnvValue(value?: string) {
   const trimmed = (value || "").trim();
@@ -100,6 +102,27 @@ function formatOptionalRow(label: string, value?: string | null) {
   return value ? `<p><strong>${label}:</strong> ${escapeHtml(value)}</p>` : "";
 }
 
+async function sendMailWithRetry(transporter: any, options: Record<string, unknown>, label: string) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      await transporter.sendMail(options);
+      if (attempt > 1) {
+        console.log(`${label} email sent after retry`);
+      }
+      return true;
+    } catch (error) {
+      lastError = error;
+      console.error(`${label} email attempt ${attempt} failed:`, error);
+      await new Promise((resolve) => setTimeout(resolve, 900));
+    }
+  }
+
+  console.error(`${label} email failed after retry:`, lastError);
+  return false;
+}
+
 function getPhotoAttachments(booking: Booking) {
   return (booking.photos || [])
     .map((photo, index) => {
@@ -176,8 +199,8 @@ class EmailService {
     const logoAttachment = getLogoAttachment();
     const trackingUrl = booking.customerToken ? `${getPublicBaseUrl()}/track/${booking.customerToken}` : "";
     const logoHtml = logoAttachment
-      ? `<div style="display:inline-block; background:#ffffff; border-radius:18px; padding:12px 18px; margin:0 auto 12px; box-shadow:0 10px 24px rgba(0,0,0,0.14);"><img src="cid:${LOGO_CID}" alt="FixMyDoor" style="display:block; width:190px; max-width:100%; height:auto; margin:0 auto;" /></div>`
-      : `<div style="display:inline-block; background:#ffffff; border-radius:18px; padding:14px 22px; margin:0 auto 12px; font-size:30px; font-weight:800; color:#6B4423; box-shadow:0 10px 24px rgba(0,0,0,0.14);">FixMyDoor</div>`;
+      ? `<div style="${EMAIL_LOGO_CARD_STYLE}"><img src="cid:${LOGO_CID}" alt="FixMyDoor" style="${EMAIL_LOGO_IMG_STYLE}" /></div>`
+      : `<div style="${EMAIL_LOGO_CARD_STYLE} font-size:30px; font-weight:800; color:#6B4423;">FixMyDoor</div>`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; background:#fffaf2; border:1px solid #ead8bf; border-radius:22px; overflow:hidden;">
         <div style="background:#2f241c; padding:24px 24px 20px; text-align:center;">
@@ -231,14 +254,40 @@ class EmailService {
     `;
 
     try {
-      await this.transporter.sendMail({
+      const text = [
+        `Hi ${booking.name},`,
+        "",
+        "Thanks for contacting FixMyDoor. Your request is now in our system, and our staff will contact you soon to confirm the details.",
+        "",
+        `Booking ID: ${booking.id}`,
+        `Request: ${booking.repairType}`,
+        `Address: ${booking.address}`,
+        `City / Province: ${booking.city || "Not specified"}`,
+        `Country: ${booking.country || "Not specified"}`,
+        `Phone: ${booking.phone}`,
+        `Preferred Date: ${booking.preferredDate || "To be scheduled"}`,
+        `Message: ${booking.message || "None"}`,
+        trackingUrl ? `Track your request: ${trackingUrl}` : "",
+        "",
+        "Phone: +1 (438) 347-1823",
+        `Email: ${businessEmail}`,
+        "",
+        "Best regards,",
+        "FixMyDoor Services",
+      ].filter(Boolean).join("\n");
+
+      const sent = await sendMailWithRetry(this.transporter, {
         from: this.config.from,
         to: booking.email,
         replyTo: businessEmail,
         subject,
+        text,
         html,
         attachments: logoAttachment ? [logoAttachment] : undefined,
-      });
+      }, "Customer booking confirmation");
+      if (!sent) {
+        return false;
+      }
       console.log(`Booking confirmation email sent to ${booking.email}`);
       return true;
     } catch (error) {
@@ -261,8 +310,8 @@ class EmailService {
     const photoAttachments = getPhotoAttachments(booking);
     const logoAttachment = getLogoAttachment();
     const logoHtml = logoAttachment
-      ? `<div style="text-align:center; background:#2f241c; padding:22px; border-radius:18px 18px 0 0;"><span style="display:inline-block; background:#ffffff; border-radius:16px; padding:12px 18px;"><img src="cid:${LOGO_CID}" alt="FixMyDoor" style="display:block; width:180px; max-width:100%; height:auto;" /></span></div>`
-      : `<div style="text-align:center; background:#2f241c; padding:22px; border-radius:18px 18px 0 0;"><span style="display:inline-block; background:#ffffff; border-radius:16px; padding:12px 18px; color:#6B4423; font-size:28px; font-weight:800;">FixMyDoor</span></div>`;
+      ? `<div style="text-align:center; background:#2f241c; padding:24px; border-radius:18px 18px 0 0;"><span style="${EMAIL_LOGO_CARD_STYLE} margin-bottom:0;"><img src="cid:${LOGO_CID}" alt="FixMyDoor" style="${EMAIL_LOGO_IMG_STYLE}" /></span></div>`
+      : `<div style="text-align:center; background:#2f241c; padding:24px; border-radius:18px 18px 0 0;"><span style="${EMAIL_LOGO_CARD_STYLE} margin-bottom:0; color:#6B4423; font-size:28px; font-weight:800;">FixMyDoor</span></div>`;
     const subject = `New FixMyDoor Booking: ${cleanSubjectValue(booking.name)} - ${cleanSubjectValue(booking.repairType)}`;
     const text = [
       "New FixMyDoor booking received",
@@ -344,7 +393,7 @@ class EmailService {
     `;
 
     try {
-      await this.transporter.sendMail({
+      const sent = await sendMailWithRetry(this.transporter, {
         from: this.config.from,
         to: adminEmail,
         replyTo: booking.email,
@@ -352,7 +401,10 @@ class EmailService {
         text,
         html,
         attachments: [...(logoAttachment ? [logoAttachment] : []), ...photoAttachments],
-      });
+      }, "Admin booking notification");
+      if (!sent) {
+        return false;
+      }
       console.log("Admin notification email sent");
       return true;
     } catch (error) {
@@ -396,13 +448,16 @@ class EmailService {
     `;
 
     try {
-      await this.transporter.sendMail({
+      const sent = await sendMailWithRetry(this.transporter, {
         from: this.config.from,
         to: booking.email,
         replyTo: businessEmail,
         subject,
         html,
-      });
+      }, "Status update");
+      if (!sent) {
+        return false;
+      }
       console.log(`Status update email sent to ${booking.email}`);
       return true;
     } catch (error) {
@@ -423,8 +478,8 @@ class EmailService {
         <div style="background:#2f241c;padding:22px;text-align:center;">
           ${
             logoAttachment
-              ? `<span style="display:inline-block;background:#ffffff;border-radius:16px;padding:12px 18px;"><img src="cid:${LOGO_CID}" alt="FixMyDoor" style="display:block;width:180px;max-width:100%;height:auto;" /></span>`
-              : `<span style="display:inline-block;background:#ffffff;border-radius:16px;padding:12px 18px;color:#6B4423;font-size:28px;font-weight:800;">FixMyDoor</span>`
+              ? `<span style="${EMAIL_LOGO_CARD_STYLE} margin-bottom:0;"><img src="cid:${LOGO_CID}" alt="FixMyDoor" style="${EMAIL_LOGO_IMG_STYLE}" /></span>`
+              : `<span style="${EMAIL_LOGO_CARD_STYLE} margin-bottom:0;color:#6B4423;font-size:28px;font-weight:800;">FixMyDoor</span>`
           }
         </div>
         <div style="padding:24px;color:#3a281f;">
@@ -436,14 +491,17 @@ class EmailService {
     `;
 
     try {
-      await this.transporter.sendMail({
+      const sent = await sendMailWithRetry(this.transporter, {
         from: this.config.from,
         to,
         replyTo: getBusinessEmail(),
         subject: "FixMyDoor email test",
         html,
         attachments: logoAttachment ? [logoAttachment] : undefined,
-      });
+      }, "Test");
+      if (!sent) {
+        return false;
+      }
       console.log(`Test email sent to ${to}`);
       return true;
     } catch (error) {

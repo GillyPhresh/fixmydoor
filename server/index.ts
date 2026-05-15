@@ -548,11 +548,13 @@ async function startServer() {
 
   // Booking endpoints
   app.get("/api/services", (_req, res) => {
+    res.set("Cache-Control", "no-store");
     res.json({ services: serviceCatalog });
   });
 
   app.get("/api/content", async (_req, res) => {
     try {
+      res.set("Cache-Control", "no-store");
       const items = await listPublicContent();
       return res.json({ items });
     } catch (error) {
@@ -635,6 +637,7 @@ async function startServer() {
 
   app.get("/api/reviews", async (req, res) => {
     try {
+      res.set("Cache-Control", "no-store");
       const limit = Math.min(30, Math.max(1, parseInt(req.query.limit as string, 10) || 12));
       const reviews = await listReviews(limit);
       return res.json({ reviews });

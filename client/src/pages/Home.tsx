@@ -89,7 +89,7 @@ type CookiePreference = "accepted" | "denied";
 const ADVERT_SLIDE_DURATION_MS = 7000;
 const SLIDE_HOLD_PAUSE_MS = 12000;
 const DOT_SELECTION_PAUSE_MS = 9000;
-const mobileScrollTrackClass = "flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:pb-0";
+const mobileScrollTrackClass = "fixmydoor-mobile-carousel flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:pb-0";
 const mobileScrollItemClass = "w-[86%] max-w-[24rem] flex-none snap-center md:w-auto md:max-w-none md:flex-auto";
 
 const navLinks = [
@@ -105,6 +105,12 @@ const BUSINESS_WHATSAPP_NUMBER = "233242011305";
 const BUSINESS_WHATSAPP_DISPLAY = "+233 24 201 1305";
 const CLIENT_WHATSAPP_MESSAGE = "Hello FixMyDoor, I need help with a door, lock, furniture, or hardware request. Please contact me.";
 const BUSINESS_WHATSAPP_URL = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${encodeURIComponent(CLIENT_WHATSAPP_MESSAGE)}`;
+const NON_CANADIAN_LOCATION_PATTERN = /\b(united states|usa|u\.s\.a\.|america|ghana|nigeria|uk|united kingdom|england|germany|france|italy|spain|netherlands|uae|dubai|india|china|jamaica|south africa|australia|mexico)\b|,\s*(ny|tx|fl|wa|ga|il|pa|oh|mi|az|nj|va|ma|md|tn|mo|mn|wi|co|sc|al|la|ky|or|ok|ct|ut|nv)\b/i;
+
+function isCanadaLocation(value?: string) {
+  const normalized = (value || "").trim().toLowerCase();
+  return !normalized || ["canada", "ca", "can"].includes(normalized);
+}
 
 const isVideoMedia = (media?: string) =>
   Boolean(media && (media.startsWith("data:video/") || /\.(mp4|webm|ogg)(\?.*)?$/i.test(media)));
@@ -281,8 +287,13 @@ export default function Home() {
     };
 
     try {
-      await axios.post("/api/bookings", payload);
-      toast.success("Thanks, your request was sent. Check your email for the tracking link.");
+      const response = await axios.post<{ success: boolean; email?: { customer: boolean; admin: boolean } }>("/api/bookings", payload);
+      const emailStatus = response.data.email;
+      if (emailStatus && (!emailStatus.customer || !emailStatus.admin)) {
+        toast.warning("Your request was saved, but email delivery needs attention. Please call or WhatsApp us if you do not receive a confirmation soon.");
+      } else {
+        toast.success("Thanks, your request was sent. Check your email for the tracking link.");
+      }
       form.reset();
       setPhotoPreviews([]);
       formReadyAtRef.current = Date.now();
@@ -353,6 +364,9 @@ export default function Home() {
   const displayedHardwareProducts = dynamicHardwareProducts.length > 0 ? dynamicHardwareProducts : hardwareProducts;
   const displayedProjectGallery = dynamicProjectGallery.length > 0 ? dynamicProjectGallery : projectGallery;
   const displayedAdverts = dynamicAdverts;
+  const watchedAddress = form.watch("address");
+  const watchedCountry = form.watch("country");
+  const showInternationalRequestDetails = !isCanadaLocation(watchedCountry) || NON_CANADIAN_LOCATION_PATTERN.test(watchedAddress || "");
 
   const pauseAdvertSlider = (duration = SLIDE_HOLD_PAUSE_MS) => {
     advertPauseUntilRef.current = Date.now() + duration;
@@ -379,6 +393,68 @@ export default function Home() {
       window.clearInterval(timer);
     };
   }, [displayedAdverts.length]);
+
+  useEffect(() => {
+    const pauseTrack = (event: Event) => {
+      const track = event.currentTarget as HTMLElement;
+      track.dataset.pauseUntil = String(Date.now() + 10000);
+    };
+
+    const wireTracks = () => {
+      document.querySelectorAll<HTMLElement>(".fixmydoor-mobile-carousel").forEach((track) => {
+        if (track.dataset.autoCarouselReady === "true") {
+          return;
+        }
+
+        track.dataset.autoCarouselReady = "true";
+        track.addEventListener("pointerdown", pauseTrack);
+        track.addEventListener("touchstart", pauseTrack, { passive: true });
+        track.addEventListener("wheel", pauseTrack, { passive: true });
+      });
+    };
+
+    wireTracks();
+
+    const timer = window.setInterval(() => {
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        return;
+      }
+
+      const tracks = document.querySelectorAll<HTMLElement>(".fixmydoor-mobile-carousel");
+      tracks.forEach((track) => {
+        const pauseUntil = Number(track.dataset.pauseUntil || "0");
+        if (pauseUntil > Date.now()) {
+          return;
+        }
+
+        const items = Array.from(track.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
+        if (items.length < 2 || track.scrollWidth <= track.clientWidth + 8) {
+          return;
+        }
+
+        const currentIndex = items.reduce((closestIndex, item, index) => {
+          const currentDistance = Math.abs(track.scrollLeft - items[closestIndex].offsetLeft);
+          const nextDistance = Math.abs(track.scrollLeft - item.offsetLeft);
+          return nextDistance < currentDistance ? index : closestIndex;
+        }, 0);
+        const nextItem = items[(currentIndex + 1) % items.length];
+
+        track.scrollTo({
+          left: nextItem.offsetLeft,
+          behavior: "smooth",
+        });
+      });
+    }, 6500);
+
+    return () => {
+      window.clearInterval(timer);
+      document.querySelectorAll<HTMLElement>(".fixmydoor-mobile-carousel").forEach((track) => {
+        track.removeEventListener("pointerdown", pauseTrack);
+        track.removeEventListener("touchstart", pauseTrack);
+        track.removeEventListener("wheel", pauseTrack);
+      });
+    };
+  }, [displayedServiceShowcase.length, displayedProductCategories.length, displayedDoorProducts.length, displayedHardwareProducts.length, displayedProjectGallery.length, featuredReviews.length]);
 
   const scrollToContactForm = () => {
     document.getElementById("booking-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1260,17 +1336,18 @@ export default function Home() {
                 <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Phone *</FormLabel><FormControl><Input type="tel" placeholder="+1 (438) 000-0000" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Email *</FormLabel><FormControl><Input type="email" placeholder="your.email@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Address *</FormLabel><FormControl><Input placeholder="Where is the job located?" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">City / Province</FormLabel><FormControl><Input placeholder="Montreal, Quebec" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Country</FormLabel><FormControl><Input placeholder="Canada, USA, Ghana..." {...field} /></FormControl><FormMessage /></FormItem>)} />
+                {showInternationalRequestDetails && (
                 <div className="sm:col-span-2 rounded-[22px] border border-primary/10 bg-[#fffaf2] p-4">
                   <div className="flex items-center gap-2">
                     <Globe2 className="h-5 w-5 text-primary" />
                     <div>
                       <p className="font-bold text-secondary">International request details</p>
-                      <p className="text-xs leading-relaxed text-foreground/65">These details help us respond at the right time and quote in the right context.</p>
+                      <p className="text-xs leading-relaxed text-foreground/65">Shown because the address or country looks outside Canada. These details help us reply at the right time and quote in the right context.</p>
                     </div>
                   </div>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">City / Province</FormLabel><FormControl><Input placeholder="Montreal, Quebec" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Country</FormLabel><FormControl><Input placeholder="Canada, USA, Ghana..." {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="timeZone" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Time Zone</FormLabel><FormControl><Input placeholder="Example: EST, GMT, UTC+1" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="preferredContactMethod" render={({ field }) => (
                       <FormItem>
@@ -1335,6 +1412,7 @@ export default function Home() {
                     )} />
                   </div>
                 </div>
+                )}
                 <FormField control={form.control} name="repairType" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="font-semibold text-foreground">What Do You Need? *</FormLabel>
