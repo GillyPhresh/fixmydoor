@@ -106,6 +106,156 @@ function matchesWorkflowFilter(booking: Booking, workflow: string) {
   }
 }
 
+async function executeSchemaStatement(sql: string) {
+  try {
+    await prisma.$executeRawUnsafe(sql);
+  } catch (error: any) {
+    const message = String(error?.message || error);
+    if (!/duplicate column name|already exists/i.test(message)) {
+      throw error;
+    }
+  }
+}
+
+async function ensureDatabaseCompatibility() {
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS "Booking" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "name" TEXT NOT NULL,
+      "phone" TEXT NOT NULL,
+      "email" TEXT NOT NULL DEFAULT '',
+      "address" TEXT NOT NULL,
+      "city" TEXT,
+      "country" TEXT,
+      "timeZone" TEXT,
+      "preferredContactMethod" TEXT,
+      "urgency" TEXT,
+      "requestScope" TEXT,
+      "currency" TEXT,
+      "repairType" TEXT NOT NULL,
+      "preferredDate" TEXT,
+      "message" TEXT,
+      "status" TEXT NOT NULL DEFAULT 'PENDING',
+      "customerToken" TEXT,
+      "photos" TEXT,
+      "dimensions" TEXT,
+      "quantity" TEXT,
+      "material" TEXT,
+      "color" TEXT,
+      "swingDirection" TEXT,
+      "deliveryNeeded" TEXT,
+      "installationNeeded" TEXT,
+      "budget" TEXT,
+      "customerConsent" BOOLEAN NOT NULL DEFAULT 0,
+      "appointmentTime" TEXT,
+      "quoteAmount" TEXT,
+      "quoteNotes" TEXT,
+      "invoiceStatus" TEXT,
+      "paymentStatus" TEXT,
+      "staffAssigned" TEXT,
+      "adminNotes" TEXT,
+      "statusHistory" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `ALTER TABLE "Booking" ADD COLUMN "email" TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE "Booking" ADD COLUMN "status" TEXT NOT NULL DEFAULT 'PENDING'`,
+    `ALTER TABLE "Booking" ADD COLUMN "updatedAt" DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00'`,
+    `ALTER TABLE "Booking" ADD COLUMN "customerToken" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "photos" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "dimensions" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "quantity" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "material" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "color" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "swingDirection" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "deliveryNeeded" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "installationNeeded" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "budget" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "customerConsent" BOOLEAN NOT NULL DEFAULT 0`,
+    `ALTER TABLE "Booking" ADD COLUMN "appointmentTime" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "quoteAmount" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "quoteNotes" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "invoiceStatus" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "paymentStatus" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "staffAssigned" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "adminNotes" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "statusHistory" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "city" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "country" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "timeZone" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "preferredContactMethod" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "urgency" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "requestScope" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "currency" TEXT`,
+    `CREATE TABLE IF NOT EXISTS "Admin" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "username" TEXT NOT NULL,
+      "password" TEXT NOT NULL,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS "Session" (
+      "sid" TEXT NOT NULL PRIMARY KEY,
+      "data" TEXT NOT NULL,
+      "expiresAt" DATETIME NOT NULL,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `ALTER TABLE "Session" ADD COLUMN "createdAt" DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00'`,
+    `ALTER TABLE "Session" ADD COLUMN "updatedAt" DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00'`,
+    `CREATE TABLE IF NOT EXISTS "Review" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "name" TEXT NOT NULL,
+      "location" TEXT,
+      "rating" INTEGER NOT NULL DEFAULT 5,
+      "quote" TEXT NOT NULL,
+      "status" TEXT NOT NULL DEFAULT 'APPROVED',
+      "adminNotes" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `ALTER TABLE "Review" ADD COLUMN "status" TEXT NOT NULL DEFAULT 'APPROVED'`,
+    `ALTER TABLE "Review" ADD COLUMN "adminNotes" TEXT`,
+    `CREATE TABLE IF NOT EXISTS "ContentItem" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "category" TEXT NOT NULL,
+      "title" TEXT NOT NULL,
+      "description" TEXT,
+      "tag" TEXT,
+      "image" TEXT,
+      "accentImage" TEXT,
+      "items" TEXT,
+      "bookingValue" TEXT,
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
+      "active" BOOLEAN NOT NULL DEFAULT 1,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `ALTER TABLE "ContentItem" ADD COLUMN "updatedAt" DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00'`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Admin_username_key" ON "Admin"("username")`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Booking_customerToken_key" ON "Booking"("customerToken")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_status_idx" ON "Booking"("status")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_createdAt_idx" ON "Booking"("createdAt")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_name_idx" ON "Booking"("name")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_email_idx" ON "Booking"("email")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_phone_idx" ON "Booking"("phone")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_customerToken_idx" ON "Booking"("customerToken")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_country_idx" ON "Booking"("country")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_urgency_idx" ON "Booking"("urgency")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_invoiceStatus_idx" ON "Booking"("invoiceStatus")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_paymentStatus_idx" ON "Booking"("paymentStatus")`,
+    `CREATE INDEX IF NOT EXISTS "Session_expiresAt_idx" ON "Session"("expiresAt")`,
+    `CREATE INDEX IF NOT EXISTS "Review_createdAt_idx" ON "Review"("createdAt")`,
+    `CREATE INDEX IF NOT EXISTS "Review_rating_idx" ON "Review"("rating")`,
+    `CREATE INDEX IF NOT EXISTS "Review_status_idx" ON "Review"("status")`,
+    `CREATE INDEX IF NOT EXISTS "ContentItem_category_idx" ON "ContentItem"("category")`,
+    `CREATE INDEX IF NOT EXISTS "ContentItem_active_idx" ON "ContentItem"("active")`,
+    `CREATE INDEX IF NOT EXISTS "ContentItem_sortOrder_idx" ON "ContentItem"("sortOrder")`,
+  ];
+
+  for (const statement of statements) {
+    await executeSchemaStatement(statement);
+  }
+}
+
 class PrismaSessionStore extends session.Store {
   get(sid: string, callback: (err: any, session?: session.SessionData | null) => void) {
     prisma.session.findUnique({ where: { sid } })
@@ -284,6 +434,15 @@ async function startServer() {
     }
   }
 
+  try {
+    console.log("Checking database compatibility...");
+    await ensureDatabaseCompatibility();
+    console.log("Database compatibility check completed.");
+  } catch (error) {
+    console.error("Database compatibility check failed:", error);
+    throw error;
+  }
+
   const app = express();
   const server = createServer(app);
   const isProduction = process.env.NODE_ENV === "production";
@@ -374,7 +533,7 @@ async function startServer() {
       secure: isProduction, // Use HTTPS in production
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: "strict",
+      sameSite: "lax",
     },
     name: "fixmydoor.sid", // Change default session name
   }));
@@ -720,24 +879,27 @@ async function startServer() {
     try {
       const savedBooking = await saveBooking(booking) as Booking;
 
-      const [customerEmailSent, adminEmailSent] = await Promise.all([
+      Promise.allSettled([
         emailService.sendBookingConfirmation(savedBooking),
         emailService.sendAdminNotification(savedBooking),
-      ]);
+      ]).then((results) => {
+        const [customerResult, adminResult] = results;
+        const customerEmailSent = customerResult.status === "fulfilled" && customerResult.value === true;
+        const adminEmailSent = adminResult.status === "fulfilled" && adminResult.value === true;
 
-      if (!customerEmailSent || !adminEmailSent) {
-        console.error("Booking saved, but one or more emails failed.", {
-          bookingId: savedBooking.id,
-          customerEmailSent,
-          adminEmailSent,
-        });
-      }
+        if (!customerEmailSent || !adminEmailSent) {
+          console.error("Booking saved, but one or more emails failed.", {
+            bookingId: savedBooking.id,
+            customerEmailSent,
+            adminEmailSent,
+          });
+        }
+      });
 
       return res.status(201).json({
         success: true,
         email: {
-          customer: Boolean(customerEmailSent),
-          admin: Boolean(adminEmailSent),
+          queued: true,
         },
       });
     } catch (error) {
@@ -797,10 +959,10 @@ async function startServer() {
 
       if (search && typeof search === "string" && search.length > 0 && search.length <= 100) {
         where.OR = [
-          { name: { contains: search, mode: "insensitive" } },
-          { email: { contains: search, mode: "insensitive" } },
+          { name: { contains: search } },
+          { email: { contains: search } },
           { phone: { contains: search } },
-          { address: { contains: search, mode: "insensitive" } },
+          { address: { contains: search } },
         ];
       }
 

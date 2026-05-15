@@ -90,7 +90,7 @@ const ADVERT_SLIDE_DURATION_MS = 7000;
 const SLIDE_HOLD_PAUSE_MS = 12000;
 const DOT_SELECTION_PAUSE_MS = 9000;
 const mobileScrollTrackClass = "fixmydoor-mobile-carousel flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:pb-0";
-const mobileScrollItemClass = "w-[86%] max-w-[24rem] flex-none snap-center md:w-auto md:max-w-none md:flex-auto";
+const mobileScrollItemClass = "fixmydoor-flip-card w-[86%] max-w-[24rem] flex-none snap-center md:w-auto md:max-w-none md:flex-auto";
 
 const navLinks = [
   { href: "#services", label: "Services" },
@@ -287,9 +287,9 @@ export default function Home() {
     };
 
     try {
-      const response = await axios.post<{ success: boolean; email?: { customer: boolean; admin: boolean } }>("/api/bookings", payload);
+      const response = await axios.post<{ success: boolean; email?: { customer?: boolean; admin?: boolean; queued?: boolean } }>("/api/bookings", payload);
       const emailStatus = response.data.email;
-      if (emailStatus && (!emailStatus.customer || !emailStatus.admin)) {
+      if (emailStatus && !emailStatus.queued && (!emailStatus.customer || !emailStatus.admin)) {
         toast.warning("Your request was saved, but email delivery needs attention. Please call or WhatsApp us if you do not receive a confirmation soon.");
       } else {
         toast.success("Thanks, your request was sent. Check your email for the tracking link.");
@@ -400,6 +400,40 @@ export default function Home() {
       track.dataset.pauseUntil = String(Date.now() + 10000);
     };
 
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const card = entry.target as HTMLElement;
+        if (!entry.isIntersecting) {
+          return;
+        }
+
+        card.classList.add("is-visible");
+        revealObserver.unobserve(card);
+      });
+    }, {
+      rootMargin: "0px 0px -8% 0px",
+      threshold: 0.24,
+    });
+
+    const trackObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const track = entry.target as HTMLElement;
+        track.dataset.inView = entry.isIntersecting ? "true" : "false";
+
+        if (entry.isIntersecting && track.dataset.startedInView !== "true") {
+          track.dataset.startedInView = "true";
+          track.dataset.pauseUntil = String(Date.now() + 900);
+          track.querySelectorAll<HTMLElement>(".fixmydoor-flip-card").forEach((card, index) => {
+            card.style.setProperty("--flip-delay", `${Math.min(index * 90, 540)}ms`);
+            revealObserver.observe(card);
+          });
+        }
+      });
+    }, {
+      rootMargin: "0px 0px -12% 0px",
+      threshold: 0.18,
+    });
+
     const wireTracks = () => {
       document.querySelectorAll<HTMLElement>(".fixmydoor-mobile-carousel").forEach((track) => {
         if (track.dataset.autoCarouselReady === "true") {
@@ -407,9 +441,11 @@ export default function Home() {
         }
 
         track.dataset.autoCarouselReady = "true";
+        track.dataset.inView = "false";
         track.addEventListener("pointerdown", pauseTrack);
         track.addEventListener("touchstart", pauseTrack, { passive: true });
         track.addEventListener("wheel", pauseTrack, { passive: true });
+        trackObserver.observe(track);
       });
     };
 
@@ -422,6 +458,10 @@ export default function Home() {
 
       const tracks = document.querySelectorAll<HTMLElement>(".fixmydoor-mobile-carousel");
       tracks.forEach((track) => {
+        if (track.dataset.inView !== "true") {
+          return;
+        }
+
         const pauseUntil = Number(track.dataset.pauseUntil || "0");
         if (pauseUntil > Date.now()) {
           return;
@@ -452,7 +492,10 @@ export default function Home() {
         track.removeEventListener("pointerdown", pauseTrack);
         track.removeEventListener("touchstart", pauseTrack);
         track.removeEventListener("wheel", pauseTrack);
+        trackObserver.unobserve(track);
       });
+      revealObserver.disconnect();
+      trackObserver.disconnect();
     };
   }, [displayedServiceShowcase.length, displayedProductCategories.length, displayedDoorProducts.length, displayedHardwareProducts.length, displayedProjectGallery.length, featuredReviews.length]);
 

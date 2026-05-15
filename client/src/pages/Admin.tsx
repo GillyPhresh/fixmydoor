@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Calendar, Download, Phone, User, MapPin, Mail, Search, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText } from "lucide-react";
+import { Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
 
@@ -718,12 +718,15 @@ export default function Admin() {
         <div className="mb-6 flex flex-col gap-4 lg:flex-row">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+              <span className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center overflow-hidden rounded-full bg-[#f7efe4] shadow-[0_8px_18px_rgba(66,40,18,0.18)] ring-1 ring-primary/35">
+                <span className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_34%_24%,_rgba(255,255,255,0.95),_transparent_38%),radial-gradient(circle_at_72%_76%,_rgba(212,165,116,0.22),_transparent_42%)]" />
+                <img src="/fixmydoor-door-spanner-mark.png" alt="FixMyDoor search logo" className="relative h-full w-full scale-[1.2] object-cover object-center" />
+              </span>
               <Input
                 placeholder="Search by name, email, phone, or address..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                className="h-12 rounded-full border-primary/20 bg-white pl-14 shadow-sm focus-visible:ring-primary/35"
               />
             </div>
           </div>

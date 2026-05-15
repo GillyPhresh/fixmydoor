@@ -219,6 +219,22 @@
     @apply w-full h-[320px] object-cover;
   }
 
+  .fixmydoor-flip-card {
+    opacity: 0;
+    transform: perspective(1000px) rotateY(14deg) translateY(22px) scale(0.98);
+    transform-origin: center;
+    transition:
+      opacity 640ms ease,
+      transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--flip-delay, 0ms);
+    will-change: opacity, transform;
+  }
+
+  .fixmydoor-flip-card.is-visible {
+    opacity: 1;
+    transform: perspective(1000px) rotateY(0deg) translateY(0) scale(1);
+  }
+
   .logo-mark {
     @apply inline-flex items-center justify-center rounded-xl bg-secondary text-white w-10 h-10;
   }
@@ -233,5 +249,13 @@
 
   .trust-badge-icon {
     @apply w-12 h-12 bg-accent text-white rounded-full flex items-center justify-center text-xl;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fixmydoor-flip-card {
+      opacity: 1;
+      transform: none;
+      transition: none;
+    }
   }
 }

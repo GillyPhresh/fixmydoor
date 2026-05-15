@@ -642,10 +642,10 @@ function vitePluginBookingApi(): Plugin {
 
             if (search) {
               where.OR = [
-                { name: { contains: search, mode: "insensitive" } },
-                { email: { contains: search, mode: "insensitive" } },
+                { name: { contains: search } },
+                { email: { contains: search } },
                 { phone: { contains: search } },
-                { address: { contains: search, mode: "insensitive" } },
+                { address: { contains: search } },
               ];
             }
 

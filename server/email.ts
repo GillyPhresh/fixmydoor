@@ -15,6 +15,7 @@ interface EmailConfig {
 }
 
 const DEFAULT_BUSINESS_EMAIL = "info.fixmydoor@gmail.com";
+const DEFAULT_PUBLIC_SITE_URL = "https://fixmydoorservices.up.railway.app";
 const LOGO_CID = "fixmydoor-logo";
 const EMAIL_LOGO_CARD_STYLE = "display:inline-block; background:#ffffff; border:1px solid #ead8bf; border-radius:22px; padding:14px 22px; margin:0 auto 14px; box-shadow:0 14px 32px rgba(0,0,0,0.16);";
 const EMAIL_LOGO_IMG_STYLE = "display:block; width:220px; max-width:100%; height:auto; margin:0 auto;";
@@ -41,13 +42,53 @@ function getBusinessEmail() {
   return normalizeEnvValue(process.env.BUSINESS_EMAIL) || normalizeEnvValue(process.env.ADMIN_EMAIL) || DEFAULT_BUSINESS_EMAIL;
 }
 
+function normalizePublicUrl(value?: string) {
+  const rawValue = normalizeEnvValue(value);
+  if (!rawValue) {
+    return "";
+  }
+
+  const withProtocol = /^https?:\/\//i.test(rawValue) ? rawValue : `https://${rawValue}`;
+
+  try {
+    const url = new URL(withProtocol);
+    const hostname = url.hostname.toLowerCase();
+    const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "0.0.0.0" || hostname === "::1";
+
+    if (process.env.NODE_ENV === "production" && isLocalHost) {
+      return "";
+    }
+
+    return url.origin.replace(/\/+$/, "");
+  } catch {
+    return "";
+  }
+}
+
+function getRailwayPublicBaseUrl() {
+  const railwayDomain = normalizeEnvValue(process.env.RAILWAY_PUBLIC_DOMAIN);
+  return railwayDomain ? normalizePublicUrl(railwayDomain) : "";
+}
+
 function getPublicBaseUrl() {
+  const adminRoot = normalizeEnvValue(process.env.ADMIN_URL).replace(/\/admin\/?$/, "");
   return (
-    normalizeEnvValue(process.env.PUBLIC_SITE_URL) ||
-    normalizeEnvValue(process.env.VITE_PUBLIC_SITE_URL) ||
-    normalizeEnvValue(process.env.ADMIN_URL).replace(/\/admin\/?$/, "") ||
-    "http://localhost:3000"
+    normalizePublicUrl(process.env.PUBLIC_SITE_URL) ||
+    normalizePublicUrl(process.env.VITE_PUBLIC_SITE_URL) ||
+    normalizePublicUrl(adminRoot) ||
+    getRailwayPublicBaseUrl() ||
+    (process.env.NODE_ENV === "production" ? DEFAULT_PUBLIC_SITE_URL : "http://localhost:3000")
   ).replace(/\/+$/, "");
+}
+
+function getAdminDashboardUrl() {
+  const configuredAdminUrl = normalizePublicUrl(process.env.ADMIN_URL);
+
+  if (configuredAdminUrl) {
+    return `${configuredAdminUrl.replace(/\/admin\/?$/, "")}/admin`;
+  }
+
+  return `${getPublicBaseUrl()}/admin`;
 }
 
 function getBookingMapQuery(booking: Booking) {
@@ -304,7 +345,7 @@ class EmailService {
 
     const businessEmail = getBusinessEmail();
     const adminEmail = normalizeEnvValue(process.env.ADMIN_EMAIL) || businessEmail || this.config.auth.user;
-    const adminUrl = normalizeEnvValue(process.env.ADMIN_URL) || "https://fixmydoorservices.up.railway.app/admin";
+    const adminUrl = getAdminDashboardUrl();
     const mapQuery = getBookingMapQuery(booking);
     const mapsUrl = getGoogleMapsUrl(booking);
     const photoAttachments = getPhotoAttachments(booking);
