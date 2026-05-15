@@ -44,6 +44,23 @@ const contentCategories: { value: ContentItem["category"]; label: string }[] = [
   { value: "projectGallery", label: "Project Gallery" },
 ];
 
+type EmailRuntimeStatus = {
+  configured: boolean;
+  verified: boolean;
+  host: string;
+  port: number | null;
+  secure: boolean;
+  smtpUser: string;
+  from: string;
+  businessEmail: string;
+  adminEmail: string;
+  publicBaseUrl: string;
+  adminDashboardUrl: string;
+  missing: string[];
+  lastVerifyError: string;
+  lastSendError: string;
+};
+
 function formatPreferredDate(dateString?: string | null) {
   if (!dateString) {
     return "Not specified";
@@ -113,6 +130,7 @@ export default function Admin() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [emailTestLoading, setEmailTestLoading] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<EmailRuntimeStatus | null>(null);
 
   useEffect(() => {
     checkAuthStatus();
@@ -123,6 +141,7 @@ export default function Admin() {
       fetchStats();
       fetchReviews();
       fetchContentItems();
+      fetchEmailStatus();
     }
   }, [authenticated]);
 
@@ -178,6 +197,7 @@ export default function Admin() {
       setBookingDraft({});
       setReviews([]);
       setContentItems([]);
+      setEmailStatus(null);
       setCurrentPage(1);
       toast.success("Logged out successfully");
     } catch (err) {
@@ -240,6 +260,15 @@ export default function Admin() {
       setContentItems(response.data.items || []);
     } catch (err) {
       console.error("Failed to fetch content items:", err);
+    }
+  };
+
+  const fetchEmailStatus = async () => {
+    try {
+      const response = await axios.get<{ status: EmailRuntimeStatus }>("/api/admin/email-status");
+      setEmailStatus(response.data.status);
+    } catch (err) {
+      console.error("Failed to fetch email status:", err);
     }
   };
 
@@ -416,9 +445,13 @@ export default function Admin() {
   const sendTestEmail = async () => {
     setEmailTestLoading(true);
     try {
-      await axios.post("/api/admin/email-test");
+      const response = await axios.post<{ status: EmailRuntimeStatus }>("/api/admin/email-test");
+      setEmailStatus(response.data.status);
       toast.success("Test email sent to the business inbox");
     } catch (err: any) {
+      if (err?.response?.data?.status) {
+        setEmailStatus(err.response.data.status);
+      }
       toast.error(err?.response?.data?.error || "Email test failed");
     } finally {
       setEmailTestLoading(false);
@@ -613,15 +646,16 @@ export default function Admin() {
         )}
 
         <Card className="mb-6 border-[#ead8bf] bg-[#fffaf2] shadow-sm">
-          <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a5a2d]">Owner Controls</p>
-              <h2 className="mt-1 text-xl font-display font-bold text-secondary">Manage security, email, bookings, and website content</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Use these quick actions first, then review Recent Bookings and Booking Requests below.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
+          <CardContent className="grid gap-4 p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a5a2d]">Owner Controls</p>
+                <h2 className="mt-1 text-xl font-display font-bold text-secondary">Manage security, email, bookings, and website content</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Use these quick actions first, then review Recent Bookings and Booking Requests below.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
               <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
                 <DialogTrigger asChild>
                   <Button type="button" className="bg-[#8a5a2d] text-white hover:bg-[#71451f]">
@@ -687,7 +721,36 @@ export default function Admin() {
                 <Save className="mr-2 h-4 w-4" />
                 Website Content
               </Button>
+              </div>
             </div>
+            {emailStatus && (
+              <div className={`rounded-2xl border p-4 text-sm ${emailStatus.configured && emailStatus.verified ? "border-green-200 bg-green-50 text-green-900" : "border-amber-200 bg-amber-50 text-amber-950"}`}>
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="font-bold">
+                      Email status: {emailStatus.configured && emailStatus.verified ? "Ready" : emailStatus.configured ? "Configured, verification pending/failed" : "Not configured"}
+                    </p>
+                    <p className="mt-1">
+                      SMTP: {emailStatus.host || "missing"}{emailStatus.port ? `:${emailStatus.port}` : ""} · User: {emailStatus.smtpUser || "missing"} · Admin: {emailStatus.adminEmail}
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={fetchEmailStatus}>
+                    Refresh Email Status
+                  </Button>
+                </div>
+                {emailStatus.missing.length > 0 && (
+                  <p className="mt-2 font-semibold">Missing in Railway: {emailStatus.missing.join(", ")}</p>
+                )}
+                {(emailStatus.lastVerifyError || emailStatus.lastSendError) && (
+                  <p className="mt-2 break-words">
+                    {emailStatus.lastVerifyError || emailStatus.lastSendError}
+                  </p>
+                )}
+                <p className="mt-2 text-xs">
+                  Links: {emailStatus.publicBaseUrl} · Admin: {emailStatus.adminDashboardUrl}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

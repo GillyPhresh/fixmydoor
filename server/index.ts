@@ -724,15 +724,20 @@ async function startServer() {
       if (!sent) {
         return res.status(500).json({
           success: false,
-          error: "Email test failed. Check SMTP_HOST, SMTP_USER, SMTP_PASS, FROM_EMAIL, BUSINESS_EMAIL, and ADMIN_EMAIL in Railway.",
+          error: "Email test failed. Check the email diagnostics below and confirm SMTP_USER and SMTP_PASS are set in Railway.",
+          status: emailService.getStatus(),
         });
       }
 
-      return res.json({ success: true });
+      return res.json({ success: true, status: emailService.getStatus() });
     } catch (error) {
       console.error("Email test error:", error);
-      return res.status(500).json({ success: false, error: "Email test failed" });
+      return res.status(500).json({ success: false, error: "Email test failed", status: emailService.getStatus() });
     }
+  });
+
+  app.get("/api/admin/email-status", requireAuth, (_req, res) => {
+    return res.json({ status: emailService.getStatus() });
   });
 
   // Booking endpoints

@@ -14,6 +14,24 @@ interface EmailConfig {
   from: string;
 }
 
+interface EmailRuntimeStatus {
+  configured: boolean;
+  verified: boolean;
+  host: string;
+  port: number | null;
+  secure: boolean;
+  smtpUser: string;
+  from: string;
+  businessEmail: string;
+  adminEmail: string;
+  publicBaseUrl: string;
+  adminDashboardUrl: string;
+  missing: string[];
+  lastVerifyError: string;
+  lastSendError: string;
+  initializedAt: string;
+}
+
 const DEFAULT_BUSINESS_EMAIL = "info.fixmydoor@gmail.com";
 const DEFAULT_PUBLIC_SITE_URL = "https://fixmydoorservices.up.railway.app";
 const LOGO_CID = "fixmydoor-logo";
@@ -36,6 +54,43 @@ function normalizeEnvValue(value?: string) {
 
 function normalizeSmtpPassword(value: string, host: string) {
   return /gmail|googlemail/i.test(host) ? value.replace(/\s+/g, "") : value;
+}
+
+function inferSmtpHost(user: string, host: string) {
+  if (host) {
+    return host;
+  }
+
+  const normalizedUser = user.toLowerCase();
+  if (/@(?:gmail|googlemail)\.com$/.test(normalizedUser)) {
+    return "smtp.gmail.com";
+  }
+  if (/@(?:outlook|hotmail|live)\.com$/.test(normalizedUser)) {
+    return "smtp.office365.com";
+  }
+
+  return "";
+}
+
+function maskEmail(value: string) {
+  const [name, domain] = value.split("@");
+  if (!name || !domain) {
+    return value ? "configured" : "";
+  }
+
+  return `${name.slice(0, 2)}***@${domain}`;
+}
+
+function summarizeEmailError(error: unknown) {
+  const rawError = error as any;
+  const pieces = [
+    rawError?.code,
+    rawError?.command,
+    rawError?.responseCode ? `response ${rawError.responseCode}` : "",
+    rawError?.message || String(error || ""),
+  ].filter(Boolean);
+
+  return pieces.join(" | ").replace(/\s+/g, " ").slice(0, 320);
 }
 
 function getBusinessEmail() {
@@ -161,7 +216,7 @@ function formatOptionalRow(label: string, value?: string | null) {
   return value ? `<p><strong>${label}:</strong> ${escapeHtml(value)}</p>` : "";
 }
 
-async function sendMailWithRetry(transporter: any, options: Record<string, unknown>, label: string) {
+async function sendMailWithRetry(transporter: any, options: Record<string, unknown>, label: string, onError?: (error: unknown) => void) {
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -179,6 +234,7 @@ async function sendMailWithRetry(transporter: any, options: Record<string, unkno
   }
 
   console.error(`${label} email failed after retry:`, lastError);
+  onError?.(lastError);
   return false;
 }
 
@@ -218,16 +274,29 @@ function statusMessage(status: BookingStatus) {
 class EmailService {
   private transporter: any | null = null;
   private config: EmailConfig | null = null;
+  private verified = false;
+  private lastVerifyError = "";
+  private lastSendError = "";
+  private initializedAt = "";
 
   initialize() {
-    const host = normalizeEnvValue(process.env.SMTP_HOST);
-    const port = parseInt(normalizeEnvValue(process.env.SMTP_PORT) || "587", 10);
+    const rawHost = normalizeEnvValue(process.env.SMTP_HOST);
     const user = normalizeEnvValue(process.env.SMTP_USER);
+    const host = inferSmtpHost(user, rawHost);
+    const port = parseInt(normalizeEnvValue(process.env.SMTP_PORT) || (/gmail/i.test(host) ? "465" : "587"), 10);
     const pass = normalizeSmtpPassword(normalizeEnvValue(process.env.SMTP_PASS), host);
-    const from = normalizeEnvValue(process.env.FROM_EMAIL) || `FixMyDoor <${user}>`;
+    const from = `FixMyDoor <${user}>`;
+
+    this.initializedAt = new Date().toISOString();
+    this.verified = false;
+    this.lastVerifyError = "";
+    this.lastSendError = "";
 
     if (!host || !user || !pass) {
-      console.warn("Email service not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS to enable email notifications.");
+      this.transporter = null;
+      this.config = null;
+      this.lastVerifyError = "Email service is not configured. Set SMTP_USER and SMTP_PASS in Railway; SMTP_HOST can be omitted for Gmail.";
+      console.warn(this.lastVerifyError);
       return false;
     }
 
@@ -239,12 +308,58 @@ class EmailService {
       from,
     };
 
-    this.transporter = nodemailer.createTransport(this.config);
+    this.transporter = nodemailer.createTransport({
+      ...this.config,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
+      tls: {
+        servername: host,
+      },
+    });
     this.transporter.verify().then(
-      () => console.log("Email service verified and ready."),
-      (error: unknown) => console.error("Email service verification failed:", error),
+      () => {
+        this.verified = true;
+        this.lastVerifyError = "";
+        console.log("Email service verified and ready.");
+      },
+      (error: unknown) => {
+        this.verified = false;
+        this.lastVerifyError = summarizeEmailError(error);
+        console.error("Email service verification failed:", error);
+      },
     );
     return true;
+  }
+
+  getStatus(): EmailRuntimeStatus {
+    const rawHost = normalizeEnvValue(process.env.SMTP_HOST);
+    const user = normalizeEnvValue(process.env.SMTP_USER);
+    const host = this.config?.host || inferSmtpHost(user, rawHost);
+    const pass = normalizeEnvValue(process.env.SMTP_PASS);
+    const missing = [
+      !host ? "SMTP_HOST" : "",
+      !user ? "SMTP_USER" : "",
+      !pass ? "SMTP_PASS" : "",
+    ].filter(Boolean);
+
+    return {
+      configured: Boolean(this.transporter && this.config && missing.length === 0),
+      verified: this.verified,
+      host,
+      port: this.config?.port || null,
+      secure: Boolean(this.config?.secure),
+      smtpUser: maskEmail(user),
+      from: this.config?.from || "",
+      businessEmail: getBusinessEmail(),
+      adminEmail: normalizeEnvValue(process.env.ADMIN_EMAIL) || getBusinessEmail(),
+      publicBaseUrl: getPublicBaseUrl(),
+      adminDashboardUrl: getAdminDashboardUrl(),
+      missing,
+      lastVerifyError: this.lastVerifyError,
+      lastSendError: this.lastSendError,
+      initializedAt: this.initializedAt,
+    };
   }
 
   async sendBookingConfirmation(booking: Booking) {
@@ -341,7 +456,9 @@ class EmailService {
         text,
         html,
         attachments: logoAttachment ? [logoAttachment] : undefined,
-      }, "Customer booking confirmation");
+      }, "Customer booking confirmation", (error) => {
+        this.lastSendError = summarizeEmailError(error);
+      });
       if (!sent) {
         return false;
       }
@@ -456,7 +573,9 @@ class EmailService {
         text,
         html,
         attachments: [...(logoAttachment ? [logoAttachment] : []), ...photoAttachments],
-      }, "Admin booking notification");
+      }, "Admin booking notification", (error) => {
+        this.lastSendError = summarizeEmailError(error);
+      });
       if (!sent) {
         return false;
       }
@@ -511,7 +630,9 @@ class EmailService {
         subject,
         html,
         attachments: logoAttachment ? [logoAttachment] : undefined,
-      }, "Status update");
+      }, "Status update", (error) => {
+        this.lastSendError = summarizeEmailError(error);
+      });
       if (!sent) {
         return false;
       }
@@ -553,7 +674,9 @@ class EmailService {
         subject: "FixMyDoor email test",
         html,
         attachments: logoAttachment ? [logoAttachment] : undefined,
-      }, "Test");
+      }, "Test", (error) => {
+        this.lastSendError = summarizeEmailError(error);
+      });
       if (!sent) {
         return false;
       }
