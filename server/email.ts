@@ -18,10 +18,13 @@ interface EmailConfig {
 interface EmailRuntimeStatus {
   configured: boolean;
   verified: boolean;
+  provider: "resend" | "smtp" | "none";
   host: string;
   port: number | null;
   secure: boolean;
   smtpUser: string;
+  resendConfigured: boolean;
+  resendFrom: string;
   from: string;
   businessEmail: string;
   adminEmail: string;
@@ -196,11 +199,12 @@ function getLogoAttachment() {
     : undefined;
 }
 
-function renderEmailLogo(logoAttachment: ReturnType<typeof getLogoAttachment>, options: { marginBottom?: string; textSize?: string } = {}) {
+function renderEmailLogo(logoAttachment: ReturnType<typeof getLogoAttachment>, options: { marginBottom?: string; textSize?: string; hosted?: boolean } = {}) {
   const marginBottom = options.marginBottom ?? "14px";
   const textSize = options.textSize ?? "30px";
-  const content = logoAttachment
-    ? `<img src="cid:${LOGO_CID}" alt="FixMyDoor" width="220" style="${EMAIL_LOGO_IMG_STYLE} background:#ffffff; background-color:#ffffff;" />`
+  const logoSrc = options.hosted ? `${getPublicBaseUrl()}/img5150-transparent.png` : `cid:${LOGO_CID}`;
+  const content = logoAttachment || options.hosted
+    ? `<img src="${logoSrc}" alt="FixMyDoor" width="220" style="${EMAIL_LOGO_IMG_STYLE} background:#ffffff; background-color:#ffffff;" />`
     : `<span style="display:block; color:#6B4423; font-size:${textSize}; font-weight:800; line-height:1.1;">FixMyDoor</span>`;
 
   return `
@@ -282,9 +286,26 @@ class EmailService {
   private transporter: any | null = null;
   private config: EmailConfig | null = null;
   private verified = false;
+  private resendVerified = false;
   private lastVerifyError = "";
   private lastSendError = "";
   private initializedAt = "";
+
+  private getResendApiKey() {
+    return normalizeEnvValue(process.env.RESEND_API_KEY);
+  }
+
+  private getResendFrom() {
+    return normalizeEnvValue(process.env.RESEND_FROM_EMAIL) || normalizeEnvValue(process.env.FROM_EMAIL);
+  }
+
+  private canUseResend() {
+    return Boolean(this.getResendApiKey() && this.getResendFrom());
+  }
+
+  private canSendEmail() {
+    return this.canUseResend() || Boolean(this.transporter && this.config);
+  }
 
   initialize() {
     const rawHost = normalizeEnvValue(process.env.SMTP_HOST);
@@ -296,14 +317,17 @@ class EmailService {
 
     this.initializedAt = new Date().toISOString();
     this.verified = false;
+    this.resendVerified = false;
     this.lastVerifyError = "";
     this.lastSendError = "";
 
     if (!host || !user || !pass) {
       this.transporter = null;
       this.config = null;
-      this.lastVerifyError = "Email service is not configured. Set SMTP_USER and SMTP_PASS in Railway; SMTP_HOST can be omitted for Gmail.";
-      console.warn(this.lastVerifyError);
+      if (!this.canUseResend()) {
+        this.lastVerifyError = "Email service is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL in Railway, or set SMTP_USER and SMTP_PASS on a Railway plan that supports SMTP.";
+        console.warn(this.lastVerifyError);
+      }
       return false;
     }
 
@@ -345,19 +369,27 @@ class EmailService {
     const user = normalizeEnvValue(process.env.SMTP_USER);
     const host = this.config?.host || inferSmtpHost(user, rawHost);
     const pass = normalizeEnvValue(process.env.SMTP_PASS);
+    const resendApiKey = this.getResendApiKey();
+    const resendFrom = this.getResendFrom();
+    const resendConfigured = Boolean(resendApiKey && resendFrom);
+    const provider = resendConfigured ? "resend" : this.transporter && this.config ? "smtp" : "none";
     const missing = [
-      !host ? "SMTP_HOST" : "",
-      !user ? "SMTP_USER" : "",
-      !pass ? "SMTP_PASS" : "",
+      resendApiKey && !resendFrom ? "RESEND_FROM_EMAIL" : "",
+      !resendApiKey && !host ? "SMTP_HOST" : "",
+      !resendApiKey && !user ? "SMTP_USER" : "",
+      !resendApiKey && !pass ? "SMTP_PASS" : "",
     ].filter(Boolean);
 
     return {
-      configured: Boolean(this.transporter && this.config && missing.length === 0),
-      verified: this.verified,
+      configured: Boolean(resendConfigured || (this.transporter && this.config && missing.length === 0)),
+      verified: provider === "resend" ? this.resendVerified : this.verified,
+      provider,
       host,
       port: this.config?.port || null,
       secure: Boolean(this.config?.secure),
       smtpUser: maskEmail(user),
+      resendConfigured,
+      resendFrom: resendFrom ? "configured" : "",
       from: this.config?.from || "",
       businessEmail: getBusinessEmail(),
       adminEmail: normalizeEnvValue(process.env.ADMIN_EMAIL) || getBusinessEmail(),
@@ -370,17 +402,93 @@ class EmailService {
     };
   }
 
-  async sendBookingConfirmation(booking: Booking) {
+  private getProviderName() {
+    return this.canUseResend() ? "resend" : "smtp";
+  }
+
+  private async sendViaResend(options: Record<string, any>, label: string, onError?: (error: unknown) => void) {
+    const apiKey = this.getResendApiKey();
+    const from = this.getResendFrom();
+    if (!apiKey || !from) {
+      const error = new Error("Resend is missing RESEND_API_KEY or RESEND_FROM_EMAIL.");
+      this.lastSendError = summarizeEmailError(error);
+      onError?.(error);
+      return false;
+    }
+
+    try {
+      const attachments = (options.attachments || [])
+        .filter((attachment: any) => attachment && !attachment.cid && attachment.filename && attachment.content)
+        .map((attachment: any) => ({
+          filename: attachment.filename,
+          content: Buffer.isBuffer(attachment.content)
+            ? attachment.content.toString("base64")
+            : String(attachment.content),
+        }));
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from,
+          to: Array.isArray(options.to) ? options.to : [options.to],
+          reply_to: options.replyTo,
+          subject: options.subject,
+          html: options.html,
+          text: options.text,
+          attachments: attachments.length ? attachments : undefined,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      const responseBody = await response.text();
+
+      if (!response.ok) {
+        throw new Error(`Resend ${response.status}: ${responseBody.slice(0, 260)}`);
+      }
+
+      this.resendVerified = true;
+      this.lastSendError = "";
+      console.log(`${label} email sent with Resend.`);
+      return true;
+    } catch (error) {
+      this.resendVerified = false;
+      this.lastSendError = summarizeEmailError(error);
+      console.error(`${label} email failed with Resend:`, error);
+      onError?.(error);
+      return false;
+    }
+  }
+
+  private async sendEmail(options: Record<string, any>, label: string, onError?: (error: unknown) => void) {
+    if (this.canUseResend()) {
+      return this.sendViaResend(options, label, onError);
+    }
+
     if (!this.transporter || !this.config) {
+      console.warn("Email service not initialized");
+      return false;
+    }
+
+    return sendMailWithRetry(this.transporter, options, label, onError);
+  }
+
+  async sendBookingConfirmation(booking: Booking) {
+    if (!this.canSendEmail()) {
       console.warn("Email service not initialized");
       return false;
     }
 
     const businessEmail = getBusinessEmail();
     const subject = "FixMyDoor - Booking Confirmation";
-    const logoAttachment = getLogoAttachment();
+    const useResend = this.getProviderName() === "resend";
+    const logoAttachment = useResend ? undefined : getLogoAttachment();
     const trackingUrl = booking.customerToken ? `${getPublicBaseUrl()}/track/${booking.customerToken}` : "";
-    const logoHtml = renderEmailLogo(logoAttachment);
+    const logoHtml = renderEmailLogo(logoAttachment, { hosted: useResend });
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; background:#fffaf2; border:1px solid #ead8bf; border-radius:22px; overflow:hidden;">
         <div style="background:#2f241c; padding:24px 24px 20px; text-align:center;">
@@ -456,8 +564,8 @@ class EmailService {
         "FixMyDoor Services",
       ].filter(Boolean).join("\n");
 
-      const sent = await sendMailWithRetry(this.transporter, {
-        from: this.config.from,
+      const sent = await this.sendEmail({
+        from: this.config?.from,
         to: booking.email,
         replyTo: businessEmail,
         subject,
@@ -479,19 +587,20 @@ class EmailService {
   }
 
   async sendAdminNotification(booking: Booking) {
-    if (!this.transporter || !this.config) {
+    if (!this.canSendEmail()) {
       console.warn("Email service not initialized");
       return false;
     }
 
     const businessEmail = getBusinessEmail();
-    const adminEmail = normalizeEnvValue(process.env.ADMIN_EMAIL) || businessEmail || this.config.auth.user;
+    const adminEmail = normalizeEnvValue(process.env.ADMIN_EMAIL) || businessEmail || this.config?.auth.user;
     const adminUrl = getAdminDashboardUrl();
     const mapQuery = getBookingMapQuery(booking);
     const mapsUrl = getGoogleMapsUrl(booking);
     const photoAttachments = getPhotoAttachments(booking);
-    const logoAttachment = getLogoAttachment();
-    const logoHtml = `<div style="text-align:center; background:#2f241c; padding:24px; border-radius:18px 18px 0 0;">${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px" })}</div>`;
+    const useResend = this.getProviderName() === "resend";
+    const logoAttachment = useResend ? undefined : getLogoAttachment();
+    const logoHtml = `<div style="text-align:center; background:#2f241c; padding:24px; border-radius:18px 18px 0 0;">${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px", hosted: useResend })}</div>`;
     const subject = `New FixMyDoor Booking: ${cleanSubjectValue(booking.name)} - ${cleanSubjectValue(booking.repairType)}`;
     const text = [
       "New FixMyDoor booking received",
@@ -573,8 +682,8 @@ class EmailService {
     `;
 
     try {
-      const sent = await sendMailWithRetry(this.transporter, {
-        from: this.config.from,
+      const sent = await this.sendEmail({
+        from: this.config?.from,
         to: adminEmail,
         replyTo: booking.email,
         subject,
@@ -596,7 +705,7 @@ class EmailService {
   }
 
   async sendStatusUpdate(booking: Booking) {
-    if (!this.transporter || !this.config) {
+    if (!this.canSendEmail()) {
       console.warn("Email service not initialized");
       return false;
     }
@@ -604,11 +713,12 @@ class EmailService {
     const businessEmail = getBusinessEmail();
     const trackingUrl = booking.customerToken ? `${getPublicBaseUrl()}/track/${booking.customerToken}` : "";
     const subject = `FixMyDoor request update: ${booking.status.replace("_", " ")}`;
-    const logoAttachment = getLogoAttachment();
+    const useResend = this.getProviderName() === "resend";
+    const logoAttachment = useResend ? undefined : getLogoAttachment();
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; background:#fffaf2; border:1px solid #ead8bf; border-radius:20px; overflow:hidden;">
         <div style="background:#2f241c; padding:22px; text-align:center;">
-          ${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px" })}
+          ${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px", hosted: useResend })}
         </div>
         <div style="padding:26px; color:#3a281f;">
           <h1 style="color:#6B4423; margin-top:0;">Your request status changed</h1>
@@ -631,8 +741,8 @@ class EmailService {
     `;
 
     try {
-      const sent = await sendMailWithRetry(this.transporter, {
-        from: this.config.from,
+      const sent = await this.sendEmail({
+        from: this.config?.from,
         to: booking.email,
         replyTo: businessEmail,
         subject,
@@ -653,17 +763,18 @@ class EmailService {
   }
 
   async sendTestEmail(to = getBusinessEmail()) {
-    if (!this.transporter || !this.config) {
+    if (!this.canSendEmail()) {
       console.warn("Email service not initialized");
       return false;
     }
 
-    const logoAttachment = getLogoAttachment();
+    const useResend = this.getProviderName() === "resend";
+    const logoAttachment = useResend ? undefined : getLogoAttachment();
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#fffaf2;border:1px solid #ead8bf;border-radius:20px;overflow:hidden;">
         <div style="background:#2f241c;padding:22px;text-align:center;">
           ${
-            renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px" })
+            renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px", hosted: useResend })
           }
         </div>
         <div style="padding:24px;color:#3a281f;">
@@ -675,8 +786,8 @@ class EmailService {
     `;
 
     try {
-      const sent = await sendMailWithRetry(this.transporter, {
-        from: this.config.from,
+      const sent = await this.sendEmail({
+        from: this.config?.from,
         to,
         replyTo: getBusinessEmail(),
         subject: "FixMyDoor email test",

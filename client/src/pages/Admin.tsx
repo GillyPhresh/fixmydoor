@@ -47,10 +47,13 @@ const contentCategories: { value: ContentItem["category"]; label: string }[] = [
 type EmailRuntimeStatus = {
   configured: boolean;
   verified: boolean;
+  provider: "resend" | "smtp" | "none";
   host: string;
   port: number | null;
   secure: boolean;
   smtpUser: string;
+  resendConfigured: boolean;
+  resendFrom: string;
   from: string;
   businessEmail: string;
   adminEmail: string;
@@ -731,7 +734,7 @@ export default function Admin() {
                       Email status: {emailStatus.configured && emailStatus.verified ? "Ready" : emailStatus.configured ? "Configured, verification pending/failed" : "Not configured"}
                     </p>
                     <p className="mt-1">
-                      SMTP: {emailStatus.host || "missing"}{emailStatus.port ? `:${emailStatus.port}` : ""} · User: {emailStatus.smtpUser || "missing"} · Admin: {emailStatus.adminEmail}
+                      Provider: {emailStatus.provider.toUpperCase()} · SMTP: {emailStatus.host || "missing"}{emailStatus.port ? `:${emailStatus.port}` : ""} · User: {emailStatus.smtpUser || "missing"} · Resend: {emailStatus.resendConfigured ? "configured" : "not set"} · Admin: {emailStatus.adminEmail}
                     </p>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={fetchEmailStatus}>
