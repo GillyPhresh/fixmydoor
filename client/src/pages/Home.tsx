@@ -287,12 +287,27 @@ export default function Home() {
     };
 
     try {
-      const response = await axios.post<{ success: boolean; email?: { customer?: boolean; admin?: boolean; queued?: boolean } }>("/api/bookings", payload);
+      const response = await axios.post<{ success: boolean; trackingUrl?: string; email?: { customer?: boolean; admin?: boolean; queued?: boolean } }>("/api/bookings", payload);
       const emailStatus = response.data.email;
-      if (emailStatus && !emailStatus.queued && (!emailStatus.customer || !emailStatus.admin)) {
-        toast.warning("Your request was saved, but email delivery needs attention. Please call or WhatsApp us if you do not receive a confirmation soon.");
+      const trackingUrl = response.data.trackingUrl;
+      const toastOptions = trackingUrl
+        ? {
+            action: {
+              label: "Track request",
+              onClick: () => window.open(trackingUrl, "_blank", "noopener,noreferrer"),
+            },
+          }
+        : undefined;
+
+      if (emailStatus?.queued) {
+        toast.message("Your request was received.", {
+          description: "Email is still being sent. Use the tracking button here if the email is delayed.",
+          ...toastOptions,
+        });
+      } else if (emailStatus && (!emailStatus.customer || !emailStatus.admin)) {
+        toast.warning("Your request was saved, but email delivery needs attention. Please call or WhatsApp us if no email arrives.", toastOptions);
       } else {
-        toast.success("Thanks, your request was sent. Check your email for the tracking link.");
+        toast.success("Thanks, your request was received. A tracking link is available now.", toastOptions);
       }
       form.reset();
       setPhotoPreviews([]);

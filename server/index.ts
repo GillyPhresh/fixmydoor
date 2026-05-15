@@ -14,7 +14,7 @@ import { listAdminReviews, listReviews, saveReview, validateReview, validateRevi
 import { createContentItem, listAdminContent, listPublicContent, updateContentItem, validateContentItem } from "./content";
 import { prisma } from "./prisma";
 import { findAdminByUsername, initializeAdminUser, verifyPassword, hashPassword } from "./auth";
-import { emailService } from "./email";
+import { emailService, getPublicBaseUrl } from "./email";
 import type { Booking, BookingStatusHistoryEntry, BookingUpdateRequest } from "@shared/types";
 import { serviceCatalog } from "@shared/services";
 
@@ -104,6 +104,36 @@ function matchesWorkflowFilter(booking: Booking, workflow: string) {
     default:
       return true;
   }
+}
+
+async function sendBookingEmailsWithStatus(booking: Booking) {
+  const results = await Promise.allSettled([
+    emailService.sendBookingConfirmation(booking),
+    emailService.sendAdminNotification(booking),
+  ]);
+  const [customerResult, adminResult] = results;
+  const customerEmailSent = customerResult.status === "fulfilled" && customerResult.value === true;
+  const adminEmailSent = adminResult.status === "fulfilled" && adminResult.value === true;
+
+  if (!customerEmailSent || !adminEmailSent) {
+    console.error("Booking saved, but one or more emails failed.", {
+      bookingId: booking.id,
+      customerEmailSent,
+      adminEmailSent,
+    });
+  }
+
+  return {
+    queued: false,
+    customer: customerEmailSent,
+    admin: adminEmailSent,
+  };
+}
+
+function emailStatusTimeout(ms: number) {
+  return new Promise<{ queued: true; customer?: boolean; admin?: boolean }>((resolve) => {
+    setTimeout(() => resolve({ queued: true }), ms);
+  });
 }
 
 async function executeSchemaStatement(sql: string) {
@@ -878,29 +908,23 @@ async function startServer() {
 
     try {
       const savedBooking = await saveBooking(booking) as Booking;
+      const trackingUrl = savedBooking.customerToken ? `${getPublicBaseUrl()}/track/${savedBooking.customerToken}` : "";
+      const emailPromise = sendBookingEmailsWithStatus(savedBooking);
+      const emailStatus = await Promise.race([
+        emailPromise,
+        emailStatusTimeout(9000),
+      ]);
 
-      Promise.allSettled([
-        emailService.sendBookingConfirmation(savedBooking),
-        emailService.sendAdminNotification(savedBooking),
-      ]).then((results) => {
-        const [customerResult, adminResult] = results;
-        const customerEmailSent = customerResult.status === "fulfilled" && customerResult.value === true;
-        const adminEmailSent = adminResult.status === "fulfilled" && adminResult.value === true;
-
-        if (!customerEmailSent || !adminEmailSent) {
-          console.error("Booking saved, but one or more emails failed.", {
-            bookingId: savedBooking.id,
-            customerEmailSent,
-            adminEmailSent,
-          });
-        }
-      });
+      if (emailStatus.queued) {
+        emailPromise.catch((error) => {
+          console.error("Queued booking email send failed:", error);
+        });
+      }
 
       return res.status(201).json({
         success: true,
-        email: {
-          queued: true,
-        },
+        trackingUrl,
+        email: emailStatus,
       });
     } catch (error) {
       console.error("Booking creation error:", error);
@@ -1293,11 +1317,15 @@ async function startServer() {
       : path.resolve(__dirname, "..", "dist", "public");
 
   app.use(express.static(staticPath, {
-    maxAge: isProduction ? "1y" : 0, // Cache static assets for 1 year in production
-    setHeaders: (res, path) => {
-      if (isProduction && path.endsWith(".js")) {
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      } else if (isProduction && path.endsWith(".css")) {
+    maxAge: 0,
+    setHeaders: (res, filePath) => {
+      if (!isProduction) {
+        return;
+      }
+
+      if (filePath.endsWith("index.html")) {
+        res.setHeader("Cache-Control", "no-store");
+      } else if (/\.(?:js|css|png|jpe?g|webp|gif|svg|ico|woff2?)$/i.test(filePath)) {
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
       }
     },
@@ -1305,6 +1333,7 @@ async function startServer() {
 
   // Handle client-side routing - serve index.html for all routes
   app.get("*", (_req, res) => {
+    res.setHeader("Cache-Control", isProduction ? "no-store" : "no-cache");
     res.sendFile(path.join(staticPath, "index.html"));
   });
 

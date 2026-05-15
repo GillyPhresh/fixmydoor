@@ -6,7 +6,7 @@ import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 import { parseStatusHistory, saveBooking, serializeStatusHistory, toBooking, validateBooking, validateBookingStatus } from "./server/bookings";
-import { emailService } from "./server/email";
+import { emailService, getPublicBaseUrl } from "./server/email";
 import { listAdminReviews, listReviews, saveReview, validateReview, validateReviewStatus } from "./server/reviews";
 import { createContentItem, listAdminContent, listPublicContent, updateContentItem, validateContentItem } from "./server/content";
 import { prisma } from "./server/prisma";
@@ -567,6 +567,7 @@ function vitePluginBookingApi(): Plugin {
             }
 
             const savedBooking = await saveBooking(payload);
+            const trackingUrl = savedBooking.customerToken ? `${getPublicBaseUrl()}/track/${savedBooking.customerToken}` : "";
 
             emailService.sendBookingConfirmation(savedBooking).catch((error) => {
               console.error("Failed to send customer confirmation:", error);
@@ -576,7 +577,7 @@ function vitePluginBookingApi(): Plugin {
               console.error("Failed to send admin notification:", error);
             });
 
-            writeJson(res, 201, { success: true });
+            writeJson(res, 201, { success: true, trackingUrl, email: { queued: true } });
           } catch (error) {
             writeJson(res, 500, { success: false, error: String(error) });
           }

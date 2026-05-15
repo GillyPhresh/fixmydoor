@@ -70,7 +70,7 @@ function getRailwayPublicBaseUrl() {
   return railwayDomain ? normalizePublicUrl(railwayDomain) : "";
 }
 
-function getPublicBaseUrl() {
+export function getPublicBaseUrl() {
   const adminRoot = normalizeEnvValue(process.env.ADMIN_URL).replace(/\/admin\/?$/, "");
   return (
     normalizePublicUrl(process.env.PUBLIC_SITE_URL) ||
@@ -81,7 +81,7 @@ function getPublicBaseUrl() {
   ).replace(/\/+$/, "");
 }
 
-function getAdminDashboardUrl() {
+export function getAdminDashboardUrl() {
   const configuredAdminUrl = normalizePublicUrl(process.env.ADMIN_URL);
 
   if (configuredAdminUrl) {
@@ -224,7 +224,7 @@ class EmailService {
     const port = parseInt(normalizeEnvValue(process.env.SMTP_PORT) || "587", 10);
     const user = normalizeEnvValue(process.env.SMTP_USER);
     const pass = normalizeSmtpPassword(normalizeEnvValue(process.env.SMTP_PASS), host);
-    const from = normalizeEnvValue(process.env.FROM_EMAIL) || `FixMyDoor <${getBusinessEmail()}>`;
+    const from = normalizeEnvValue(process.env.FROM_EMAIL) || `FixMyDoor <${user}>`;
 
     if (!host || !user || !pass) {
       console.warn("Email service not configured. Set SMTP_HOST, SMTP_USER, and SMTP_PASS to enable email notifications.");
