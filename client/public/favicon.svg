@@ -1,18 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="door" x1="14" y1="7" x2="49" y2="59" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#d8a45f" />
-      <stop offset="0.5" stop-color="#7a4b24" />
+    <linearGradient id="door-frame" x1="18" y1="10" x2="46" y2="53" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8b5a33" />
+      <stop offset="0.55" stop-color="#5a351d" />
       <stop offset="1" stop-color="#2f241c" />
     </linearGradient>
-    <linearGradient id="gold" x1="19" y1="8" x2="48" y2="52" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#f6e3ad" />
-      <stop offset="1" stop-color="#b46532" />
+    <linearGradient id="door-panel" x1="24" y1="18" x2="40" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f6e4ab" />
+      <stop offset="1" stop-color="#d1a14a" />
     </linearGradient>
   </defs>
-  <path d="M18 58V12.5C18 9.5 20.5 7 23.5 7h24.2c2 0 3.7 1.6 3.7 3.7V58H18Z" fill="url(#door)" />
-  <path d="M23 58V14h23.6v44H23Z" fill="none" stroke="url(#gold)" stroke-width="3.2" />
-  <path d="M28.5 21.5h12.6v25.8H28.5V21.5Z" fill="none" stroke="#f4d18d" stroke-width="2.4" />
-  <circle cx="40.8" cy="36.5" r="2.7" fill="#f7efe4" />
-  <path d="M10 58h44" stroke="#2f241c" stroke-width="4" stroke-linecap="round" />
+  <circle cx="32" cy="32" r="30" fill="#ffffff" />
+  <circle cx="32" cy="32" r="29" fill="none" stroke="#ead8bf" stroke-width="1.8" />
+  <g transform="translate(0 1)">
+    <path d="M17.5 48V22.5L32 13l14.5 9.5V48H17.5Z" fill="url(#door-frame)" />
+    <path d="M20.8 46V24.5L32 17.3l11.2 7.2V46H20.8Z" fill="#6c4224" />
+    <path d="M24 45V25.8H40V45H24Z" fill="url(#door-panel)" stroke="#b07b2f" stroke-width="1.2" />
+    <path d="M26.7 28.8H37.3V41.8H26.7Z" fill="none" stroke="#f0cf87" stroke-width="1.2" />
+    <circle cx="35.8" cy="36" r="2.15" fill="#f7efe4" stroke="#7b5327" stroke-width="0.9" />
+    <path d="M35.8 34.8v2.4" stroke="#7b5327" stroke-width="0.9" stroke-linecap="round" />
+    <path d="M18.3 22.5H45.7" stroke="#4c2d17" stroke-width="1.8" stroke-linecap="round" />
+  </g>
 </svg>
