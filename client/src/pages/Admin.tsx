@@ -800,9 +800,8 @@ export default function Admin() {
         <div className="mb-6 flex flex-col gap-4 lg:flex-row">
           <div className="flex-1">
             <div className="relative">
-              <span className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center overflow-hidden rounded-full bg-[#f7efe4] shadow-[0_8px_18px_rgba(66,40,18,0.18)] ring-1 ring-primary/35">
-                <span className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_34%_24%,_rgba(255,255,255,0.95),_transparent_38%),radial-gradient(circle_at_72%_76%,_rgba(212,165,116,0.22),_transparent_42%)]" />
-                <img src="/fixmydoor-door-spanner-mark.png" alt="FixMyDoor search logo" className="relative h-full w-full scale-[1.2] object-cover object-center" />
+              <span className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-[0_8px_18px_rgba(66,40,18,0.12)] ring-1 ring-primary/18">
+                <img src="/fixmydoor-door-spanner-mark.png" alt="FixMyDoor search logo" className="h-7 w-7 object-contain" />
               </span>
               <Input
                 placeholder="Search by name, email, phone, or address..."
