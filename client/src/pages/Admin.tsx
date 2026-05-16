@@ -104,6 +104,22 @@ function getAdminToClientWhatsAppUrl(booking: Booking) {
   return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
 }
 
+function getEmailStatusLabel(status: EmailRuntimeStatus) {
+  if (!status.configured) {
+    return "Not configured";
+  }
+
+  if (status.provider === "resend" && status.verified) {
+    return "Ready with Resend";
+  }
+
+  if (status.provider === "resend") {
+    return "Resend configured, test email pending";
+  }
+
+  return status.verified ? "Ready with SMTP" : "SMTP verification pending/failed";
+}
+
 export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
   const [loginData, setLoginData] = useState({ username: "", password: "" });
@@ -731,7 +747,7 @@ export default function Admin() {
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="font-bold">
-                      Email status: {emailStatus.configured && emailStatus.verified ? "Ready" : emailStatus.configured ? "Configured, verification pending/failed" : "Not configured"}
+                      Email status: {getEmailStatusLabel(emailStatus)}
                     </p>
                     <p className="mt-1">
                       Provider: {emailStatus.provider.toUpperCase()} · SMTP: {emailStatus.host || "missing"}{emailStatus.port ? `:${emailStatus.port}` : ""} · User: {emailStatus.smtpUser || "missing"} · Resend: {emailStatus.resendConfigured ? "configured" : "not set"} · Admin: {emailStatus.adminEmail}

@@ -308,18 +308,26 @@ class EmailService {
   }
 
   initialize() {
+    this.initializedAt = new Date().toISOString();
+    this.verified = false;
+    this.resendVerified = false;
+    this.lastVerifyError = "";
+    this.lastSendError = "";
+
+    if (this.canUseResend()) {
+      this.transporter = null;
+      this.config = null;
+      this.resendVerified = true;
+      console.log("Email service configured for Resend HTTPS delivery.");
+      return true;
+    }
+
     const rawHost = normalizeEnvValue(process.env.SMTP_HOST);
     const user = normalizeEnvValue(process.env.SMTP_USER);
     const host = inferSmtpHost(user, rawHost);
     const port = parseInt(normalizeEnvValue(process.env.SMTP_PORT) || (/gmail/i.test(host) ? "465" : "587"), 10);
     const pass = normalizeSmtpPassword(normalizeEnvValue(process.env.SMTP_PASS), host);
     const from = `FixMyDoor <${user}>`;
-
-    this.initializedAt = new Date().toISOString();
-    this.verified = false;
-    this.resendVerified = false;
-    this.lastVerifyError = "";
-    this.lastSendError = "";
 
     if (!host || !user || !pass) {
       this.transporter = null;
@@ -396,7 +404,7 @@ class EmailService {
       publicBaseUrl: getPublicBaseUrl(),
       adminDashboardUrl: getAdminDashboardUrl(),
       missing,
-      lastVerifyError: this.lastVerifyError,
+      lastVerifyError: provider === "resend" ? "" : this.lastVerifyError,
       lastSendError: this.lastSendError,
       initializedAt: this.initializedAt,
     };
