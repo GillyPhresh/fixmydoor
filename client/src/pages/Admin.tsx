@@ -750,7 +750,7 @@ export default function Admin() {
                       Email status: {getEmailStatusLabel(emailStatus)}
                     </p>
                     <p className="mt-1">
-                      Provider: {emailStatus.provider.toUpperCase()} · SMTP: {emailStatus.host || "missing"}{emailStatus.port ? `:${emailStatus.port}` : ""} · User: {emailStatus.smtpUser || "missing"} · Resend: {emailStatus.resendConfigured ? "configured" : "not set"} · Admin: {emailStatus.adminEmail}
+                      Provider: {emailStatus.provider.toUpperCase()} | SMTP: {emailStatus.host || "missing"}{emailStatus.port ? `:${emailStatus.port}` : ""} | User: {emailStatus.smtpUser || "missing"} | Resend: {emailStatus.resendConfigured ? "configured" : "not set"} | Admin: {emailStatus.adminEmail}
                     </p>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={fetchEmailStatus}>
@@ -766,7 +766,7 @@ export default function Admin() {
                   </p>
                 )}
                 <p className="mt-2 text-xs">
-                  Links: {emailStatus.publicBaseUrl} · Admin: {emailStatus.adminDashboardUrl}
+                  Links: {emailStatus.publicBaseUrl} | Admin: {emailStatus.adminDashboardUrl}
                 </p>
               </div>
             )}

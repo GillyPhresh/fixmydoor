@@ -107,7 +107,7 @@ export default function TrackBooking() {
                     <p className="mt-1 font-semibold text-secondary">{booking.quoteAmount || "To be confirmed"}</p>
                     {(booking.invoiceStatus || booking.paymentStatus) && (
                       <p className="mt-2 text-xs leading-relaxed text-foreground/60">
-                        {booking.invoiceStatus || "Invoice not issued"} · {booking.paymentStatus || "Payment not confirmed"}
+                        {booking.invoiceStatus || "Invoice not issued"} | {booking.paymentStatus || "Payment not confirmed"}
                       </p>
                     )}
                   </div>

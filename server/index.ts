@@ -31,6 +31,16 @@ declare module "express-session" {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadDir = process.env.UPLOAD_DIR || (process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve(process.cwd(), "uploads"));
+const PUBLIC_SITE_URL_TOKEN = "__PUBLIC_SITE_URL__";
+const PUBLIC_IMAGE_URL_TOKEN = "__PUBLIC_IMAGE_URL__";
+const PUBLIC_SITEMAP_PAGES = [
+  "/",
+  "/door-repair",
+  "/lock-rekeying",
+  "/furniture-repair",
+  "/door-hardware",
+  "/international-requests",
+] as const;
 const mediaTypes: Record<string, { extension: string; kind: "image" | "video" }> = {
   "image/png": { extension: "png", kind: "image" },
   "image/jpeg": { extension: "jpg", kind: "image" },
@@ -365,6 +375,53 @@ function allowedOriginsForRequest(req: express.Request) {
   }
 
   return origins;
+}
+
+function getPublicImageUrl() {
+  return `${getPublicBaseUrl()}/img5150-transparent.png`;
+}
+
+function replacePublicUrlTokens(template: string) {
+  return template
+    .replaceAll(PUBLIC_SITE_URL_TOKEN, getPublicBaseUrl())
+    .replaceAll(PUBLIC_IMAGE_URL_TOKEN, getPublicImageUrl());
+}
+
+function renderRobotsTxt() {
+  return [
+    "User-agent: *",
+    "Allow: /",
+    "",
+    `Sitemap: ${getPublicBaseUrl()}/sitemap.xml`,
+    "",
+  ].join("\n");
+}
+
+function renderSitemapXml() {
+  const publicBaseUrl = getPublicBaseUrl();
+  const lastModified = new Date().toISOString();
+
+  const items = PUBLIC_SITEMAP_PAGES.map((route) => {
+    const pageUrl = route === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${route}`;
+    const priority = route === "/" ? "1.0" : "0.8";
+
+    return [
+      "  <url>",
+      `    <loc>${pageUrl}</loc>`,
+      `    <lastmod>${lastModified}</lastmod>`,
+      "    <changefreq>weekly</changefreq>",
+      `    <priority>${priority}</priority>`,
+      "  </url>",
+    ].join("\n");
+  }).join("\n");
+
+  return [
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+    "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">",
+    items,
+    "</urlset>",
+    "",
+  ].join("\n");
 }
 
 function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
@@ -1320,8 +1377,35 @@ async function startServer() {
     process.env.NODE_ENV === "production"
       ? path.resolve(__dirname, "public")
       : path.resolve(__dirname, "..", "dist", "public");
+  const indexHtmlPath = path.join(staticPath, "index.html");
+
+  const sendIndexHtml = (res: express.Response) => {
+    try {
+      const html = fs.readFileSync(indexHtmlPath, "utf8");
+      res.type("html").send(replacePublicUrlTokens(html));
+    } catch (error) {
+      console.error("Failed to render index.html:", error);
+      res.status(500).send("Failed to load application");
+    }
+  };
+
+  app.get("/robots.txt", (_req, res) => {
+    res.setHeader("Cache-Control", isProduction ? "public, max-age=300" : "no-cache");
+    res.type("text/plain").send(renderRobotsTxt());
+  });
+
+  app.get("/sitemap.xml", (_req, res) => {
+    res.setHeader("Cache-Control", isProduction ? "public, max-age=300" : "no-cache");
+    res.type("application/xml").send(renderSitemapXml());
+  });
+
+  app.get("/index.html", (_req, res) => {
+    res.setHeader("Cache-Control", isProduction ? "no-store" : "no-cache");
+    sendIndexHtml(res);
+  });
 
   app.use(express.static(staticPath, {
+    index: false,
     maxAge: 0,
     setHeaders: (res, filePath) => {
       if (!isProduction) {
@@ -1339,7 +1423,7 @@ async function startServer() {
   // Handle client-side routing - serve index.html for all routes
   app.get("*", (_req, res) => {
     res.setHeader("Cache-Control", isProduction ? "no-store" : "no-cache");
-    res.sendFile(path.join(staticPath, "index.html"));
+    sendIndexHtml(res);
   });
 
   const port = process.env.PORT || 3000;

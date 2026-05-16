@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Facebook,
@@ -223,18 +224,35 @@ export default function Home() {
   useEffect(() => {
     let active = true;
 
-    axios.get<{ items: ContentItem[] }>("/api/content")
-      .then(({ data }) => {
-        if (active && Array.isArray(data.items)) {
-          setContentItems(data.items);
-        }
-      })
-      .catch((error) => {
-        console.error("Content load error:", error);
-      });
+    const loadContent = () => {
+      axios.get<{ items: ContentItem[] }>("/api/content")
+        .then(({ data }) => {
+          if (active && Array.isArray(data.items)) {
+            setContentItems(data.items);
+          }
+        })
+        .catch((error) => {
+          console.error("Content load error:", error);
+        });
+    };
+
+    loadContent();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        loadContent();
+      }
+    }, 45000);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        loadContent();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       active = false;
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -385,6 +403,24 @@ export default function Home() {
 
   const pauseAdvertSlider = (duration = SLIDE_HOLD_PAUSE_MS) => {
     advertPauseUntilRef.current = Date.now() + duration;
+  };
+
+  const showPreviousAdvert = () => {
+    if (displayedAdverts.length === 0) {
+      return;
+    }
+    pauseAdvertSlider(DOT_SELECTION_PAUSE_MS);
+    setActiveAdvertIndex((currentIndex) => (
+      currentIndex === 0 ? displayedAdverts.length - 1 : currentIndex - 1
+    ));
+  };
+
+  const showNextAdvert = () => {
+    if (displayedAdverts.length === 0) {
+      return;
+    }
+    pauseAdvertSlider(DOT_SELECTION_PAUSE_MS);
+    setActiveAdvertIndex((currentIndex) => (currentIndex + 1) % displayedAdverts.length);
   };
 
   useEffect(() => {
@@ -756,84 +792,128 @@ export default function Home() {
       </section>
 
       {displayedAdverts.length > 0 && (
-      <section className="bg-white py-5 md:py-7">
-        <div className="container max-w-[1180px]">
-          <div
-            className="overflow-hidden rounded-[28px] border border-primary/12 bg-[linear-gradient(135deg,_#fff8ed,_#ffffff_52%,_#f3e2cf)] shadow-[0_20px_55px_rgba(66,40,18,0.12)] md:rounded-[34px]"
-            onPointerDown={() => pauseAdvertSlider()}
-            onPointerUp={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
-            onPointerCancel={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
-            onMouseEnter={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
-          >
-            <div className="flex transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform" style={{ transform: `translateX(-${activeAdvertIndex * 100}%)` }}>
-              {displayedAdverts.map((advert, index) => (
-                <article key={`${advert.title}-${index}`} className="grid min-w-full gap-0 md:grid-cols-[1.08fr_0.92fr] md:items-stretch">
-                  <div className="flex flex-col justify-center p-5 sm:p-7 md:p-9">
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-primary px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.22em] text-white">
-                        {advert.tag}
-                      </span>
-                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary/55">Current Advert</span>
-                    </div>
-                    <h2 className="font-display text-2xl font-bold leading-tight text-secondary sm:text-3xl md:text-4xl">
-                      {advert.title}
-                    </h2>
-                    <p className="mt-3 max-w-2xl text-sm leading-relaxed text-foreground/72 md:text-base">
-                      {advert.description}
-                    </p>
-                    <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                      <button
-                        type="button"
-                        onClick={() => handleCatalogPick(advert.bookingValue, advert.title)}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(47,36,28,0.14)] transition hover:-translate-y-0.5 hover:bg-primary"
-                      >
-                        {advert.cta}
-                        <ArrowRight className="h-4 w-4" />
-                      </button>
-                      <a
-                        href={BUSINESS_WHATSAPP_URL}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-primary/18 bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-[0_10px_24px_rgba(47,36,28,0.08)] transition hover:-translate-y-0.5 hover:border-primary hover:text-primary"
-                      >
-                        <MessageCircle className="h-4 w-4" />
-                        WhatsApp Us
-                      </a>
-                    </div>
-                  </div>
-                  <div className="relative min-h-[210px] overflow-hidden bg-[#f7efe4] md:min-h-[330px]">
-                    {advert.isVideo ? (
-                      <video src={advert.image} className="h-full min-h-[210px] w-full object-cover md:min-h-[330px]" autoPlay muted loop playsInline controls />
-                    ) : (
-                      <img src={advert.image} alt={advert.title} loading={index === 0 ? "eager" : "lazy"} className="h-full min-h-[210px] w-full object-cover md:min-h-[330px]" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-secondary/45 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-secondary/12" />
-                  </div>
-                </article>
-              ))}
-            </div>
-            <div className="flex items-center justify-between gap-3 border-t border-primary/10 bg-white/70 px-5 py-3 backdrop-blur sm:px-7">
-              <p className="text-xs font-semibold text-secondary/65">
-                New products, discounts, and repair updates are managed from the admin dashboard.
-              </p>
-              <div className="flex shrink-0 gap-2">
+        <section className="bg-white py-4 md:py-6">
+          <div className="container max-w-[1180px]">
+            <div
+              className="overflow-hidden rounded-[28px] border border-primary/12 bg-[linear-gradient(135deg,_#fffaf3,_#ffffff_58%,_#f1dfcd)] shadow-[0_18px_48px_rgba(66,40,18,0.10)] md:rounded-[32px]"
+              onPointerDown={() => pauseAdvertSlider()}
+              onPointerUp={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
+              onPointerCancel={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
+              onMouseEnter={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
+              aria-live="polite"
+            >
+              <div className="flex transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform" style={{ transform: `translateX(-${activeAdvertIndex * 100}%)` }}>
                 {displayedAdverts.map((advert, index) => (
-                  <button
-                    key={advert.title}
-                    type="button"
-                    onClick={() => {
-                      pauseAdvertSlider(DOT_SELECTION_PAUSE_MS);
-                      setActiveAdvertIndex(index);
-                    }}
-                    className={`h-2.5 rounded-full transition-all ${activeAdvertIndex === index ? "w-8 bg-primary" : "w-2.5 bg-secondary/20 hover:bg-secondary/35"}`}
-                    aria-label={`Show advert ${index + 1}`}
-                  />
+                  <article key={`${advert.title}-${index}`} className="grid min-w-full gap-0 md:grid-cols-[1.03fr_0.97fr] md:items-stretch">
+                    <div className="flex flex-col justify-center p-5 sm:p-6 md:p-7">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-primary px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.22em] text-white">
+                            {advert.tag}
+                          </span>
+                          <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-secondary/55">Latest Offer</span>
+                        </div>
+                        <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-secondary/55">
+                          {index + 1}/{displayedAdverts.length}
+                        </span>
+                      </div>
+                      <h2 className="mt-4 font-display text-[1.8rem] font-bold leading-tight text-secondary sm:text-[2.1rem]">
+                        {advert.title}
+                      </h2>
+                      <p className="mt-3 max-w-xl text-sm leading-relaxed text-foreground/72 md:text-[0.97rem]">
+                        {advert.description}
+                      </p>
+                      <div className="mt-5 flex flex-wrap items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => handleCatalogPick(advert.bookingValue, advert.title)}
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(47,36,28,0.12)] transition hover:-translate-y-0.5 hover:bg-primary"
+                        >
+                          {advert.cta}
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
+                        <a
+                          href={BUSINESS_WHATSAPP_URL}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-primary/18 bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-[0_10px_22px_rgba(47,36,28,0.08)] transition hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          WhatsApp
+                        </a>
+                        <div className="ml-auto hidden items-center gap-2 md:flex">
+                          <button
+                            type="button"
+                            onClick={showPreviousAdvert}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary/14 bg-white text-secondary transition hover:border-primary hover:text-primary"
+                            aria-label="Show previous advert"
+                          >
+                            <ArrowLeft className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={showNextAdvert}
+                            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-white transition hover:bg-primary"
+                            aria-label="Show next advert"
+                          >
+                            <ArrowRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="relative min-h-[220px] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.82),_transparent_38%),linear-gradient(160deg,_#6b3f43_0%,_#845057_46%,_#ecd8c3_100%)] md:min-h-[280px]">
+                      {advert.isVideo ? (
+                        <video src={advert.image} className="h-full min-h-[220px] w-full object-cover md:min-h-[280px]" autoPlay muted loop playsInline controls />
+                      ) : (
+                        <img src={advert.image} alt={advert.title} loading={index === 0 ? "eager" : "lazy"} className="h-full min-h-[220px] w-full object-contain p-4 md:min-h-[280px] md:p-5" />
+                      )}
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-secondary/22 via-transparent to-white/6" />
+                    </div>
+                  </article>
                 ))}
+              </div>
+              <div className="flex items-center justify-between gap-3 border-t border-primary/10 bg-white/80 px-5 py-3 backdrop-blur sm:px-6">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-secondary/60">
+                  Published promotions from admin
+                </p>
+                <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 gap-2">
+                    {displayedAdverts.map((advert, index) => (
+                      <button
+                        key={`${advert.title}-${index}`}
+                        type="button"
+                        onClick={() => {
+                          pauseAdvertSlider(DOT_SELECTION_PAUSE_MS);
+                          setActiveAdvertIndex(index);
+                        }}
+                        className={`h-2.5 rounded-full transition-all ${activeAdvertIndex === index ? "w-7 bg-primary" : "w-2.5 bg-secondary/20 hover:bg-secondary/35"}`}
+                        aria-label={`Show advert ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 md:hidden">
+                    <button
+                      type="button"
+                      onClick={showPreviousAdvert}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-primary/14 bg-white text-secondary transition hover:border-primary hover:text-primary"
+                      aria-label="Show previous advert"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={showNextAdvert}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-white transition hover:bg-primary"
+                      aria-label="Show next advert"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
       )}
 
       <section className="bg-[#2f241c] py-9 text-white md:py-10">
@@ -1700,7 +1780,7 @@ export default function Home() {
           </div>
 
           <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4 text-xs text-white/60 md:flex-row md:items-center md:justify-between">
-            <p>&copy; 2026 FixMyDoor. Door and furniture repair support from Canada.</p>
+            <p>&copy; 2017-2026 FixMyDoor. Door and furniture repair support from Canada.</p>
             <p>Canada-based service. International requests welcome.</p>
           </div>
         </div>

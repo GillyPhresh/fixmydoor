@@ -73,6 +73,19 @@ DEFAULT_ADMIN_PASSWORD="Use-A-Strong-Private-Password123"
 
 Email sending:
 
+Use either Resend or SMTP.
+
+Resend option:
+
+```env
+RESEND_API_KEY="re_xxxxxxxxx"
+RESEND_FROM_EMAIL="FixMyDoor <noreply@yourdomain.com>"
+ADMIN_EMAIL="info.fixmydoor@gmail.com"
+BUSINESS_EMAIL="info.fixmydoor@gmail.com"
+```
+
+SMTP option:
+
 ```env
 SMTP_HOST="smtp.gmail.com"
 SMTP_PORT="587"
@@ -82,6 +95,8 @@ FROM_EMAIL="FixMyDoor <info.fixmydoor@gmail.com>"
 BUSINESS_EMAIL="info.fixmydoor@gmail.com"
 ADMIN_EMAIL="info.fixmydoor@gmail.com"
 ```
+
+For Resend, verify your sending domain in Resend after the domain DNS is live.
 
 After Railway gives you a public URL, add:
 
