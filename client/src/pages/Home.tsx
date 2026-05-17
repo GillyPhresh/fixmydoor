@@ -153,6 +153,8 @@ export default function Home() {
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const advertPauseUntilRef = useRef(0);
   const formReadyAtRef = useRef(Date.now());
+  const contentSignatureRef = useRef("");
+  const contentFetchInFlightRef = useRef(false);
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -224,24 +226,46 @@ export default function Home() {
   useEffect(() => {
     let active = true;
 
-    const loadContent = () => {
-      axios.get<{ items: ContentItem[] }>("/api/content")
+    const loadContent = (signal?: AbortSignal) => {
+      if (contentFetchInFlightRef.current) {
+        return;
+      }
+
+      contentFetchInFlightRef.current = true;
+      axios.get<{ items: ContentItem[] }>("/api/content", { signal })
         .then(({ data }) => {
           if (active && Array.isArray(data.items)) {
-            setContentItems(data.items);
+            const nextSignature = JSON.stringify(data.items.map((item) => [
+              item.id,
+              item.updatedAt,
+              item.active,
+              item.sortOrder,
+            ]));
+
+            if (nextSignature !== contentSignatureRef.current) {
+              contentSignatureRef.current = nextSignature;
+              setContentItems(data.items);
+            }
           }
         })
         .catch((error) => {
+          if (axios.isCancel(error)) {
+            return;
+          }
           console.error("Content load error:", error);
+        })
+        .finally(() => {
+          contentFetchInFlightRef.current = false;
         });
     };
 
-    loadContent();
+    const controller = new AbortController();
+    loadContent(controller.signal);
     const interval = window.setInterval(() => {
       if (document.visibilityState === "visible") {
         loadContent();
       }
-    }, 45000);
+    }, 90000);
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         loadContent();
@@ -251,6 +275,7 @@ export default function Home() {
 
     return () => {
       active = false;
+      controller.abort();
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -433,6 +458,10 @@ export default function Home() {
     }
 
     const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        return;
+      }
+
       if (Date.now() < advertPauseUntilRef.current) {
         return;
       }
@@ -503,7 +532,11 @@ export default function Home() {
     wireTracks();
 
     const timer = window.setInterval(() => {
-      if (window.matchMedia("(min-width: 768px)").matches) {
+      if (
+        document.visibilityState !== "visible" ||
+        window.matchMedia("(min-width: 768px)").matches ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ) {
         return;
       }
 
@@ -535,7 +568,7 @@ export default function Home() {
           behavior: "smooth",
         });
       });
-    }, 6500);
+    }, 8000);
 
     return () => {
       window.clearInterval(timer);
@@ -678,7 +711,7 @@ export default function Home() {
         <div className="container flex max-w-[1180px] items-center justify-between gap-3 py-2 sm:gap-4 md:py-2.5">
           <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
             <a href="/" className="flex shrink-0 items-center">
-              <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-16 w-auto object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.14)] sm:h-[4.5rem] md:h-20" />
+              <img src="/img5150-transparent.png" alt="FixMyDoor logo" decoding="async" className="h-16 w-auto object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.14)] sm:h-[4.5rem] md:h-20" />
             </a>
             <div className="min-w-0">
               <p className="font-display text-sm font-bold leading-tight text-secondary sm:text-base md:text-lg">
@@ -778,7 +811,7 @@ export default function Home() {
             <div className="absolute -left-5 top-8 h-32 w-32 rounded-full bg-primary/18 blur-3xl" />
             <div className="absolute -right-6 bottom-10 h-40 w-40 rounded-full bg-secondary/15 blur-3xl" />
             <div className="relative overflow-hidden rounded-[28px] border border-white/60 bg-white p-2.5 shadow-[0_24px_70px_rgba(66,40,18,0.16)] md:rounded-[32px] md:p-3 md:shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
-              <img src={heroImage} alt="Lock rekeying service at a front door" className="h-[210px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
+              <img src={heroImage} alt="Lock rekeying service at a front door" decoding="async" className="h-[210px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
               <div className="absolute bottom-3 left-3 right-3 rounded-[20px] bg-white/92 p-3 shadow-lg backdrop-blur md:bottom-7 md:left-7 md:right-7 md:max-w-sm md:rounded-[24px] md:p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
                 <h2 className="mt-1 text-xl font-bold text-secondary md:mt-2 md:text-2xl">Front Door Rekeying</h2>
@@ -865,7 +898,7 @@ export default function Home() {
                       {advert.isVideo ? (
                         <video src={advert.image} className="h-full min-h-[220px] w-full object-cover md:min-h-[280px]" autoPlay muted loop playsInline controls />
                       ) : (
-                        <img src={advert.image} alt={advert.title} loading={index === 0 ? "eager" : "lazy"} className="h-full min-h-[220px] w-full object-contain p-4 md:min-h-[280px] md:p-5" />
+                        <img src={advert.image} alt={advert.title} loading={index === 0 ? "eager" : "lazy"} decoding="async" className="h-full min-h-[220px] w-full object-contain p-4 md:min-h-[280px] md:p-5" />
                       )}
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-secondary/22 via-transparent to-white/6" />
                     </div>
@@ -988,6 +1021,7 @@ export default function Home() {
                         src={item.src}
                         alt={item.title}
                         loading="lazy"
+                        decoding="async"
                         className={`w-full object-cover transition duration-500 group-hover:scale-[1.03] ${item.featured ? "h-48 md:h-52" : "h-40 md:h-44"}`}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-secondary/85 via-secondary/15 to-transparent" />
@@ -1009,6 +1043,7 @@ export default function Home() {
                     src={service.src}
                     alt={service.title}
                     loading="lazy"
+                    decoding="async"
                     className={`h-44 w-full md:h-52 ${service.contain ? "bg-white p-4 object-contain" : "object-cover"}`}
                   />
                   <div className="p-5">
@@ -1045,8 +1080,8 @@ export default function Home() {
             {displayedProductCategories.map((category, index) => (
               <article key={category.title} className={`${mobileScrollItemClass} overflow-hidden rounded-[28px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)] md:rounded-[32px]`}>
                 <div className="relative h-52 overflow-hidden bg-[#f8f4ec] md:h-64">
-                  <img src={category.image} alt={category.title} loading="lazy" className="h-full w-full object-cover" />
-                  <img src={category.accent} alt="" loading="lazy" className="absolute bottom-4 right-4 h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-xl" />
+                  <img src={category.image} alt={category.title} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                  <img src={category.accent} alt="" loading="lazy" decoding="async" className="absolute bottom-4 right-4 h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-xl" />
                 </div>
                 <div className="p-5 md:p-6">
                   <h3 className="text-xl font-bold text-secondary md:text-2xl">{category.title}</h3>
@@ -1093,7 +1128,7 @@ export default function Home() {
                   onClick={() => handleCatalogPick("door-purchase", product.title)}
                   className={`group ${mobileScrollItemClass} overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12`}
                 >
-                  <img src={product.image} alt={product.title} loading="lazy" className="h-48 w-full bg-white object-cover transition duration-500 group-hover:scale-[1.03] md:h-56" />
+                  <img src={product.image} alt={product.title} loading="lazy" decoding="async" className="h-48 w-full bg-white object-cover transition duration-500 group-hover:scale-[1.03] md:h-56" />
                   <div className="p-4">
                     <span className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary">{product.tag}</span>
                     <p className="mt-2 font-bold text-white">{product.title}</p>
@@ -1128,7 +1163,7 @@ export default function Home() {
                   onClick={() => handleCatalogPick(product.tag.includes("Drawer") || product.tag.includes("Cabinet") ? "furniture-hardware-purchase" : "door-hardware-purchase", product.title)}
                   className={`group ${mobileScrollItemClass} overflow-hidden rounded-[22px] border border-primary/10 bg-[#fffaf2] text-left transition hover:-translate-y-1`}
                 >
-                  <img src={product.image} alt={product.title} loading="lazy" className="h-40 w-full bg-white object-contain p-3 transition duration-500 group-hover:scale-[1.03] md:h-48" />
+                  <img src={product.image} alt={product.title} loading="lazy" decoding="async" className="h-40 w-full bg-white object-contain p-3 transition duration-500 group-hover:scale-[1.03] md:h-48" />
                   <div className="p-4">
                     <span className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary">{product.tag}</span>
                     <p className="mt-2 font-bold text-secondary">{product.title}</p>
@@ -1155,7 +1190,7 @@ export default function Home() {
             <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-6 xl:grid-cols-3`}>
             {displayedProjectGallery.map((project, index) => (
               <article key={project.title} className={`${mobileScrollItemClass} overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px]`}>
-                <img src={project.src} alt={project.title} loading="lazy" className="h-56 w-full object-cover md:h-[300px]" />
+                <img src={project.src} alt={project.title} loading="lazy" decoding="async" className="h-56 w-full object-cover md:h-[300px]" />
                 <div className="p-5 md:p-6">
                   <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{project.category}</span>
                   <h3 className="mt-3 text-2xl font-bold text-secondary">{project.title}</h3>
@@ -1173,7 +1208,7 @@ export default function Home() {
           <div className="relative order-2 md:order-1">
             <div className="absolute -left-4 top-8 h-28 w-28 rounded-full bg-primary/18 blur-3xl" />
             <div className="relative mx-auto flex h-[280px] max-w-[240px] items-center justify-center overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,_#f7efe4,_#ffffff)] shadow-[0_16px_42px_rgba(66,40,18,0.13)] sm:h-[340px] sm:max-w-[300px] md:mx-0 md:h-[380px] md:max-w-[320px] md:rounded-[26px]">
-              <img src={technicianImage} alt="Richard Ampofo working on a door repair" loading="lazy" className="h-full w-full object-cover object-top" />
+              <img src={technicianImage} alt="Richard Ampofo working on a door repair" loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
             </div>
           </div>
           <div className="order-1 md:order-2">
@@ -1647,7 +1682,7 @@ export default function Home() {
                   {photoPreviews.length > 0 && (
                     <div className="mt-4 grid gap-3 sm:grid-cols-3">
                       {photoPreviews.map((photo, index) => (
-                        <img key={`${photo.slice(0, 30)}-${index}`} src={photo} alt={`Uploaded preview ${index + 1}`} className="h-28 w-full rounded-2xl object-cover" />
+                        <img key={`${photo.slice(0, 30)}-${index}`} src={photo} alt={`Uploaded preview ${index + 1}`} decoding="async" className="h-28 w-full rounded-2xl object-cover" />
                       ))}
                     </div>
                   )}
@@ -1707,7 +1742,7 @@ export default function Home() {
             <div className="overflow-hidden rounded-[24px] border border-primary/18 bg-[linear-gradient(180deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.04))] p-3 shadow-[0_14px_36px_rgba(0,0,0,0.14)]">
               <div className="flex items-center gap-3">
                 <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-[18px] bg-white/88 px-2 py-1.5 shadow-[0_10px_20px_rgba(66,40,18,0.1)]">
-                  <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-12 w-auto max-w-full object-contain drop-shadow-[0_8px_12px_rgba(66,40,18,0.16)]" />
+                  <img src="/img5150-transparent.png" alt="FixMyDoor logo" loading="lazy" decoding="async" className="h-12 w-auto max-w-full object-contain drop-shadow-[0_8px_12px_rgba(66,40,18,0.16)]" />
                 </div>
                 <div>
                   <h3 className="font-display text-lg font-bold">FixMyDoor</h3>

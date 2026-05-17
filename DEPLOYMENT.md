@@ -79,12 +79,14 @@ Resend option:
 
 ```env
 RESEND_API_KEY="re_xxxxxxxxx"
-RESEND_FROM_EMAIL="FixMyDoor <noreply@yourdomain.com>"
+RESEND_FROM_EMAIL="FixMyDoor <bookings@fixmydoor.ca>"
 ADMIN_EMAIL="info.fixmydoor@gmail.com"
 BUSINESS_EMAIL="info.fixmydoor@gmail.com"
 ```
 
-SMTP option:
+Use Resend after the domain is verified in Resend. Railway can still use Gmail SMTP while waiting for the domain approval.
+
+SMTP fallback option:
 
 ```env
 SMTP_HOST="smtp.gmail.com"
@@ -152,9 +154,28 @@ In Railway:
 2. Go to `Settings` or `Networking`.
 3. Add your custom domain.
 4. Update DNS as Railway instructs.
-5. Update these variables:
+5. Update these Railway variables:
 
 ```env
-PUBLIC_SITE_URL="https://yourdomain.com"
-ADMIN_URL="https://yourdomain.com/admin"
+PUBLIC_SITE_URL="https://fixmydoor.ca"
+ADMIN_URL="https://fixmydoor.ca/admin"
 ```
+
+In CanSpace:
+
+1. Add the DNS records Railway gives you for the website domain.
+2. Add the DNS records Resend gives you for email sending, usually SPF, DKIM, and DMARC records.
+3. Wait until both Railway and Resend show the domain as verified.
+
+In Resend:
+
+1. Add `fixmydoor.ca` as a sending domain.
+2. Verify the DNS records in CanSpace.
+3. Set this in Railway after verification:
+
+```env
+RESEND_API_KEY="re_xxxxxxxxx"
+RESEND_FROM_EMAIL="FixMyDoor <bookings@fixmydoor.ca>"
+```
+
+Do not use a `@fixmydoor.ca` sender in Railway until Resend says the domain is verified.

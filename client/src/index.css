@@ -219,6 +219,11 @@
     @apply w-full h-[320px] object-cover;
   }
 
+  .fixmydoor-mobile-carousel {
+    overscroll-behavior-x: contain;
+    scroll-snap-stop: always;
+  }
+
   .fixmydoor-flip-card {
     opacity: 0;
     transform: perspective(1000px) rotateY(14deg) translateY(22px) scale(0.98);
@@ -227,12 +232,16 @@
       opacity 640ms ease,
       transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
     transition-delay: var(--flip-delay, 0ms);
+  }
+
+  .fixmydoor-flip-card:not(.is-visible) {
     will-change: opacity, transform;
   }
 
   .fixmydoor-flip-card.is-visible {
     opacity: 1;
     transform: perspective(1000px) rotateY(0deg) translateY(0) scale(1);
+    will-change: auto;
   }
 
   .logo-mark {
@@ -249,6 +258,12 @@
 
   .trust-badge-icon {
     @apply w-12 h-12 bg-accent text-white rounded-full flex items-center justify-center text-xl;
+  }
+
+  @media (max-width: 767px) {
+    .fixmydoor-mobile-carousel {
+      contain: layout paint;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

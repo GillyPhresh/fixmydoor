@@ -30,7 +30,11 @@ declare module "express-session" {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const uploadDir = process.env.UPLOAD_DIR || (process.env.NODE_ENV === "production" ? "/data/uploads" : path.resolve(process.cwd(), "uploads"));
+const defaultUploadDir =
+  process.env.NODE_ENV === "production" && process.platform !== "win32"
+    ? "/data/uploads"
+    : path.resolve(process.cwd(), "uploads");
+const uploadDir = process.env.UPLOAD_DIR || defaultUploadDir;
 const PUBLIC_SITE_URL_TOKEN = "__PUBLIC_SITE_URL__";
 const PUBLIC_IMAGE_URL_TOKEN = "__PUBLIC_IMAGE_URL__";
 const PUBLIC_SITEMAP_PAGES = [

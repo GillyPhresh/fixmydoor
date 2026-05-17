@@ -89,11 +89,17 @@ function writeToLogFile(source: LogSource, entries: unknown[]) {
  * - Auto-trimmed when exceeding 1MB (keeps newest entries)
  */
 function vitePluginManusDebugCollector(): Plugin {
+  let isServe = false;
+
   return {
     name: "manus-debug-collector",
 
+    configResolved(config) {
+      isServe = config.command === "serve";
+    },
+
     transformIndexHtml(html) {
-      if (process.env.NODE_ENV === "production") {
+      if (!isServe) {
         return html;
       }
       return {
@@ -851,18 +857,24 @@ function vitePluginBookingApi(): Plugin {
   };
 }
 
-const plugins = [
-  react(),
-  tailwindcss(),
-  jsxLocPlugin(),
-  vitePluginManusRuntime(),
-  vitePluginManusDebugCollector(),
-  vitePluginStorageProxy(),
-  vitePluginBookingApi(),
-];
+export default defineConfig(({ command }) => {
+  const isServe = command === "serve";
+  const plugins = [
+    react(),
+    tailwindcss(),
+    ...(isServe
+      ? [
+          jsxLocPlugin(),
+          vitePluginManusRuntime(),
+          vitePluginManusDebugCollector(),
+          vitePluginStorageProxy(),
+          vitePluginBookingApi(),
+        ]
+      : []),
+  ];
 
-export default defineConfig({
-  plugins,
+  return {
+    plugins,
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
@@ -905,4 +917,5 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  };
 });
