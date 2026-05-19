@@ -149,6 +149,7 @@ export default function Admin() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [emailTestLoading, setEmailTestLoading] = useState(false);
+  const [emailStatusLoading, setEmailStatusLoading] = useState(false);
   const [emailStatus, setEmailStatus] = useState<EmailRuntimeStatus | null>(null);
 
   useEffect(() => {
@@ -282,12 +283,21 @@ export default function Admin() {
     }
   };
 
-  const fetchEmailStatus = async () => {
+  const fetchEmailStatus = async (showToast = false) => {
+    setEmailStatusLoading(true);
     try {
       const response = await axios.get<{ status: EmailRuntimeStatus }>("/api/admin/email-status");
       setEmailStatus(response.data.status);
+      if (showToast) {
+        toast.success("Email status refreshed");
+      }
     } catch (err) {
       console.error("Failed to fetch email status:", err);
+      if (showToast) {
+        toast.error("Unable to refresh email status");
+      }
+    } finally {
+      setEmailStatusLoading(false);
     }
   };
 
@@ -753,8 +763,14 @@ export default function Admin() {
                       Provider: {emailStatus.provider.toUpperCase()} | SMTP: {emailStatus.host || "missing"}{emailStatus.port ? `:${emailStatus.port}` : ""} | User: {emailStatus.smtpUser || "missing"} | Resend: {emailStatus.resendConfigured ? "configured" : "not set"} | Admin: {emailStatus.adminEmail}
                     </p>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={fetchEmailStatus}>
-                    Refresh Email Status
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchEmailStatus(true)}
+                    disabled={emailStatusLoading}
+                  >
+                    {emailStatusLoading ? "Refreshing..." : "Refresh Email Status"}
                   </Button>
                 </div>
                 {emailStatus.missing.length > 0 && (
