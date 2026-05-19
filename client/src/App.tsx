@@ -35,7 +35,19 @@ function Router() {
         <Route path={"/door-repair"} component={ServicePageRoute} />
         <Route path={"/lock-rekeying"} component={ServicePageRoute} />
         <Route path={"/furniture-repair"} component={ServicePageRoute} />
+        <Route path={"/entry-door-installation"} component={ServicePageRoute} />
+        <Route path={"/door-installation"} component={ServicePageRoute} />
+        <Route path={"/door-alignment"} component={ServicePageRoute} />
+        <Route path={"/door-purchase"} component={ServicePageRoute} />
+        <Route path={"/buy-doors"} component={ServicePageRoute} />
+        <Route path={"/buy-door-hardware"} component={ServicePageRoute} />
+        <Route path={"/door-hardware-purchase"} component={ServicePageRoute} />
+        <Route path={"/door-equipment"} component={ServicePageRoute} />
+        <Route path={"/furniture-hardware-purchase"} component={ServicePageRoute} />
+        <Route path={"/buy-furniture-hardware"} component={ServicePageRoute} />
+        <Route path={"/furniture-parts"} component={ServicePageRoute} />
         <Route path={"/door-hardware"} component={ServicePageRoute} />
+        <Route path={"/hardware-sourcing"} component={ServicePageRoute} />
         <Route path={"/international-requests"} component={ServicePageRoute} />
         <Route path={"/admin"} component={AdminRoute} />
         <Route path={"/track/:token"} component={TrackBookingRoute} />

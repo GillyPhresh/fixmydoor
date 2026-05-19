@@ -2,60 +2,28 @@ import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowRight, CheckCircle2, Globe2, Phone, ShieldCheck, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { resolveSeoPage, serviceSeoPages } from "@shared/seo";
 
-const servicePages = {
-  "/door-repair": {
-    eyebrow: "Door Repair",
-    title: "Door repair for homes, rentals, offices, and commercial spaces",
-    description: "FixMyDoor helps with sticking doors, damaged frames, loose handles, poor sealing, hinges, and everyday door problems that affect safety and comfort.",
-    bullets: ["Swing correction and alignment", "Frame, latch, hinge, and handle support", "Repair guidance for Canada and international requests"],
-    cta: "Book Door Repair",
-    bookingValue: "door-repair",
-  },
-  "/lock-rekeying": {
-    eyebrow: "Lock Rekeying",
-    title: "Lock rekeying, handle replacement, and tighter entry security",
-    description: "If keys are missing, a lock feels loose, or hardware needs replacing, FixMyDoor helps customers restore safer access without guessing the wrong solution.",
-    bullets: ["Front door rekeying and lock advice", "Cylinder, handle, and latch support", "Security-focused recommendations"],
-    cta: "Request Lock Help",
-    bookingValue: "lock-rekeying",
-  },
-  "/furniture-repair": {
-    eyebrow: "Furniture Repair",
-    title: "Furniture repair support for practical, everyday fixes",
-    description: "Get help with sofa frames, loose furniture joints, cabinet hardware, drawer slides, hinges, and furniture parts that need repair or replacement.",
-    bullets: ["Sofa, cabinet, chair, and drawer support", "Hardware replacement guidance", "Photo-based review before follow-up"],
-    cta: "Book Furniture Help",
-    bookingValue: "furniture-repair",
-  },
-  "/door-hardware": {
-    eyebrow: "Doors & Hardware",
-    title: "Buy or source doors, handles, locks, hinges, and furniture parts",
-    description: "Share measurements, preferred finish, quantity, and photos. FixMyDoor helps customers choose the right products before spending money on the wrong part.",
-    bullets: ["Paladin, SED, heavy-duty, entry, and interior doors", "Handles, cylinders, hinges, drawer slides, and cabinet parts", "Product sourcing support for international requests"],
-    cta: "Ask for Product Quote",
-    bookingValue: "door-hardware-purchase",
-  },
-  "/international-requests": {
-    eyebrow: "International Requests",
-    title: "Canada-based service with international product and repair support",
-    description: "FixMyDoor is based in Canada and can help customers abroad with measurements, product sourcing, repair guidance, and clear next steps.",
-    bullets: ["Country, time zone, and currency-aware requests", "WhatsApp, email, and phone follow-up", "Product sourcing and quote preparation"],
-    cta: "Send International Request",
-    bookingValue: "international-request",
-  },
-} as const;
+function setMeta(selector: string, attributeName: "name" | "property", attributeValue: string, content: string) {
+  const meta = document.querySelector(selector) || document.createElement("meta");
+  meta.setAttribute(attributeName, attributeValue);
+  meta.setAttribute("content", content);
+  document.head.appendChild(meta);
+}
 
 export default function ServicePage() {
   const [location] = useLocation();
-  const page = servicePages[location as keyof typeof servicePages] || servicePages["/door-repair"];
+  const resolvedPage = resolveSeoPage(location);
+  const page = serviceSeoPages[resolvedPage.path] || serviceSeoPages["/door-repair"];
 
   useEffect(() => {
-    document.title = `${page.eyebrow} | FixMyDoor Services`;
-    const description = document.querySelector('meta[name="description"]') || document.createElement("meta");
-    description.setAttribute("name", "description");
-    description.setAttribute("content", page.description);
-    document.head.appendChild(description);
+    document.title = page.title;
+    setMeta('meta[name="description"]', "name", "description", page.description);
+    setMeta('meta[name="keywords"]', "name", "keywords", page.keywords);
+    setMeta('meta[property="og:title"]', "property", "og:title", page.title);
+    setMeta('meta[property="og:description"]', "property", "og:description", page.description);
+    setMeta('meta[name="twitter:title"]', "name", "twitter:title", page.title);
+    setMeta('meta[name="twitter:description"]', "name", "twitter:description", page.description);
   }, [page]);
 
   return (

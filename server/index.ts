@@ -17,6 +17,7 @@ import { findAdminByUsername, initializeAdminUser, verifyPassword, hashPassword 
 import { emailService, getPublicBaseUrl } from "./email";
 import type { Booking, BookingStatusHistoryEntry, BookingUpdateRequest } from "@shared/types";
 import { serviceCatalog } from "@shared/services";
+import { resolveSeoPage, serviceSeoPages, sitemapRoutes } from "@shared/seo";
 
 if (fs.existsSync(".env")) {
   process.loadEnvFile?.(".env");
@@ -37,14 +38,6 @@ const defaultUploadDir =
 const uploadDir = process.env.UPLOAD_DIR || defaultUploadDir;
 const PUBLIC_SITE_URL_TOKEN = "__PUBLIC_SITE_URL__";
 const PUBLIC_IMAGE_URL_TOKEN = "__PUBLIC_IMAGE_URL__";
-const PUBLIC_SITEMAP_PAGES = [
-  "/",
-  "/door-repair",
-  "/lock-rekeying",
-  "/furniture-repair",
-  "/door-hardware",
-  "/international-requests",
-] as const;
 const mediaTypes: Record<string, { extension: string; kind: "image" | "video" }> = {
   "image/png": { extension: "png", kind: "image" },
   "image/jpeg": { extension: "jpg", kind: "image" },
@@ -391,6 +384,86 @@ function replacePublicUrlTokens(template: string) {
     .replaceAll(PUBLIC_IMAGE_URL_TOKEN, getPublicImageUrl());
 }
 
+function replaceMetaContent(html: string, selector: "name" | "property", key: string, content: string) {
+  const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const expression = new RegExp(`<meta ${selector}="${escapedKey}" content="[^"]*" \\/>`);
+  const replacement = `<meta ${selector}="${key}" content="${escapeHtml(content)}" />`;
+  return expression.test(html) ? html.replace(expression, replacement) : html.replace("</head>", `    ${replacement}\n  </head>`);
+}
+
+function renderPageStructuredData(pagePath: string) {
+  const page = resolveSeoPage(pagePath);
+  const publicBaseUrl = getPublicBaseUrl();
+  const canonicalUrl = page.path === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${page.path}`;
+  const servicePage = serviceSeoPages[page.path];
+
+  if (!servicePage) {
+    return "";
+  }
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        "@id": `${canonicalUrl}#service`,
+        "name": servicePage.structuredServiceName,
+        "description": servicePage.description,
+        "provider": {
+          "@id": `${publicBaseUrl}/#business`,
+        },
+        "areaServed": [
+          { "@type": "Country", "name": "Canada" },
+          { "@type": "Place", "name": "International requests" },
+        ],
+        "serviceType": servicePage.structuredServiceName,
+        "url": canonicalUrl,
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${canonicalUrl}#breadcrumb`,
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": `${publicBaseUrl}/`,
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": servicePage.eyebrow,
+            "item": canonicalUrl,
+          },
+        ],
+      },
+    ],
+  };
+
+  return `    <script type="application/ld+json">${JSON.stringify(structuredData).replace(/</g, "\\u003c")}</script>`;
+}
+
+function renderIndexHtmlForPath(template: string, pagePath = "/") {
+  const page = resolveSeoPage(pagePath);
+  const publicBaseUrl = getPublicBaseUrl();
+  const canonicalUrl = page.path === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${page.path}`;
+  const structuredData = renderPageStructuredData(pagePath);
+
+  let html = replacePublicUrlTokens(template)
+    .replace(/<title>.*?<\/title>/s, `<title>${escapeHtml(page.title)}</title>`)
+    .replace(/<link rel="canonical" href="[^"]*" \/>/, `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`);
+
+  html = replaceMetaContent(html, "name", "description", page.description);
+  html = replaceMetaContent(html, "name", "keywords", page.keywords);
+  html = replaceMetaContent(html, "property", "og:title", page.title);
+  html = replaceMetaContent(html, "property", "og:description", page.description);
+  html = replaceMetaContent(html, "property", "og:url", canonicalUrl);
+  html = replaceMetaContent(html, "name", "twitter:title", page.title);
+  html = replaceMetaContent(html, "name", "twitter:description", page.description);
+
+  return structuredData ? html.replace("</head>", `${structuredData}\n  </head>`) : html;
+}
+
 function renderRobotsTxt() {
   return [
     "User-agent: *",
@@ -405,16 +478,16 @@ function renderSitemapXml() {
   const publicBaseUrl = getPublicBaseUrl();
   const lastModified = new Date().toISOString();
 
-  const items = PUBLIC_SITEMAP_PAGES.map((route) => {
+  const items = sitemapRoutes.map((route) => {
     const pageUrl = route === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${route}`;
-    const priority = route === "/" ? "1.0" : "0.8";
+    const seoPage = resolveSeoPage(route);
 
     return [
       "  <url>",
       `    <loc>${pageUrl}</loc>`,
       `    <lastmod>${lastModified}</lastmod>`,
-      "    <changefreq>weekly</changefreq>",
-      `    <priority>${priority}</priority>`,
+      `    <changefreq>${seoPage.changeFrequency}</changefreq>`,
+      `    <priority>${seoPage.sitemapPriority}</priority>`,
       "  </url>",
     ].join("\n");
   }).join("\n");
@@ -1383,10 +1456,10 @@ async function startServer() {
       : path.resolve(__dirname, "..", "dist", "public");
   const indexHtmlPath = path.join(staticPath, "index.html");
 
-  const sendIndexHtml = (res: express.Response) => {
+  const sendIndexHtml = (res: express.Response, pagePath = "/") => {
     try {
       const html = fs.readFileSync(indexHtmlPath, "utf8");
-      res.type("html").send(replacePublicUrlTokens(html));
+      res.type("html").send(renderIndexHtmlForPath(html, pagePath));
     } catch (error) {
       console.error("Failed to render index.html:", error);
       res.status(500).send("Failed to load application");
@@ -1425,9 +1498,9 @@ async function startServer() {
   }));
 
   // Handle client-side routing - serve index.html for all routes
-  app.get("*", (_req, res) => {
+  app.get("*", (req, res) => {
     res.setHeader("Cache-Control", isProduction ? "no-store" : "no-cache");
-    sendIndexHtml(res);
+    sendIndexHtml(res, req.path);
   });
 
   const port = process.env.PORT || 3000;
