@@ -17,7 +17,7 @@ import { findAdminByUsername, initializeAdminUser, verifyPassword, hashPassword 
 import { emailService, getPublicBaseUrl } from "./email";
 import type { Booking, BookingStatusHistoryEntry, BookingUpdateRequest } from "@shared/types";
 import { serviceCatalog } from "@shared/services";
-import { resolveSeoPage, serviceSeoPages, sitemapRoutes } from "@shared/seo";
+import { normalizeSeoPath, resolveSeoPage, seoRouteAliases, serviceSeoPages, sitemapRoutes } from "@shared/seo";
 
 if (fs.existsSync(".env")) {
   process.loadEnvFile?.(".env");
@@ -1474,6 +1474,16 @@ async function startServer() {
   app.get("/sitemap.xml", (_req, res) => {
     res.setHeader("Cache-Control", isProduction ? "public, max-age=300" : "no-cache");
     res.type("application/xml").send(renderSitemapXml());
+  });
+
+  app.get(Object.keys(seoRouteAliases), (req, res) => {
+    const canonicalPath = seoRouteAliases[normalizeSeoPath(req.path)];
+    if (!canonicalPath) {
+      return res.status(404).send("Not found");
+    }
+
+    const query = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+    return res.redirect(301, `${canonicalPath}${query}`);
   });
 
   app.get("/index.html", (_req, res) => {

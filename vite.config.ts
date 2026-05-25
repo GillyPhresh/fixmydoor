@@ -12,6 +12,7 @@ import { createContentItem, listAdminContent, listPublicContent, updateContentIt
 import { prisma } from "./server/prisma";
 import { findAdminByUsername, verifyPassword } from "./server/auth";
 import { serviceCatalog } from "./shared/services";
+import { normalizeSeoPath, resolveSeoPage, seoRouteAliases, sitemapRoutes } from "./shared/seo";
 import type { Booking, BookingStatusHistoryEntry, BookingUpdateRequest } from "./shared/types";
 
 // =============================================================================
@@ -218,6 +219,92 @@ function vitePluginStorageProxy(): Plugin {
           res.writeHead(502, { "Content-Type": "text/plain" });
           res.end("Storage proxy error");
         }
+      });
+    },
+  };
+}
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function renderDevRobotsTxt() {
+  const publicBaseUrl = getPublicBaseUrl();
+
+  return [
+    "User-agent: *",
+    "Allow: /",
+    "",
+    `Sitemap: ${publicBaseUrl}/sitemap.xml`,
+    "",
+  ].join("\n");
+}
+
+function renderDevSitemapXml() {
+  const publicBaseUrl = getPublicBaseUrl();
+  const lastModified = new Date().toISOString();
+  const items = sitemapRoutes.map((route) => {
+    const pageUrl = route === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${route}`;
+    const seoPage = resolveSeoPage(route);
+
+    return [
+      "  <url>",
+      `    <loc>${escapeXml(pageUrl)}</loc>`,
+      `    <lastmod>${lastModified}</lastmod>`,
+      `    <changefreq>${seoPage.changeFrequency}</changefreq>`,
+      `    <priority>${seoPage.sitemapPriority}</priority>`,
+      "  </url>",
+    ].join("\n");
+  }).join("\n");
+
+  return [
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+    "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">",
+    items,
+    "</urlset>",
+    "",
+  ].join("\n");
+}
+
+function vitePluginSeoFiles(): Plugin {
+  return {
+    name: "fixmydoor-seo-files",
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use((req, res, next) => {
+        const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
+
+        if (req.method === "GET" && pathname === "/robots.txt") {
+          res.writeHead(200, {
+            "Cache-Control": "no-cache",
+            "Content-Type": "text/plain; charset=utf-8",
+          });
+          res.end(renderDevRobotsTxt());
+          return;
+        }
+
+        if (req.method === "GET" && pathname === "/sitemap.xml") {
+          res.writeHead(200, {
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/xml; charset=utf-8",
+          });
+          res.end(renderDevSitemapXml());
+          return;
+        }
+
+        const canonicalPath = seoRouteAliases[normalizeSeoPath(pathname)];
+        if (req.method === "GET" && canonicalPath) {
+          const query = req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+          res.writeHead(301, { Location: `${canonicalPath}${query}` });
+          res.end();
+          return;
+        }
+
+        next();
       });
     },
   };
@@ -867,6 +954,7 @@ export default defineConfig(({ command }) => {
           jsxLocPlugin(),
           vitePluginManusRuntime(),
           vitePluginManusDebugCollector(),
+          vitePluginSeoFiles(),
           vitePluginStorageProxy(),
           vitePluginBookingApi(),
         ]
