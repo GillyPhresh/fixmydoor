@@ -194,6 +194,7 @@ export default function Home() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [headerCompact, setHeaderCompact] = useState(false);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
   const [humanCheckConfirmed, setHumanCheckConfirmed] = useState(false);
@@ -252,6 +253,16 @@ export default function Home() {
     if ((savedPreference !== "accepted" && savedPreference !== "denied") || !isVerified) {
       setCookieBannerOpen(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const updateHeader = () => {
+      setHeaderCompact(window.scrollY > 18);
+    };
+
+    updateHeader();
+    window.addEventListener("scroll", updateHeader, { passive: true });
+    return () => window.removeEventListener("scroll", updateHeader);
   }, []);
 
   useEffect(() => {
@@ -757,11 +768,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <nav className="sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/96 shadow-[0_8px_28px_rgba(47,36,28,0.06)] backdrop-blur">
-        <div className="container flex max-w-[1180px] items-center justify-between gap-2 py-1.5 sm:gap-4 md:py-2.5">
+      <nav className={`sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/96 shadow-[0_8px_28px_rgba(47,36,28,0.06)] backdrop-blur transition-all duration-300 ${headerCompact ? "shadow-[0_12px_32px_rgba(47,36,28,0.12)]" : ""}`}>
+        <div className={`container flex max-w-[1180px] items-center justify-between gap-2 transition-all duration-300 sm:gap-4 md:py-2.5 ${headerCompact ? "py-1" : "py-1.5"}`}>
           <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
-            <a href="/" className="flex shrink-0 items-center">
-              <img src="/img5150-transparent.png" alt="FixMyDoor logo" decoding="async" className="h-12 w-auto object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.14)] sm:h-16 md:h-20" />
+            <a href="/" className="group flex shrink-0 items-center" aria-label="FixMyDoor homepage">
+              <span className={`relative inline-flex items-center justify-center rounded-[1.35rem] border border-white/70 bg-white/88 px-2 shadow-[0_12px_26px_rgba(66,40,18,0.12)] ring-1 ring-primary/10 transition-all duration-300 ${headerCompact ? "h-11" : "h-12"} sm:h-16 md:h-20`}>
+                <img src="/img5150-transparent.png" alt="FixMyDoor logo" decoding="async" className={`w-auto object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.14)] transition-all duration-300 ${headerCompact ? "h-10" : "h-11"} sm:h-16 md:h-20`} />
+                <span className="absolute -right-1 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm" aria-hidden="true" />
+              </span>
             </a>
             <div className="hidden min-w-0 min-[430px]:block">
               <p className="truncate font-display text-sm font-bold leading-tight text-secondary sm:text-base md:text-lg">
@@ -777,24 +791,25 @@ export default function Home() {
               <a key={link.href} href={link.href} className="transition hover:text-primary">{link.label}</a>
             ))}
           </div>
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <a href="tel:+14383471823" className="inline-flex items-center gap-1.5 rounded-2xl bg-primary px-2.5 py-2 text-xs font-bold text-white shadow-[0_10px_22px_rgba(180,101,50,0.18)] transition hover:-translate-y-0.5 hover:bg-primary/90 sm:px-4 sm:text-sm">
-              <Phone className="h-4 w-4" />
-              <span className="hidden sm:inline">Call Now</span>
-              <span className="sm:hidden">Call</span>
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <a href="tel:+14383471823" className="inline-flex h-10 items-center gap-1.5 rounded-2xl bg-primary px-2.5 text-[0.72rem] font-extrabold text-white shadow-[0_12px_26px_rgba(180,101,50,0.24)] ring-1 ring-white/40 transition hover:-translate-y-0.5 hover:bg-primary/90 min-[380px]:px-3 sm:h-11 sm:px-4 sm:text-sm">
+              <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden min-[380px]:inline sm:inline">Call Now</span>
+              <span className="min-[380px]:hidden">Call</span>
             </a>
-            <LanguageTranslator />
+            <LanguageTranslator className="h-10 sm:h-11" />
             <button
               type="button"
               onClick={() => setMobileMenuOpen((open) => !open)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/15 bg-white text-secondary shadow-sm lg:hidden"
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border text-secondary shadow-[0_10px_22px_rgba(47,36,28,0.10)] ring-1 ring-white/70 transition-all duration-300 lg:hidden ${mobileMenuOpen ? "border-primary bg-secondary text-white" : "border-primary/15 bg-white hover:bg-primary/10"}`}
               aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
-        <div className="border-t border-primary/10 bg-white/55 px-4 py-1.5 text-center min-[430px]:hidden">
+        <div className={`border-t border-primary/10 bg-white/62 px-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition-all duration-300 min-[430px]:hidden ${headerCompact ? "py-1" : "py-1.5"}`}>
           <p className="font-display text-[0.82rem] font-bold leading-tight text-secondary">
             FixMyDoor | Door & Furniture Repairs
           </p>
