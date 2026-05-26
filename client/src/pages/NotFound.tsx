@@ -12,7 +12,7 @@ const helpfulLinks = [
 
 export default function NotFound() {
   useEffect(() => {
-    document.title = "Page Not Found | FixMyDoor";
+    document.title = "Page Not Found | FixMyDoor Services";
   }, []);
 
   return (
@@ -21,7 +21,7 @@ export default function NotFound() {
         <div className="container flex max-w-[1180px] items-center justify-between py-3">
           <Link href="/" className="flex items-center gap-3">
             <img src="/img5150-transparent.png" alt="FixMyDoor logo" className="h-14 w-auto object-contain" />
-            <span className="font-display text-lg font-bold text-secondary">FixMyDoor</span>
+            <span className="font-display text-lg font-bold text-secondary">FixMyDoor Services</span>
           </Link>
           <a href="tel:+14383471823" className="hidden rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white sm:inline-flex">
             Call +1 (438) 347-1823
@@ -34,7 +34,7 @@ export default function NotFound() {
           <p className="inline-flex rounded-full bg-primary/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.28em] text-primary">404 page</p>
           <h1 className="mt-5 font-display text-4xl font-bold leading-tight text-secondary md:text-6xl">This page is not available.</h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-foreground/72">
-            The link may have changed, but FixMyDoor can still help with door repairs, door installations, furniture repairs, furniture installations, lock and hinge services, and hardware sourcing.
+            The link may have changed, but FixMyDoor Services can still help with door repairs, door installations, furniture repairs, furniture installations, lock and hinge services, and hardware sourcing.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Button asChild className="bg-primary text-white hover:bg-secondary">
@@ -45,7 +45,7 @@ export default function NotFound() {
             </Button>
             <Button asChild variant="outline">
               <a href="/#contact">
-                Contact FixMyDoor
+                Contact FixMyDoor Services
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>
             </Button>

@@ -535,7 +535,7 @@ export default function Admin() {
             </div>
             <CardTitle className="mt-3 text-2xl font-display text-secondary">Admin Login</CardTitle>
             <p className="max-w-xs text-sm text-muted-foreground">
-              FixMyDoor booking dashboard for customer requests, reviews, service content, and follow-up.
+              FixMyDoor Services booking dashboard for customer requests, reviews, service content, and follow-up.
             </p>
           </CardHeader>
           <CardContent>
@@ -582,11 +582,11 @@ export default function Admin() {
                       Use the current admin account to change it inside the dashboard, or update the admin password securely from the website server environment.
                     </p>
                     <a
-                      href="mailto:info.fixmydoor@gmail.com?subject=FixMyDoor%20admin%20password%20help"
+                      href="mailto:info.fixmydoor@gmail.com?subject=FixMyDoor%20Services%20admin%20password%20help"
                       className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2 font-bold text-white transition hover:bg-primary/90"
                     >
                       <Mail className="h-4 w-4" />
-                      Contact FixMyDoor support
+                      Contact FixMyDoor Services support
                     </a>
                   </div>
                 </DialogContent>
@@ -635,7 +635,7 @@ export default function Admin() {
             />
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8a5a2d]">
-                FixMyDoor
+                FixMyDoor Services
               </p>
               <h1 className="text-3xl font-display font-bold text-secondary md:text-4xl">
                 Admin Dashboard

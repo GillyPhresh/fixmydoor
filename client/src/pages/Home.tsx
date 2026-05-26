@@ -74,7 +74,7 @@ const bookingSchema = z.object({
   installationNeeded: z.string().optional(),
   budget: z.string().optional(),
   securityAnswer: z.string().refine((value) => value === "verified-customer", "Please confirm that you are a real customer"),
-  customerConsent: z.boolean().refine(Boolean, "Please confirm that FixMyDoor can contact you about this request"),
+  customerConsent: z.boolean().refine(Boolean, "Please confirm that FixMyDoor Services can contact you about this request"),
 });
 
 type BookingFormData = z.infer<typeof bookingSchema>;
@@ -106,7 +106,7 @@ const navLinks = [
 
 const BUSINESS_WHATSAPP_NUMBER = "233242011305";
 const BUSINESS_WHATSAPP_DISPLAY = "+233 24 201 1305";
-const CLIENT_WHATSAPP_MESSAGE = "Hello FixMyDoor, I need help with a door, lock, furniture, or hardware request. Please contact me.";
+const CLIENT_WHATSAPP_MESSAGE = "Hello FixMyDoor Services, I need help with a door, lock, furniture, or hardware request. Please contact me.";
 const BUSINESS_WHATSAPP_URL = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${encodeURIComponent(CLIENT_WHATSAPP_MESSAGE)}`;
 const NON_CANADIAN_LOCATION_PATTERN = /\b(united states|usa|u\.s\.a\.|america|ghana|nigeria|uk|united kingdom|england|germany|france|italy|spain|netherlands|uae|dubai|india|china|jamaica|south africa|australia|mexico)\b|,\s*(ny|tx|fl|wa|ga|il|pa|oh|mi|az|nj|va|ma|md|tn|mo|mn|wi|co|sc|al|la|ky|or|ok|ct|ut|nv)\b/i;
 
@@ -173,7 +173,7 @@ const faqItems = [
   },
   {
     question: "Do you work only in Montreal?",
-    answer: "FixMyDoor is based in Montreal and welcomes requests from nearby Quebec communities, other parts of Canada, and international customers who need sourcing or repair guidance.",
+    answer: "FixMyDoor Services is based in Montreal and welcomes requests from nearby Quebec communities, other parts of Canada, and international customers who need sourcing or repair guidance.",
   },
   {
     question: "Do you handle urgent or emergency door issues?",
@@ -181,7 +181,7 @@ const faqItems = [
   },
   {
     question: "Is there follow-up after the work?",
-    answer: "If something needs review after the agreed repair or installation scope, contact FixMyDoor quickly with photos and the booking details so it can be checked properly.",
+    answer: "If something needs review after the agreed repair or installation scope, contact FixMyDoor Services quickly with photos and the booking details so it can be checked properly.",
   },
   {
     question: "Will I receive updates after booking?",
@@ -771,7 +771,7 @@ export default function Home() {
       <nav className={`sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/96 shadow-[0_8px_28px_rgba(47,36,28,0.06)] backdrop-blur transition-all duration-300 ${headerCompact ? "shadow-[0_12px_32px_rgba(47,36,28,0.12)]" : ""}`}>
         <div className={`container flex max-w-[1180px] items-center justify-between gap-2 transition-all duration-300 sm:gap-4 md:py-2.5 ${headerCompact ? "py-1" : "py-1.5"}`}>
           <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
-            <a href="/" className="group flex shrink-0 items-center" aria-label="FixMyDoor homepage">
+            <a href="/" className="group flex shrink-0 items-center" aria-label="FixMyDoor Services homepage">
               <span className={`relative inline-flex items-center justify-center rounded-[1.35rem] border border-white/70 bg-white/88 px-2 shadow-[0_12px_26px_rgba(66,40,18,0.12)] ring-1 ring-primary/10 transition-all duration-300 ${headerCompact ? "h-11" : "h-12"} sm:h-16 md:h-20`}>
                 <img src="/img5150-transparent.png" alt="FixMyDoor logo" decoding="async" className={`w-auto object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.14)] transition-all duration-300 ${headerCompact ? "h-10" : "h-11"} sm:h-16 md:h-20`} />
                 <span className="absolute -right-1 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm" aria-hidden="true" />
@@ -779,7 +779,7 @@ export default function Home() {
             </a>
             <div className="hidden min-w-0 min-[430px]:block">
               <p className="truncate font-display text-sm font-bold leading-tight text-secondary sm:text-base md:text-lg">
-                FixMyDoor | Door & Furniture Repairs
+                FixMyDoor Services | Door & Furniture Repairs
               </p>
               <p className="mt-0.5 hidden text-[0.63rem] uppercase tracking-[0.16em] text-secondary/65 sm:block md:text-[0.68rem]">
                 Repairs, installations, doors, furniture, and hardware sourcing.
@@ -811,7 +811,7 @@ export default function Home() {
         </div>
         <div className={`border-t border-primary/10 bg-white/62 px-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition-all duration-300 min-[430px]:hidden ${headerCompact ? "py-1" : "py-1.5"}`}>
           <p className="font-display text-[0.82rem] font-bold leading-tight text-secondary">
-            FixMyDoor | Door & Furniture Repairs
+            FixMyDoor Services | Door & Furniture Repairs
           </p>
           <p className="mt-0.5 text-[0.62rem] font-semibold uppercase leading-tight tracking-[0.08em] text-secondary/65">
             Repairs, installations, doors, furniture, and hardware sourcing.
@@ -1066,10 +1066,10 @@ export default function Home() {
           <div className="mb-5 grid gap-3 md:mb-6 md:grid-cols-[0.75fr_1.25fr] md:items-end md:gap-4">
             <div>
               <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary md:text-xs md:tracking-[0.34em]">Core Services</p>
-              <h2 className="mt-2 font-display text-2xl font-bold text-secondary md:mt-3 md:text-4xl">What FixMyDoor does</h2>
+              <h2 className="mt-2 font-display text-2xl font-bold text-secondary md:mt-3 md:text-4xl">What FixMyDoor Services does</h2>
             </div>
             <p className="text-sm leading-relaxed text-foreground/72 md:text-base">
-              FixMyDoor is built for practical repair, installation, and sourcing requests. Customers can contact us for one small fix, a full door replacement, furniture installation, or help finding the right hardware before buying.
+              FixMyDoor Services is built for practical repair, installation, and sourcing requests. Customers can contact us for one small fix, a full door replacement, furniture installation, or help finding the right hardware before buying.
             </p>
           </div>
 
@@ -1333,7 +1333,7 @@ export default function Home() {
             <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary">Meet the Expert</p>
             <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:text-4xl">Richard Ampofo</h2>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-foreground/75 md:mt-4 md:text-base">
-              Richard runs FixMyDoor with a simple approach: look at the problem, explain the options clearly, and do the work in a way that feels solid when you use it again.
+              Richard runs FixMyDoor Services with a simple approach: look at the problem, explain the options clearly, and do the work in a way that feels solid when you use it again.
             </p>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-foreground/75 md:mt-3 md:text-base">
               The business is based in Canada and can also help with international repair questions or product requests.
@@ -1492,7 +1492,7 @@ export default function Home() {
               <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">Service Areas</p>
               <h2 className="mt-3 font-display text-3xl font-bold md:text-4xl">Canada-based, open to international requests</h2>
               <p className="mt-3 text-sm leading-relaxed text-white/75">
-                FixMyDoor is organized from Montreal, but you can contact us from other locations too. Send the repair, installation, door, or hardware request and we will let you know what is realistic.
+                FixMyDoor Services is organized from Montreal, but you can contact us from other locations too. Send the repair, installation, door, or hardware request and we will let you know what is realistic.
               </p>
               <div className="mt-4 grid gap-3 md:mt-5">
                 {serviceAreaNotes.map((note, index) => (
@@ -1832,7 +1832,7 @@ export default function Home() {
                         <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked === true)} />
                       </FormControl>
                       <div>
-                        <FormLabel className="font-semibold text-foreground">I agree that FixMyDoor can contact me about this request.</FormLabel>
+                        <FormLabel className="font-semibold text-foreground">I agree that FixMyDoor Services can contact me about this request.</FormLabel>
                         <p className="mt-1 text-xs leading-relaxed text-foreground/65">Your details are used to respond to your booking, quote, repair, or product request.</p>
                         <FormMessage />
                       </div>
@@ -1856,12 +1856,12 @@ export default function Home() {
                   <img src="/img5150-transparent.png" alt="FixMyDoor logo" loading="lazy" decoding="async" className="h-12 w-auto max-w-full object-contain drop-shadow-[0_8px_12px_rgba(66,40,18,0.16)]" />
                 </div>
                 <div>
-                  <h3 className="font-display text-lg font-bold">FixMyDoor</h3>
+                  <h3 className="font-display text-lg font-bold">FixMyDoor Services</h3>
                   <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.18em] text-white/68">Door & Furniture Repairs</p>
                 </div>
               </div>
               <p className="mt-3 text-xs leading-relaxed text-white/76">
-                FixMyDoor helps homeowners, landlords, offices, and businesses with door repairs, lock care, furniture fixes, and product sourcing from Canada.
+                FixMyDoor Services helps homeowners, landlords, offices, and businesses with door repairs, lock care, furniture fixes, and product sourcing from Canada.
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold text-white/88">Door repairs</span>
@@ -1926,7 +1926,7 @@ export default function Home() {
           </div>
 
           <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4 text-xs text-white/60 md:flex-row md:items-center md:justify-between">
-            <p>&copy; 2017-2026 FixMyDoor. Door and furniture repair support from Canada.</p>
+            <p>&copy; 2017-2026 FixMyDoor Services. Door and furniture repair support from Canada.</p>
             <p>Canada-based service. International requests welcome.</p>
           </div>
         </div>

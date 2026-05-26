@@ -75,7 +75,7 @@ function GoogleAnalytics() {
 
 function Router() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background p-8 text-center font-semibold text-secondary">Loading FixMyDoor...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-background p-8 text-center font-semibold text-secondary">Loading FixMyDoor Services...</div>}>
       <GoogleAnalytics />
       <Switch>
         <Route path={"/"} component={HomeRoute} />

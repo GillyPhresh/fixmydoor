@@ -528,14 +528,14 @@ function renderSitemapXml() {
 }
 
 function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
-  const lineItems = (booking.quoteNotes || "Labour, materials, sourcing, delivery, or installation details will be confirmed by FixMyDoor.").split(/\r?\n/).filter(Boolean);
+  const lineItems = (booking.quoteNotes || "Labour, materials, sourcing, delivery, or installation details will be confirmed by FixMyDoor Services.").split(/\r?\n/).filter(Boolean);
 
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FixMyDoor Quote / Invoice - ${escapeHtml(booking.id)}</title>
+  <title>FixMyDoor Services Quote / Invoice - ${escapeHtml(booking.id)}</title>
   <style>
     body { margin: 0; background: #f7efe4; color: #2f241c; font-family: Arial, sans-serif; }
     .page { max-width: 860px; margin: 24px auto; background: #fffaf2; border: 1px solid #ead8bf; border-radius: 24px; overflow: hidden; box-shadow: 0 18px 60px rgba(47,36,28,.14); }

@@ -24,7 +24,7 @@ const defaultServiceDetail = {
     "We repair, install, or help source the correct item.",
   ],
   trust:
-    "FixMyDoor keeps the process clear for homeowners, tenants, landlords, offices, shops, and property managers. Canada-based requests and international product questions are welcome.",
+    "FixMyDoor Services keeps the process clear for homeowners, tenants, landlords, offices, shops, and property managers. Canada-based requests and international product questions are welcome.",
 };
 
 const serviceDetails: Record<string, typeof defaultServiceDetail> = {
@@ -40,7 +40,7 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
       "The goal is a door that opens, closes, locks, and feels stable again.",
     ],
     trust:
-      "Door repair should be practical, clear, and focused on daily use. FixMyDoor explains the options before work starts so you understand what is being repaired and why.",
+      "Door repair should be practical, clear, and focused on daily use. FixMyDoor Services explains the options before work starts so you understand what is being repaired and why.",
   },
   "/lock-rekeying": {
     common: [
@@ -54,7 +54,7 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
       "We help restore safer access while keeping the process straightforward.",
     ],
     trust:
-      "Lock and hinge work is about safety and confidence. FixMyDoor handles these requests carefully and avoids asking customers to send private access codes through the website form.",
+      "Lock and hinge work is about safety and confidence. FixMyDoor Services handles these requests carefully and avoids asking customers to send private access codes through the website form.",
   },
   "/furniture-repair": {
     common: [
@@ -68,7 +68,7 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
       "The goal is a cleaner, stronger, more usable furniture piece.",
     ],
     trust:
-      "Furniture repair should preserve what is still useful and replace only what needs attention. FixMyDoor gives practical guidance before customers spend money on new items.",
+      "Furniture repair should preserve what is still useful and replace only what needs attention. FixMyDoor Services gives practical guidance before customers spend money on new items.",
   },
   "/furniture-installation": {
     common: [
@@ -82,7 +82,7 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
       "The goal is furniture that is installed neatly, opens and closes properly, and feels stable in everyday use.",
     ],
     trust:
-      "Furniture installation is easier when the parts, space, and hardware are clear before work starts. FixMyDoor helps organize those details so the job is more predictable.",
+      "Furniture installation is easier when the parts, space, and hardware are clear before work starts. FixMyDoor Services helps organize those details so the job is more predictable.",
   },
   "/entry-door-installation": {
     common: [
@@ -96,7 +96,7 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
       "The goal is a better-fitting door with hardware that works properly.",
     ],
     trust:
-      "A door installation can become expensive when measurements or hardware are wrong. FixMyDoor helps clarify those details before the customer commits.",
+      "A door installation can become expensive when measurements or hardware are wrong. FixMyDoor Services helps clarify those details before the customer commits.",
   },
   "/door-purchase": {
     common: [
@@ -110,7 +110,7 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
       "The goal is to buy the right door for the space, not just the first available door.",
     ],
     trust:
-      "Door sourcing works best when measurements and use case are clear. FixMyDoor helps customers compare practical options before purchase.",
+      "Door sourcing works best when measurements and use case are clear. FixMyDoor Services helps customers compare practical options before purchase.",
   },
   "/buy-door-hardware": {
     common: [
@@ -124,7 +124,7 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
       "The goal is hardware that fits and works with the door.",
     ],
     trust:
-      "Small hardware differences can stop a repair from working. FixMyDoor helps customers check the details before buying handles, locks, hinges, or cylinders.",
+      "Small hardware differences can stop a repair from working. FixMyDoor Services helps customers check the details before buying handles, locks, hinges, or cylinders.",
   },
   "/furniture-hardware-purchase": {
     common: [
@@ -138,7 +138,7 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
       "The goal is a part that fits, supports the furniture properly, and avoids repeat failure.",
     ],
     trust:
-      "Furniture hardware can look similar but fit differently. FixMyDoor helps customers slow down the buying process enough to choose a practical match.",
+      "Furniture hardware can look similar but fit differently. FixMyDoor Services helps customers slow down the buying process enough to choose a practical match.",
   },
   "/door-hardware": {
     common: [
@@ -152,7 +152,7 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
       "The goal is practical sourcing support with fewer wrong purchases.",
     ],
     trust:
-      "Hardware sourcing should be specific. FixMyDoor helps customers move from a photo or rough idea to a clearer product request.",
+      "Hardware sourcing should be specific. FixMyDoor Services helps customers move from a photo or rough idea to a clearer product request.",
   },
   "/international-requests": {
     common: [
@@ -166,7 +166,7 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
       "The goal is a clear response even when the customer is outside Canada.",
     ],
     trust:
-      "International requests need extra context. FixMyDoor asks for the right details up front so follow-up is easier across time zones.",
+      "International requests need extra context. FixMyDoor Services asks for the right details up front so follow-up is easier across time zones.",
   },
 };
 
@@ -192,7 +192,7 @@ export default function ServicePage() {
         <div className="container flex max-w-[1180px] items-center justify-between gap-2 py-2 sm:gap-4 sm:py-3">
           <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <img src="/img5150-transparent.png" alt="FixMyDoor" className="h-12 w-auto shrink-0 object-contain sm:h-14" />
-            <span className="hidden truncate font-display text-base font-bold text-secondary min-[430px]:inline sm:text-lg">FixMyDoor</span>
+            <span className="hidden truncate font-display text-base font-bold text-secondary min-[430px]:inline sm:text-lg">FixMyDoor Services</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <a href="tel:+14383471823" className="hidden rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white sm:inline-flex">
@@ -252,7 +252,7 @@ export default function ServicePage() {
           <Button asChild className="mt-4 bg-secondary md:mt-0">
             <a href="tel:+14383471823">
               <Phone className="mr-2 h-4 w-4" />
-              Call FixMyDoor
+              Call FixMyDoor Services
             </a>
           </Button>
         </div>

@@ -205,7 +205,7 @@ function renderEmailLogo(logoAttachment: ReturnType<typeof getLogoAttachment>, o
   const logoSrc = options.hosted ? `${getPublicBaseUrl()}/img5150-transparent.png` : `cid:${LOGO_CID}`;
   const content = logoAttachment || options.hosted
     ? `<img src="${logoSrc}" alt="FixMyDoor" width="220" style="${EMAIL_LOGO_IMG_STYLE} background:#ffffff; background-color:#ffffff;" />`
-    : `<span style="display:block; color:#6B4423; font-size:${textSize}; font-weight:800; line-height:1.1;">FixMyDoor</span>`;
+    : `<span style="display:block; color:#6B4423; font-size:${textSize}; font-weight:800; line-height:1.1;">FixMyDoor Services</span>`;
 
   return `
     <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="${EMAIL_LOGO_CARD_STYLE} margin-bottom:${marginBottom};">
@@ -274,7 +274,7 @@ function statusMessage(status: BookingStatus) {
     case "IN_PROGRESS":
       return "Your request is now in progress.";
     case "COMPLETED":
-      return "Your request has been marked as completed. Thank you for trusting FixMyDoor.";
+      return "Your request has been marked as completed. Thank you for trusting FixMyDoor Services.";
     case "CANCELLED":
       return "Your request has been cancelled. Contact us if you need to reopen it.";
     default:
@@ -327,7 +327,7 @@ class EmailService {
     const host = inferSmtpHost(user, rawHost);
     const port = parseInt(normalizeEnvValue(process.env.SMTP_PORT) || (/gmail/i.test(host) ? "465" : "587"), 10);
     const pass = normalizeSmtpPassword(normalizeEnvValue(process.env.SMTP_PASS), host);
-    const from = `FixMyDoor <${user}>`;
+    const from = `FixMyDoor Services <${user}>`;
 
     if (!host || !user || !pass) {
       this.transporter = null;
@@ -492,7 +492,7 @@ class EmailService {
     }
 
     const businessEmail = getBusinessEmail();
-    const subject = "FixMyDoor - Booking Confirmation";
+    const subject = "FixMyDoor Services - Booking Confirmation";
     const useResend = this.getProviderName() === "resend";
     const logoAttachment = useResend ? undefined : getLogoAttachment();
     const trackingUrl = booking.customerToken ? `${getPublicBaseUrl()}/track/${booking.customerToken}` : "";
@@ -507,7 +507,7 @@ class EmailService {
         <div style="padding:28px;">
         <h1 style="color:#6B4423; margin:0 0 14px;">We received your request</h1>
         <p style="font-size:16px; line-height:1.6; color:#3a281f;">Hi ${escapeHtml(booking.name)},</p>
-        <p style="font-size:16px; line-height:1.6; color:#3a281f;">Thanks for contacting FixMyDoor. Your request is now in our system, and our staff will contact you soon to confirm the details.</p>
+        <p style="font-size:16px; line-height:1.6; color:#3a281f;">Thanks for contacting FixMyDoor Services. Your request is now in our system, and our staff will contact you soon to confirm the details.</p>
 
         <div style="background:#F5F1E8; padding:20px; border-radius:16px; margin:22px 0; color:#3a281f;">
           <h3 style="margin-top:0; color:#6B4423;">Your request details</h3>
@@ -543,7 +543,7 @@ class EmailService {
         <p style="font-size:15px; color:#3a281f;"><strong>Phone:</strong> +1 (438) 347-1823</p>
         <p style="font-size:15px; color:#3a281f;"><strong>Email:</strong> <a href="mailto:${escapeHtml(businessEmail)}" style="color:#b46532;">${escapeHtml(businessEmail)}</a></p>
 
-        <p style="font-size:16px; line-height:1.6; color:#3a281f;">Thank you for trusting FixMyDoor with your repair needs.</p>
+        <p style="font-size:16px; line-height:1.6; color:#3a281f;">Thank you for trusting FixMyDoor Services with your repair needs.</p>
         <p style="font-size:16px; line-height:1.6; color:#3a281f;">Best regards,<br><strong>FixMyDoor Services</strong></p>
         </div>
       </div>
@@ -553,7 +553,7 @@ class EmailService {
       const text = [
         `Hi ${booking.name},`,
         "",
-        "Thanks for contacting FixMyDoor. Your request is now in our system, and our staff will contact you soon to confirm the details.",
+        "Thanks for contacting FixMyDoor Services. Your request is now in our system, and our staff will contact you soon to confirm the details.",
         "",
         `Booking ID: ${booking.id}`,
         `Request: ${booking.repairType}`,
@@ -609,9 +609,9 @@ class EmailService {
     const useResend = this.getProviderName() === "resend";
     const logoAttachment = useResend ? undefined : getLogoAttachment();
     const logoHtml = `<div style="text-align:center; background:#2f241c; padding:24px; border-radius:18px 18px 0 0;">${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px", hosted: useResend })}</div>`;
-    const subject = `New FixMyDoor Booking: ${cleanSubjectValue(booking.name)} - ${cleanSubjectValue(booking.repairType)}`;
+    const subject = `New FixMyDoor Services Booking: ${cleanSubjectValue(booking.name)} - ${cleanSubjectValue(booking.repairType)}`;
     const text = [
-      "New FixMyDoor booking received",
+      "New FixMyDoor Services booking received",
       "",
       `Booking ID: ${booking.id}`,
       `Name: ${booking.name}`,
@@ -720,7 +720,7 @@ class EmailService {
 
     const businessEmail = getBusinessEmail();
     const trackingUrl = booking.customerToken ? `${getPublicBaseUrl()}/track/${booking.customerToken}` : "";
-    const subject = `FixMyDoor request update: ${booking.status.replace("_", " ")}`;
+    const subject = `FixMyDoor Services request update: ${booking.status.replace("_", " ")}`;
     const useResend = this.getProviderName() === "resend";
     const logoAttachment = useResend ? undefined : getLogoAttachment();
     const html = `
@@ -786,7 +786,7 @@ class EmailService {
           }
         </div>
         <div style="padding:24px;color:#3a281f;">
-          <h1 style="color:#6B4423;margin-top:0;">FixMyDoor email test</h1>
+          <h1 style="color:#6B4423;margin-top:0;">FixMyDoor Services email test</h1>
           <p>This confirms the website can send emails through the configured SMTP account.</p>
           <p>If you received this message, booking emails should also deliver to customers and admin.</p>
         </div>
@@ -798,7 +798,7 @@ class EmailService {
         from: this.config?.from,
         to,
         replyTo: getBusinessEmail(),
-        subject: "FixMyDoor email test",
+        subject: "FixMyDoor Services email test",
         html,
         attachments: logoAttachment ? [logoAttachment] : undefined,
       }, "Test", (error) => {

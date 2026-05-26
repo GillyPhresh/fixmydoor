@@ -17,11 +17,11 @@ export interface ServiceSeoPage extends SeoPage {
 
 export const homeSeoPage: SeoPage = {
   path: "/",
-  title: "FixMyDoor | Door Repair, Furniture Repair & Hardware Sourcing",
+  title: "FixMyDoor Services | Door Repair, Furniture Repair & Hardware Sourcing",
   description:
-    "FixMyDoor helps with door repairs, lock rekeying, entry door installation, furniture repairs, buying doors, furniture parts, and hardware sourcing across Canada and international requests.",
+    "FixMyDoor Services helps with door repairs, lock rekeying, entry door installation, furniture repairs, buying doors, furniture parts, and hardware sourcing across Canada and international requests.",
   keywords:
-    "FixMyDoor, door repair, door repairs near me, door installation, entry door installation, lock rekeying, buy doors, buy door hardware, door equipment, furniture repair, furniture hardware, hardware sourcing, Canada door repair",
+    "FixMyDoor Services, door repair, door repairs near me, door installation, entry door installation, lock rekeying, buy doors, buy door hardware, door equipment, furniture repair, furniture hardware, hardware sourcing, Canada door repair",
   sitemapPriority: "1.0",
   changeFrequency: "weekly",
 };
@@ -30,7 +30,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/door-repair": {
     path: "/door-repair",
     eyebrow: "Door Repair",
-    title: "Door Repair Services | FixMyDoor Canada & International Requests",
+    title: "Door Repair Services | FixMyDoor Services Canada & International Requests",
     description:
       "Book help for sticking doors, damaged frames, loose handles, hinge problems, poor sealing, and doors that no longer close properly.",
     keywords:
@@ -45,7 +45,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/lock-rekeying": {
     path: "/lock-rekeying",
     eyebrow: "Lock Rekeying",
-    title: "Lock Rekeying & Door Lock Replacement | FixMyDoor",
+    title: "Lock Rekeying & Door Lock Replacement | FixMyDoor Services",
     description:
       "Request lock rekeying, lock replacement, handle changes, cylinder support, and safer entry hardware for homes, rentals, offices, and business spaces.",
     keywords:
@@ -122,7 +122,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
     eyebrow: "Buy Doors",
     title: "Buy Doors | Entry, Interior, Steel, Wood & Glass Door Sourcing",
     description:
-      "Ask FixMyDoor to help source entry doors, interior doors, heavy doors, Paladin doors, SED doors, wood-look doors, glass-panel doors, and custom-size options.",
+      "Ask FixMyDoor Services to help source entry doors, interior doors, heavy doors, Paladin doors, SED doors, wood-look doors, glass-panel doors, and custom-size options.",
     keywords:
       "buy doors, purchase doors, entry doors for sale, interior doors, heavy doors, Paladin doors, SED doors, glass doors, steel doors, door supplier Canada",
     bullets: ["Entry, interior, heavy-duty, glass-panel, steel, and wood-look options", "Paladin doors, SED doors, heavy doors, and many sizes", "Size, quantity, finish, and hardware guidance before buying"],
@@ -165,9 +165,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/door-hardware": {
     path: "/door-hardware",
     eyebrow: "Hardware Sourcing",
-    title: "Door Equipment & Hardware Sourcing | FixMyDoor",
+    title: "Door Equipment & Hardware Sourcing | FixMyDoor Services",
     description:
-      "Send measurements, photos, quantity, finish, and budget so FixMyDoor can help source the right door equipment, furniture parts, locks, hinges, and hardware.",
+      "Send measurements, photos, quantity, finish, and budget so FixMyDoor Services can help source the right door equipment, furniture parts, locks, hinges, and hardware.",
     keywords:
       "hardware sourcing, door equipment, source door parts, source furniture parts, door hardware sourcing, repair parts, locks hinges handles",
     bullets: ["Door equipment, locks, hinges, handles, and furniture hardware", "Photos, measurements, quantity, finish, and budget review", "Canada-based coordination with international request support"],
@@ -180,9 +180,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/international-requests": {
     path: "/international-requests",
     eyebrow: "International Requests",
-    title: "International Door, Furniture & Hardware Requests | FixMyDoor",
+    title: "International Door, Furniture & Hardware Requests | FixMyDoor Services",
     description:
-      "FixMyDoor is Canada-based and supports international requests for door buying, repair guidance, furniture parts, hardware sourcing, measurements, and quote preparation.",
+      "FixMyDoor Services is Canada-based and supports international requests for door buying, repair guidance, furniture parts, hardware sourcing, measurements, and quote preparation.",
     keywords:
       "international door requests, international furniture repair support, buy doors internationally, hardware sourcing worldwide, Canada door service international",
     bullets: ["Country, city, time zone, and currency-aware requests", "WhatsApp, email, and phone follow-up", "Door, furniture, and hardware sourcing support"],

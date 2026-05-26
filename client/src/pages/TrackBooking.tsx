@@ -41,7 +41,7 @@ export default function TrackBooking() {
         setError("");
       })
       .catch(() => {
-        setError("We could not find this booking. Please contact FixMyDoor if you need help.");
+        setError("We could not find this booking. Please contact FixMyDoor Services if you need help.");
       })
       .finally(() => setLoading(false));
   }, [token]);
@@ -51,13 +51,13 @@ export default function TrackBooking() {
       <div className="mx-auto max-w-3xl">
         <a href="/" className="inline-flex items-center gap-3 rounded-2xl bg-white px-4 py-2 shadow-sm">
           <img src="/img5150-transparent.png" alt="FixMyDoor" className="h-14 w-auto object-contain" />
-          <span className="font-display text-lg font-bold text-secondary">FixMyDoor</span>
+          <span className="font-display text-lg font-bold text-secondary">FixMyDoor Services</span>
         </a>
 
         <section className="mt-8 overflow-hidden rounded-[30px] border border-primary/15 bg-white shadow-[0_24px_70px_rgba(66,40,18,0.12)]">
           <div className="bg-[#2f241c] p-6 text-white sm:p-8">
             <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">Request Tracking</p>
-            <h1 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Your FixMyDoor request status</h1>
+            <h1 className="mt-3 font-display text-3xl font-bold sm:text-4xl">Your FixMyDoor Services request status</h1>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/75">
               This page shows the latest status we have for your repair, installation, or product request.
             </p>
@@ -139,7 +139,7 @@ export default function TrackBooking() {
           </a>
           <a href="mailto:info.fixmydoor@gmail.com" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-sm font-bold text-white">
             <Mail className="h-4 w-4" />
-            Email FixMyDoor
+            Email FixMyDoor Services
           </a>
         </div>
       </div>
