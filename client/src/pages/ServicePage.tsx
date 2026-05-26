@@ -11,10 +11,169 @@ function setMeta(selector: string, attributeName: "name" | "property", attribute
   document.head.appendChild(meta);
 }
 
+const defaultServiceDetail = {
+  common: [
+    "Customers can send photos, measurements, location, and a short note about what is not working.",
+    "We review the issue and explain whether repair, replacement, installation, or sourcing makes the most sense.",
+    "The request is saved with a tracking link so follow-up stays organized.",
+  ],
+  process: [
+    "Send the issue, photo, and location.",
+    "We confirm details, urgency, and the best next step.",
+    "We repair, install, or help source the correct item.",
+  ],
+  trust:
+    "FixMyDoor keeps the process clear for homeowners, tenants, landlords, offices, shops, and property managers. Canada-based requests and international product questions are welcome.",
+};
+
+const serviceDetails: Record<string, typeof defaultServiceDetail> = {
+  "/door-repair": {
+    common: [
+      "Doors that stick, drag, rub the floor, scrape the frame, or no longer latch correctly.",
+      "Loose handles, damaged frames, hinge problems, weather gaps, and everyday wear from heavy use.",
+      "Repair guidance when you are not sure whether the door can be fixed or needs replacement.",
+    ],
+    process: [
+      "Share photos of the door, frame, hinges, handle, and latch area.",
+      "We review alignment, hardware, damage, and safety concerns before suggesting the next step.",
+      "The goal is a door that opens, closes, locks, and feels stable again.",
+    ],
+    trust:
+      "Door repair should be practical, clear, and focused on daily use. FixMyDoor explains the options before work starts so you understand what is being repaired and why.",
+  },
+  "/lock-rekeying": {
+    common: [
+      "Missing keys, tenant changes, worn locks, loose handles, and entry hardware that no longer feels secure.",
+      "Cylinder, latch, strike plate, handle, hinge, and lock-body issues.",
+      "Security upgrades when a customer wants better control of who can access the property.",
+    ],
+    process: [
+      "Send the lock type, door photo, and whether keys are missing or access needs to change.",
+      "We review whether rekeying, adjustment, replacement, or hardware sourcing is the better route.",
+      "We help restore safer access while keeping the process straightforward.",
+    ],
+    trust:
+      "Lock and hinge work is about safety and confidence. FixMyDoor handles these requests carefully and avoids asking customers to send private access codes through the website form.",
+  },
+  "/furniture-repair": {
+    common: [
+      "Loose sofa frames, broken furniture supports, damaged chairs, cabinet doors, drawers, desks, and shelves.",
+      "Furniture pieces that wobble, sag, scrape, fail to close, or need replacement hardware.",
+      "Repair decisions when the item still has value but needs stronger support or better parts.",
+    ],
+    process: [
+      "Send photos of the damaged area, the full furniture piece, and any missing or broken hardware.",
+      "We review whether repair, reinforcement, or replacement parts make sense.",
+      "The goal is a cleaner, stronger, more usable furniture piece.",
+    ],
+    trust:
+      "Furniture repair should preserve what is still useful and replace only what needs attention. FixMyDoor gives practical guidance before customers spend money on new items.",
+  },
+  "/furniture-installation": {
+    common: [
+      "Furniture setup, fitting, alignment, and practical installation support for homes, rentals, offices, and shops.",
+      "Cabinet doors, drawer slides, shelves, desks, workstations, handles, hinges, and other furniture hardware.",
+      "Installation help when the furniture or part needs a cleaner fit, stronger support, or better daily function.",
+    ],
+    process: [
+      "Send photos of the furniture, installation area, hardware, quantity, and measurements if available.",
+      "We review what needs to be assembled, fitted, aligned, reinforced, or replaced.",
+      "The goal is furniture that is installed neatly, opens and closes properly, and feels stable in everyday use.",
+    ],
+    trust:
+      "Furniture installation is easier when the parts, space, and hardware are clear before work starts. FixMyDoor helps organize those details so the job is more predictable.",
+  },
+  "/entry-door-installation": {
+    common: [
+      "Front door replacement, entry door fitting, damaged exterior doors, and upgrades for a cleaner entrance.",
+      "Questions about measurements, swing direction, door type, delivery, installation, and hardware matching.",
+      "Entry, interior, steel, wood-look, glass-panel, heavy-duty, and custom-fit door requests.",
+    ],
+    process: [
+      "Send the opening size, door photos, preferred style, swing direction, and installation needs.",
+      "We confirm what information is missing before a door is ordered or installed.",
+      "The goal is a better-fitting door with hardware that works properly.",
+    ],
+    trust:
+      "A door installation can become expensive when measurements or hardware are wrong. FixMyDoor helps clarify those details before the customer commits.",
+  },
+  "/door-purchase": {
+    common: [
+      "Customers looking for entry doors, interior doors, heavy-duty doors, Paladin doors, SED doors, or custom-size options.",
+      "Questions about finish, material, swing direction, frame condition, delivery, and installation.",
+      "Buying guidance before spending money on a door that may not fit the opening.",
+    ],
+    process: [
+      "Send the door opening size, current door photos, quantity, preferred style, and budget.",
+      "We help narrow down suitable options and clarify hardware or installation needs.",
+      "The goal is to buy the right door for the space, not just the first available door.",
+    ],
+    trust:
+      "Door sourcing works best when measurements and use case are clear. FixMyDoor helps customers compare practical options before purchase.",
+  },
+  "/buy-door-hardware": {
+    common: [
+      "Handles, locks, cylinders, hinges, backplates, knobs, mortise kits, and full door hardware sets.",
+      "Hardware matching when finish, size, backset, or lock type is unclear.",
+      "Replacement planning for entry, bathroom, interior, and security hardware.",
+    ],
+    process: [
+      "Send photos of the existing hardware, door edge, latch, and any measurements you have.",
+      "We review the finish, lock type, size, and compatibility before suggesting options.",
+      "The goal is hardware that fits and works with the door.",
+    ],
+    trust:
+      "Small hardware differences can stop a repair from working. FixMyDoor helps customers check the details before buying handles, locks, hinges, or cylinders.",
+  },
+  "/furniture-hardware-purchase": {
+    common: [
+      "Drawer slides, cabinet hinges, soft-close runners, brackets, fittings, and replacement furniture parts.",
+      "Furniture hardware that is loose, broken, missing, undersized, or difficult to match.",
+      "Sourcing support from photos and measurements.",
+    ],
+    process: [
+      "Send photos of the part, furniture piece, mounting area, quantity, and any measurements.",
+      "We help identify what type of replacement part is likely needed.",
+      "The goal is a part that fits, supports the furniture properly, and avoids repeat failure.",
+    ],
+    trust:
+      "Furniture hardware can look similar but fit differently. FixMyDoor helps customers slow down the buying process enough to choose a practical match.",
+  },
+  "/door-hardware": {
+    common: [
+      "Door equipment, repair parts, locks, hinges, handles, drawer slides, cabinet hinges, and furniture hardware.",
+      "Sourcing questions from customers in Canada or outside Canada.",
+      "Requests that need photos, measurements, finish, quantity, delivery, or installation planning.",
+    ],
+    process: [
+      "Send clear photos, measurements, location, quantity, and what you want the item to do.",
+      "We review the request and ask for any missing information before recommending next steps.",
+      "The goal is practical sourcing support with fewer wrong purchases.",
+    ],
+    trust:
+      "Hardware sourcing should be specific. FixMyDoor helps customers move from a photo or rough idea to a clearer product request.",
+  },
+  "/international-requests": {
+    common: [
+      "Customers outside Canada asking about doors, furniture repairs, hardware, parts, measurements, or product guidance.",
+      "Requests that need time zone, currency, country, city, photos, and preferred contact method.",
+      "International sourcing questions where clear communication matters.",
+    ],
+    process: [
+      "Send your country, city, time zone, photos, measurements, quantity, and preferred currency.",
+      "We review whether the request is repair guidance, product sourcing, delivery, or installation planning.",
+      "The goal is a clear response even when the customer is outside Canada.",
+    ],
+    trust:
+      "International requests need extra context. FixMyDoor asks for the right details up front so follow-up is easier across time zones.",
+  },
+};
+
 export default function ServicePage() {
   const [location] = useLocation();
   const resolvedPage = resolveSeoPage(location);
   const page = serviceSeoPages[resolvedPage.path] || serviceSeoPages["/door-repair"];
+  const detail = serviceDetails[page.path] || defaultServiceDetail;
 
   useEffect(() => {
     document.title = page.title;
@@ -92,6 +251,37 @@ export default function ServicePage() {
               Call FixMyDoor
             </a>
           </Button>
+        </div>
+      </section>
+
+      <section className="container max-w-[1180px] pb-12">
+        <div className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+          <article className="rounded-[28px] border border-primary/12 bg-white p-6 shadow-[0_16px_44px_rgba(66,40,18,0.08)]">
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Service Details</p>
+            <h2 className="mt-3 text-3xl font-bold text-secondary">Common reasons customers contact us</h2>
+            <div className="mt-5 grid gap-3">
+              {detail.common.map((item) => (
+                <div key={item} className="flex gap-3 rounded-2xl bg-background p-4">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                  <p className="text-sm leading-relaxed text-foreground/76">{item}</p>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="rounded-[28px] border border-primary/12 bg-[#2f241c] p-6 text-white shadow-[0_16px_44px_rgba(66,40,18,0.12)]">
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">How We Work</p>
+            <h2 className="mt-3 text-3xl font-bold">Simple, clear, and documented</h2>
+            <div className="mt-5 grid gap-3">
+              {detail.process.map((item, index) => (
+                <div key={item} className="flex gap-3 rounded-2xl bg-white/8 p-4">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">{index + 1}</span>
+                  <p className="text-sm leading-relaxed text-white/82">{item}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-5 rounded-2xl bg-white/8 p-4 text-sm leading-relaxed text-white/82">{detail.trust}</p>
+          </article>
         </div>
       </section>
     </main>

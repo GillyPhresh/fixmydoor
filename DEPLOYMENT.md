@@ -157,15 +157,16 @@ In Railway:
 5. Update these Railway variables:
 
 ```env
-PUBLIC_SITE_URL="https://fixmydoor.ca"
-ADMIN_URL="https://fixmydoor.ca/admin"
+PUBLIC_SITE_URL="https://www.fixmydoor.ca"
+ADMIN_URL="https://www.fixmydoor.ca/admin"
 ```
 
 In CanSpace:
 
-1. Add the DNS records Railway gives you for the website domain.
-2. Add the DNS records Resend gives you for email sending, usually SPF, DKIM, and DMARC records.
-3. Wait until both Railway and Resend show the domain as verified.
+1. Add the DNS records Railway gives you for both `fixmydoor.ca` and `www.fixmydoor.ca`.
+2. Make sure `www.fixmydoor.ca` is connected to the same Railway service. The app treats `https://www.fixmydoor.ca` as the canonical public website.
+3. Add the DNS records Resend gives you for email sending, usually SPF, DKIM, and DMARC records.
+4. Wait until both Railway and Resend show the domain as verified.
 
 In Resend:
 

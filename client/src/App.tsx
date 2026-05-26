@@ -1,10 +1,20 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
+import LanguageTranslator from "./components/LanguageTranslator";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+
+declare global {
+  interface Window {
+    dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
+const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
 
 const Home = lazy(() => import("./pages/Home"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -27,14 +37,54 @@ function ServicePageRoute() {
   return <ServicePage />;
 }
 
+function GoogleAnalytics() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    if (!GA_MEASUREMENT_ID || !/^G-[A-Z0-9]+$/i.test(GA_MEASUREMENT_ID)) {
+      return;
+    }
+
+    if (!document.querySelector(`script[src*="googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}"]`)) {
+      const script = document.createElement("script");
+      script.async = true;
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+      document.head.appendChild(script);
+    }
+
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = window.gtag || function gtag(...args: unknown[]) {
+      window.dataLayer?.push(args);
+    };
+    window.gtag("js", new Date());
+    window.gtag("config", GA_MEASUREMENT_ID, { send_page_view: false });
+  }, []);
+
+  useEffect(() => {
+    if (!GA_MEASUREMENT_ID || !window.gtag) {
+      return;
+    }
+
+    window.gtag("event", "page_view", {
+      page_path: location,
+      page_title: document.title,
+    });
+  }, [location]);
+
+  return null;
+}
+
 function Router() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-background p-8 text-center font-semibold text-secondary">Loading FixMyDoor...</div>}>
+      <GoogleAnalytics />
       <Switch>
         <Route path={"/"} component={HomeRoute} />
         <Route path={"/door-repair"} component={ServicePageRoute} />
         <Route path={"/lock-rekeying"} component={ServicePageRoute} />
         <Route path={"/furniture-repair"} component={ServicePageRoute} />
+        <Route path={"/furniture-installation"} component={ServicePageRoute} />
+        <Route path={"/furniture-setup"} component={ServicePageRoute} />
         <Route path={"/entry-door-installation"} component={ServicePageRoute} />
         <Route path={"/door-installation"} component={ServicePageRoute} />
         <Route path={"/door-alignment"} component={ServicePageRoute} />
@@ -73,6 +123,7 @@ function App() {
       >
         <TooltipProvider>
           <Toaster />
+          <LanguageTranslator />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

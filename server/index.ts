@@ -384,6 +384,32 @@ function replacePublicUrlTokens(template: string) {
     .replaceAll(PUBLIC_IMAGE_URL_TOKEN, getPublicImageUrl());
 }
 
+function canonicalHostRedirectUrl(req: express.Request) {
+  if (process.env.NODE_ENV !== "production") {
+    return "";
+  }
+
+  let publicUrl: URL;
+  try {
+    publicUrl = new URL(getPublicBaseUrl());
+  } catch {
+    return "";
+  }
+
+  const canonicalHost = publicUrl.hostname.toLowerCase();
+  if (!canonicalHost.startsWith("www.")) {
+    return "";
+  }
+
+  const requestHost = (req.get("host") || "").split(":")[0].toLowerCase();
+  const apexHost = canonicalHost.replace(/^www\./, "");
+  if (requestHost !== apexHost) {
+    return "";
+  }
+
+  return `${publicUrl.protocol}//${publicUrl.host}${req.originalUrl}`;
+}
+
 function replaceMetaContent(html: string, selector: "name" | "property", key: string, content: string) {
   const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const expression = new RegExp(`<meta ${selector}="${escapedKey}" content="[^"]*" \\/>`);
@@ -626,13 +652,13 @@ async function startServer() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://translate.google.com", "https://translate.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:", "http:"],
         mediaSrc: ["'self'", "data:", "https:", "http:"],
-        scriptSrc: ["'self'"],
-        connectSrc: ["'self'"],
-        frameSrc: ["'none'"],
+        scriptSrc: ["'self'", "https://www.googletagmanager.com", "https://translate.google.com", "https://translate.googleapis.com", "https://www.gstatic.com"],
+        connectSrc: ["'self'", "https://www.google-analytics.com", "https://analytics.google.com", "https://region1.google-analytics.com", "https://translate.googleapis.com", "https://translate-pa.googleapis.com", "https://www.gstatic.com"],
+        frameSrc: ["'self'", "https://translate.google.com"],
         objectSrc: ["'none'"],
       },
     },
@@ -642,6 +668,15 @@ async function startServer() {
       preload: true,
     },
   }));
+
+  app.use((req, res, next) => {
+    const redirectUrl = canonicalHostRedirectUrl(req);
+    if (!redirectUrl) {
+      return next();
+    }
+
+    return res.redirect(req.method === "GET" || req.method === "HEAD" ? 301 : 308, redirectUrl);
+  });
 
   // Rate limiting
   const limiter = rateLimit({
@@ -1466,6 +1501,17 @@ async function startServer() {
     }
   };
 
+  const isKnownClientRoute = (pagePath: string) => {
+    const normalizedPath = normalizeSeoPath(pagePath);
+    return (
+      normalizedPath === "/" ||
+      normalizedPath === "/admin" ||
+      normalizedPath === "/404" ||
+      normalizedPath.startsWith("/track/") ||
+      Boolean(serviceSeoPages[normalizedPath])
+    );
+  };
+
   app.get("/robots.txt", (_req, res) => {
     res.setHeader("Cache-Control", isProduction ? "public, max-age=300" : "no-cache");
     res.type("text/plain").send(renderRobotsTxt());
@@ -1510,6 +1556,9 @@ async function startServer() {
   // Handle client-side routing - serve index.html for all routes
   app.get("*", (req, res) => {
     res.setHeader("Cache-Control", isProduction ? "no-store" : "no-cache");
+    if (!isKnownClientRoute(req.path)) {
+      res.status(404);
+    }
     sendIndexHtml(res, req.path);
   });
 

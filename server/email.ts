@@ -37,7 +37,7 @@ interface EmailRuntimeStatus {
 }
 
 const DEFAULT_BUSINESS_EMAIL = "info.fixmydoor@gmail.com";
-const DEFAULT_PUBLIC_SITE_URL = "https://fixmydoorservices.up.railway.app";
+const DEFAULT_PUBLIC_SITE_URL = "https://www.fixmydoor.ca";
 const LOGO_CID = "fixmydoor-logo";
 const EMAIL_LOGO_CARD_STYLE = "background:#ffffff; background-color:#ffffff; border:1px solid #ead8bf; border-radius:22px; padding:14px 22px; margin:0 auto 14px; box-shadow:0 14px 32px rgba(0,0,0,0.16);";
 const EMAIL_LOGO_IMG_STYLE = "display:block; width:220px; max-width:100%; height:auto; margin:0 auto;";

@@ -37,6 +37,15 @@ export const serviceCatalog: ServiceCatalogItem[] = [
     showInBooking: true,
   },
   {
+    slug: "furniture-installation",
+    title: "Furniture Installations",
+    summary: "Furniture setup, fitting, alignment, hardware installation, and practical installation support.",
+    bookingValue: "furniture-installation",
+    showOnHome: true,
+    showInFooter: true,
+    showInBooking: true,
+  },
+  {
     slug: "entry-door-installation",
     title: "Entry Door Installation",
     summary: "A front-door upgrade that fits better, closes better, and improves the entrance.",

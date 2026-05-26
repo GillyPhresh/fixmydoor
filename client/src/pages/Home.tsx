@@ -72,6 +72,7 @@ const bookingSchema = z.object({
   deliveryNeeded: z.string().optional(),
   installationNeeded: z.string().optional(),
   budget: z.string().optional(),
+  securityAnswer: z.string().refine((value) => value === "verified-customer", "Please confirm that you are a real customer"),
   customerConsent: z.boolean().refine(Boolean, "Please confirm that FixMyDoor can contact you about this request"),
 });
 
@@ -117,9 +118,47 @@ const isVideoMedia = (media?: string) =>
   Boolean(media && (media.startsWith("data:video/") || /\.(mp4|webm|ogg)(\?.*)?$/i.test(media)));
 
 const serviceAreaNotes = [
-  "Head office in Montreal for local coordination.",
-  "Booking support across Canada for homes, rentals, offices, and small business spaces.",
-  "International requests are welcome for sourcing, measurements, and repair guidance.",
+  "Head office in Montreal at 10158 Rue Berri for local coordination.",
+  "Requests are welcome from Montreal, Laval, Longueuil, Brossard, the West Island, nearby Quebec communities, and other parts of Canada.",
+  "International requests are welcome for sourcing, measurements, repair guidance, and product questions.",
+];
+
+const coreServiceDetails = [
+  {
+    title: "Door Repairs",
+    text: "Sticking, sagging, noisy, loose, damaged, or hard-to-close doors. We review the frame, hinges, latch, handle, and daily use so the repair plan is practical.",
+  },
+  {
+    title: "Door Installations",
+    text: "Entry, interior, replacement, heavy-duty, wood, steel, glass-panel, and custom-fit door requests. We can help with measurements, swing direction, hardware matching, delivery, and installation planning.",
+  },
+  {
+    title: "Furniture Repairs",
+    text: "Loose sofa frames, cabinet doors, drawers, desks, chairs, shelves, and furniture pieces that need stronger support, better hardware, or careful repair.",
+  },
+  {
+    title: "Furniture Installations",
+    text: "Furniture setup, fitting, alignment, hardware installation, and practical installation support for homes, rentals, offices, and small business spaces.",
+  },
+  {
+    title: "Locks, Hinges & Hardware",
+    text: "Lock rekeying, lock replacement, handles, cylinders, hinges, drawer slides, cabinet hinges, backplates, knobs, and matching replacement parts.",
+  },
+  {
+    title: "Hardware Sourcing",
+    text: "Door hardware, furniture hardware, repair parts, doors, equipment, and product guidance before you spend money on the wrong size, finish, or style.",
+  },
+];
+
+const trustDetails = [
+  "Clear explanation before work starts",
+  "Photo-based review for faster answers",
+  "Booking records and tracking links",
+  "Canada-based service with worldwide requests welcome",
+  "Urgent door and lock issues reviewed as quickly as availability allows",
+  "Follow-up available for the agreed repair or installation scope",
+  "Repair, installation, and sourcing support in one place",
+  "Customer details used only to respond to the request",
 ];
 
 const faqItems = [
@@ -133,7 +172,15 @@ const faqItems = [
   },
   {
     question: "Do you work only in Montreal?",
-    answer: "The business address is in Montreal, but FixMyDoor supports requests across Canada and can also discuss international product or repair needs.",
+    answer: "FixMyDoor is based in Montreal and welcomes requests from nearby Quebec communities, other parts of Canada, and international customers who need sourcing or repair guidance.",
+  },
+  {
+    question: "Do you handle urgent or emergency door issues?",
+    answer: "Yes. Mark the request as urgent or emergency in the form, call directly, or send a WhatsApp message. Availability depends on location, timing, and the type of issue.",
+  },
+  {
+    question: "Is there follow-up after the work?",
+    answer: "If something needs review after the agreed repair or installation scope, contact FixMyDoor quickly with photos and the booking details so it can be checked properly.",
   },
   {
     question: "Will I receive updates after booking?",
@@ -180,6 +227,7 @@ export default function Home() {
       deliveryNeeded: "",
       installationNeeded: "",
       budget: "",
+      securityAnswer: "",
       customerConsent: false,
     },
   });
@@ -324,6 +372,7 @@ export default function Home() {
       deliveryNeeded: data.deliveryNeeded?.trim() || undefined,
       installationNeeded: data.installationNeeded?.trim() || undefined,
       budget: data.budget?.trim() || undefined,
+      securityAnswer: data.securityAnswer.trim(),
       customerConsent: data.customerConsent,
       submittedAt: new Date(formReadyAtRef.current).toISOString(),
       website: "",
@@ -761,7 +810,7 @@ export default function Home() {
         )}
       </nav>
 
-      <section className="relative overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(212,165,116,0.2),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(66,40,18,0.12),_transparent_34%),linear-gradient(to_bottom,_#f8f3ea,_#ffffff)]">
+      <section className="relative overflow-hidden bg-[linear-gradient(180deg,_#f8f3ea,_#ffffff)]">
         <div className="container grid max-w-[1180px] items-center gap-4 py-4 sm:py-7 md:grid-cols-[0.9fr_1fr] md:py-8 lg:gap-8">
           <div className="max-w-lg">
             <div className="mb-2 inline-flex items-center gap-2 rounded-2xl border border-primary/18 bg-white px-3.5 py-1.5 text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-secondary shadow-sm">
@@ -808,10 +857,8 @@ export default function Home() {
           </div>
 
           <div className="relative">
-            <div className="absolute -left-5 top-8 h-32 w-32 rounded-full bg-primary/18 blur-3xl" />
-            <div className="absolute -right-6 bottom-10 h-40 w-40 rounded-full bg-secondary/15 blur-3xl" />
             <div className="relative overflow-hidden rounded-[28px] border border-white/60 bg-white p-2.5 shadow-[0_24px_70px_rgba(66,40,18,0.16)] md:rounded-[32px] md:p-3 md:shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
-              <img src={heroImage} alt="Lock rekeying service at a front door" decoding="async" className="h-[210px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
+              <img src={heroImage} alt="Lock rekeying service at a front door" loading="eager" decoding="async" className="h-[210px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
               <div className="absolute bottom-3 left-3 right-3 rounded-[20px] bg-white/92 p-3 shadow-lg backdrop-blur md:bottom-7 md:left-7 md:right-7 md:max-w-sm md:rounded-[24px] md:p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
                 <h2 className="mt-1 text-xl font-bold text-secondary md:mt-2 md:text-2xl">Front Door Rekeying</h2>
@@ -894,7 +941,7 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-                    <div className="relative min-h-[220px] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.82),_transparent_38%),linear-gradient(160deg,_#6b3f43_0%,_#845057_46%,_#ecd8c3_100%)] md:min-h-[280px]">
+                    <div className="relative min-h-[220px] overflow-hidden bg-[linear-gradient(160deg,_#6b3f43_0%,_#845057_46%,_#ecd8c3_100%)] md:min-h-[280px]">
                       {advert.isVideo ? (
                         <video src={advert.image} className="h-full min-h-[220px] w-full object-cover md:min-h-[280px]" autoPlay muted loop playsInline controls />
                       ) : (
@@ -984,6 +1031,49 @@ export default function Home() {
                 </span>
               </a>
             ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-10 md:py-14">
+        <div className="container max-w-[1180px]">
+          <div className="mb-6 grid gap-4 md:grid-cols-[0.75fr_1.25fr] md:items-end">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary">Core Services</p>
+              <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:text-4xl">What FixMyDoor does</h2>
+            </div>
+            <p className="text-sm leading-relaxed text-foreground/72 md:text-base">
+              FixMyDoor is built for practical repair, installation, and sourcing requests. Customers can contact us for one small fix, a full door replacement, furniture installation, or help finding the right hardware before buying.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {coreServiceDetails.map((service) => (
+              <article key={service.title} className="rounded-[22px] border border-primary/10 bg-[#fffaf2] p-5 shadow-[0_12px_32px_rgba(47,36,28,0.055)]">
+                <h3 className="text-xl font-bold text-secondary">{service.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-foreground/72">{service.text}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-[24px] border border-secondary/10 bg-secondary p-5 text-white md:mt-8 md:p-6">
+            <div className="grid gap-4 md:grid-cols-[0.7fr_1.3fr] md:items-center">
+              <div>
+                <ShieldCheck className="h-8 w-8 text-primary" />
+                <h3 className="mt-3 text-2xl font-bold">Trust before the first visit</h3>
+                <p className="mt-2 text-sm leading-relaxed text-white/76">
+                  The goal is simple: make the problem clear, protect the customer record, and recommend the next step that fits the job.
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {trustDetails.map((detail) => (
+                  <div key={detail} className="flex gap-2 rounded-2xl bg-white/8 p-3 text-sm font-semibold text-white/86">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                    <span>{detail}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -1206,7 +1296,6 @@ export default function Home() {
       <section id="about" className="bg-white py-8 md:py-10">
         <div className="container grid max-w-[1180px] gap-6 md:grid-cols-[0.58fr_1.42fr] md:items-start">
           <div className="relative order-2 md:order-1">
-            <div className="absolute -left-4 top-8 h-28 w-28 rounded-full bg-primary/18 blur-3xl" />
             <div className="relative mx-auto flex h-[280px] max-w-[240px] items-center justify-center overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,_#f7efe4,_#ffffff)] shadow-[0_16px_42px_rgba(66,40,18,0.13)] sm:h-[340px] sm:max-w-[300px] md:mx-0 md:h-[380px] md:max-w-[320px] md:rounded-[26px]">
               <img src={technicianImage} alt="Richard Ampofo working on a door repair" loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
             </div>
@@ -1688,6 +1777,25 @@ export default function Home() {
                   )}
                 </div>
                 <FormField control={form.control} name="message" render={({ field }) => (<FormItem className="sm:col-span-2"><FormLabel className="font-semibold text-foreground">Message</FormLabel><FormControl><Textarea placeholder="What is not working, or what are you trying to buy?" className="min-h-20" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="securityAnswer" render={({ field }) => (
+                  <FormItem className="sm:col-span-2 rounded-[20px] border border-primary/12 bg-[#fffaf2] p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value === "verified-customer"}
+                          onCheckedChange={(checked) => field.onChange(checked === true ? "verified-customer" : "")}
+                        />
+                      </FormControl>
+                      <div>
+                        <FormLabel className="font-semibold text-foreground">Protected request verification *</FormLabel>
+                        <p className="mt-1 text-xs leading-relaxed text-foreground/65">
+                          Confirm this is a real customer request. The form also uses timing checks, spam traps, rate limits, and secure server validation.
+                        </p>
+                        <FormMessage />
+                      </div>
+                    </div>
+                  </FormItem>
+                )} />
                 <FormField control={form.control} name="customerConsent" render={({ field }) => (
                   <FormItem className="sm:col-span-2 rounded-[18px] bg-background p-4">
                     <div className="flex items-start gap-3">
@@ -1709,34 +1817,8 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="relative overflow-hidden bg-[radial-gradient(circle_at_12%_0%,_rgba(212,165,116,0.14),_transparent_30%),radial-gradient(circle_at_90%_100%,_rgba(138,90,45,0.2),_transparent_32%),linear-gradient(135deg,_#241a14,_#342318_58%,_#1b130f)] text-white">
+      <footer className="relative overflow-hidden bg-[linear-gradient(135deg,_#241a14,_#342318_58%,_#1b130f)] text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-        <div className="absolute left-[-8rem] top-[-8rem] h-56 w-56 rounded-full bg-primary/16 blur-3xl" />
-        <div className="absolute bottom-[-9rem] right-[-6rem] h-64 w-64 rounded-full bg-[#8a5a2d]/18 blur-3xl" />
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 1000 420"
-          className="pointer-events-none absolute left-1/2 top-8 hidden h-[20rem] w-[56rem] -translate-x-1/2 text-primary opacity-[0.08] md:block"
-        >
-          <g fill="currentColor">
-            <path d="M120 118c28-35 84-44 134-31 20 5 39 2 57-8 18-9 39-5 48 12 7 14-7 26-20 32-17 8-25 24-35 38-13 19-38 19-58 27-21 9-25 35-47 41-22 5-44-13-46-35-2-20-26-24-42-33-18-10-8-31 9-43Z" />
-            <path d="M257 224c26 7 45 30 42 58-3 24 8 45 19 66 8 16-4 34-21 36-23 2-29-29-44-42-18-16-26-39-23-63 2-18 8-38 27-55Z" />
-            <path d="M425 111c36-21 83-26 121-8 14 7 29 7 45 2 15-4 34 2 42 16 9 16-8 31-24 30-22-2-40 9-59 18-27 13-57 8-84 0-20-6-55-21-41-58Z" />
-            <path d="M498 177c38-12 74 8 88 43 10 24 30 44 30 72 0 28-25 54-52 49-25-5-30-37-49-51-21-15-36-37-38-63-2-22 2-40 21-50Z" />
-            <path d="M625 113c55-34 134-29 191 1 30 16 66 11 94 32 21 16 10 46-17 48-32 3-60-17-91-8-24 7-41 28-67 25-26-3-49-15-76-9-24 5-47-11-53-35-5-20 2-42 19-54Z" />
-            <path d="M745 244c29-4 58 10 76 32 15 18 31 39 23 63-8 24-42 23-62 15-26-11-58-16-70-44-10-23 8-58 33-66Z" />
-          </g>
-          <g fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2.5">
-            <path d="M265 120C388 58 532 67 663 131" />
-            <path d="M569 145c88 19 154 65 211 133" />
-            <path d="M278 154c95 55 165 118 238 203" />
-          </g>
-          <g fill="currentColor">
-            <circle cx="292" cy="116" r="5" />
-            <circle cx="538" cy="143" r="5" />
-            <circle cx="772" cy="278" r="5" />
-          </g>
-        </svg>
         <div className="container relative max-w-[1180px] py-4 md:py-5">
           <div className="grid gap-3 md:grid-cols-[1.1fr_0.75fr_0.75fr_1fr]">
             <div className="overflow-hidden rounded-[24px] border border-primary/18 bg-[linear-gradient(180deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.04))] p-3 shadow-[0_14px_36px_rgba(0,0,0,0.14)]">

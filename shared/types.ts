@@ -22,6 +22,7 @@ export interface BookingRequest {
   deliveryNeeded?: string;
   installationNeeded?: string;
   budget?: string;
+  securityAnswer?: string;
   customerConsent?: boolean;
   submittedAt?: string;
   website?: string;

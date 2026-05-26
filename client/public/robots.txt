@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://fixmydoor.ca/sitemap.xml
-
+Sitemap: https://www.fixmydoor.ca/sitemap.xml

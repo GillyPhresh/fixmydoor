@@ -72,6 +72,21 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
     sitemapPriority: "0.9",
     changeFrequency: "weekly",
   },
+  "/furniture-installation": {
+    path: "/furniture-installation",
+    eyebrow: "Furniture Installation",
+    title: "Furniture Installation Services | Setup, Fitting & Hardware Help",
+    description:
+      "Request help with furniture installation, setup, fitting, alignment, cabinet hardware, drawer slides, shelves, desks, and practical furniture assembly support.",
+    keywords:
+      "furniture installation, furniture setup, cabinet installation, drawer slide installation, furniture assembly, cabinet hardware installation, furniture fitting Canada",
+    bullets: ["Furniture setup, fitting, and alignment", "Cabinet, drawer, desk, shelf, and hardware installation", "Photos and measurements reviewed before follow-up"],
+    cta: "Book Furniture Installation",
+    bookingValue: "furniture-installation",
+    structuredServiceName: "Furniture installation",
+    sitemapPriority: "0.85",
+    changeFrequency: "weekly",
+  },
   "/entry-door-installation": {
     path: "/entry-door-installation",
     eyebrow: "Entry Door Installation",
@@ -187,6 +202,7 @@ export const seoRouteAliases: Record<string, string> = {
   "/hardware-sourcing": "/door-hardware",
   "/buy-furniture-hardware": "/furniture-hardware-purchase",
   "/furniture-parts": "/furniture-hardware-purchase",
+  "/furniture-setup": "/furniture-installation",
 };
 
 export const seoPages: Record<string, SeoPage> = {

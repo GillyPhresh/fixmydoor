@@ -111,8 +111,13 @@ export function validateBooking(body: any): body is BookingRequest {
   const submittedAt = hasSubmittedAt ? Date.parse(body.submittedAt) : Number.NaN;
   const submissionAgeMs = Date.now() - submittedAt;
   const hasSafeSubmissionTiming =
-    !hasSubmittedAt ||
-    (Number.isFinite(submittedAt) && submissionAgeMs >= 800 && submissionAgeMs <= 7 * 24 * 60 * 60 * 1000);
+    hasSubmittedAt &&
+    Number.isFinite(submittedAt) &&
+    submissionAgeMs >= 1_200 &&
+    submissionAgeMs <= 7 * 24 * 60 * 60 * 1000;
+  const passedSecurityCheck =
+    typeof body?.securityAnswer === "string" &&
+    body.securityAnswer === "verified-customer";
 
   return (
     typeof body === "object" &&
@@ -137,6 +142,7 @@ export function validateBooking(body: any): body is BookingRequest {
     (body.message === undefined || (typeof body.message === "string" && body.message.length <= 1000)) &&
     (body.website === undefined || body.website === "") &&
     hasSafeSubmissionTiming &&
+    passedSecurityCheck &&
     OPTIONAL_TEXT_FIELDS.every((field) => validateOptionalText(body, field)) &&
     validatePhotos(body.photos) &&
     body.customerConsent === true
