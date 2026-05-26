@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type Response } from "express";
 import session from "express-session";
 import { createServer } from "http";
 import fs from "fs";
@@ -38,6 +38,13 @@ const defaultUploadDir =
 const uploadDir = process.env.UPLOAD_DIR || defaultUploadDir;
 const PUBLIC_SITE_URL_TOKEN = "__PUBLIC_SITE_URL__";
 const PUBLIC_IMAGE_URL_TOKEN = "__PUBLIC_IMAGE_URL__";
+type SiteEventPayload = {
+  type: "advert" | "review";
+  title: string;
+  message: string;
+  url?: string;
+};
+const siteEventClients = new Set<Response>();
 const mediaTypes: Record<string, { extension: string; kind: "image" | "video" }> = {
   "image/png": { extension: "png", kind: "image" },
   "image/jpeg": { extension: "jpg", kind: "image" },
@@ -47,6 +54,18 @@ const mediaTypes: Record<string, { extension: string; kind: "image" | "video" }>
   "video/webm": { extension: "webm", kind: "video" },
   "video/ogg": { extension: "ogg", kind: "video" },
 };
+
+function broadcastSiteEvent(event: SiteEventPayload) {
+  const payload = JSON.stringify({
+    ...event,
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    sentAt: new Date().toISOString(),
+  });
+
+  siteEventClients.forEach((client) => {
+    client.write(`event: site-update\ndata: ${payload}\n\n`);
+  });
+}
 
 function saveDataUrlMedia(dataUrl: unknown, options: { allowVideo: boolean; maxBytes: number }) {
   if (typeof dataUrl !== "string") {
@@ -926,6 +945,26 @@ async function startServer() {
     }
   });
 
+  app.get("/api/site-events", (req, res) => {
+    res.set({
+      "Cache-Control": "no-cache, no-transform",
+      "Content-Type": "text/event-stream",
+      Connection: "keep-alive",
+    });
+    res.flushHeaders?.();
+    res.write(`event: ready\ndata: ${JSON.stringify({ sentAt: new Date().toISOString() })}\n\n`);
+    siteEventClients.add(res);
+
+    const heartbeat = setInterval(() => {
+      res.write(": keep-alive\n\n");
+    }, 25000);
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      siteEventClients.delete(res);
+    });
+  });
+
   app.post("/api/media", async (req, res) => {
     try {
       const url = saveDataUrlMedia(req.body?.dataUrl, { allowVideo: false, maxBytes: 1_800_000 });
@@ -961,6 +1000,14 @@ async function startServer() {
 
     try {
       const item = await createContentItem(req.body);
+      if (item.active && item.category === "advert") {
+        broadcastSiteEvent({
+          type: "advert",
+          title: "New FixMyDoor Services advert",
+          message: item.title,
+          url: "/#booking-form",
+        });
+      }
       return res.status(201).json({ success: true, item });
     } catch (error) {
       console.error("Content creation error:", error);
@@ -976,6 +1023,14 @@ async function startServer() {
 
     try {
       const item = await updateContentItem(id, req.body);
+      if (item.active && item.category === "advert") {
+        broadcastSiteEvent({
+          type: "advert",
+          title: "Updated FixMyDoor Services advert",
+          message: item.title,
+          url: "/#booking-form",
+        });
+      }
       return res.json({ success: true, item });
     } catch (error) {
       console.error("Content update error:", error);
@@ -1051,6 +1106,14 @@ async function startServer() {
           adminNotes: cleanOptionalText(adminNotes, 500),
         },
       });
+      if (status === "APPROVED") {
+        broadcastSiteEvent({
+          type: "review",
+          title: "New FixMyDoor Services review",
+          message: `${review.rating}-star review from ${review.name}`,
+          url: "/#testimonials",
+        });
+      }
       return res.json({ success: true, review });
     } catch (error) {
       console.error("Review update error:", error);

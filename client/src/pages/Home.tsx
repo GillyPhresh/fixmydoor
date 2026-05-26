@@ -1,5 +1,5 @@
 import axios from "axios";
-import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import { type ChangeEvent, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, useCallback, useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft,
   ArrowRight,
+  Bell,
   CheckCircle2,
   Facebook,
   FileText,
@@ -19,9 +20,13 @@ import {
   Instagram,
   Mail,
   MapPin,
+  Maximize2,
   Menu,
   MessageCircle,
+  Minus,
   Phone,
+  Plus,
+  RotateCcw,
   Ruler,
   ShieldCheck,
   ShoppingBag,
@@ -92,8 +97,29 @@ type CookiePreference = "accepted" | "denied";
 const ADVERT_SLIDE_DURATION_MS = 7000;
 const SLIDE_HOLD_PAUSE_MS = 12000;
 const DOT_SELECTION_PAUSE_MS = 9000;
+const SITE_URL = "https://www.fixmydoor.ca";
 const mobileScrollTrackClass = "fixmydoor-mobile-carousel flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:pb-0";
 const mobileScrollItemClass = "fixmydoor-flip-card w-[86%] max-w-[24rem] flex-none snap-center md:w-auto md:max-w-none md:flex-auto";
+
+type DisplayAdvert = {
+  id: string;
+  title: string;
+  description: string;
+  tag: string;
+  image: string;
+  isVideo: boolean;
+  cta: string;
+  bookingValue: string;
+  updatedAt?: string;
+  alt: string;
+};
+
+type SiteUpdateEvent = {
+  type: "advert" | "review";
+  title: string;
+  message: string;
+  url?: string;
+};
 
 const navLinks = [
   { href: "#services", label: "Services" },
@@ -117,6 +143,32 @@ function isCanadaLocation(value?: string) {
 
 const isVideoMedia = (media?: string) =>
   Boolean(media && (media.startsWith("data:video/") || /\.(mp4|webm|ogg)(\?.*)?$/i.test(media)));
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+function pointerDistance(points: Array<{ x: number; y: number }>) {
+  if (points.length < 2) {
+    return 0;
+  }
+
+  return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+}
+
+function toAbsoluteUrl(value?: string) {
+  if (!value || value.startsWith("data:")) {
+    return undefined;
+  }
+
+  try {
+    return new URL(value, SITE_URL).toString();
+  } catch {
+    return undefined;
+  }
+}
+
+function getAdvertAlt(advert: Pick<DisplayAdvert, "title" | "tag">) {
+  return `${advert.title} promotion from FixMyDoor Services${advert.tag ? ` for ${advert.tag}` : ""}`;
+}
 
 const serviceAreaNotes = [
   "Head office in Montreal at 10158 Rue Berri for local coordination.",
@@ -200,10 +252,22 @@ export default function Home() {
   const [humanCheckConfirmed, setHumanCheckConfirmed] = useState(false);
   const [activeAdvertIndex, setActiveAdvertIndex] = useState(0);
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
+  const [advertDismissed, setAdvertDismissed] = useState(false);
+  const [lightboxAdvert, setLightboxAdvert] = useState<DisplayAdvert | null>(null);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
+  const [lightboxPan, setLightboxPan] = useState({ x: 0, y: 0 });
+  const [notificationSupported, setNotificationSupported] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const advertPauseUntilRef = useRef(0);
   const formReadyAtRef = useRef(Date.now());
   const contentSignatureRef = useRef("");
   const contentFetchInFlightRef = useRef(false);
+  const notificationRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const advertNotificationKeysRef = useRef<Set<string> | null>(null);
+  const reviewNotificationKeysRef = useRef<Set<string> | null>(null);
+  const lightboxPointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const lightboxPinchRef = useRef<{ distance: number; zoom: number } | null>(null);
+  const lightboxDragRef = useRef<{ pointerId: number; x: number; y: number; panX: number; panY: number } | null>(null);
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -243,6 +307,81 @@ export default function Home() {
     },
   });
 
+  const registerNotificationWorker = useCallback(async () => {
+    if (!("serviceWorker" in navigator)) {
+      return null;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.register("/fixmydoor-notifications-sw.js");
+      notificationRegistrationRef.current = registration;
+      return registration;
+    } catch (error) {
+      console.error("Notification worker registration error:", error);
+      return null;
+    }
+  }, []);
+
+  const notifyVisitor = useCallback((event: SiteUpdateEvent) => {
+    toast.message(event.title, {
+      description: event.message,
+      action: event.url
+        ? {
+            label: "View",
+            onClick: () => {
+              window.location.href = event.url || "/";
+            },
+          }
+        : undefined,
+    });
+
+    if (!("Notification" in window) || Notification.permission !== "granted") {
+      return;
+    }
+
+    const notificationOptions: NotificationOptions = {
+      body: event.message,
+      icon: "/favicon.svg",
+      badge: "/favicon.svg",
+      tag: `fixmydoor-${event.type}`,
+      data: { url: event.url || "/" },
+    };
+
+    const registration = notificationRegistrationRef.current;
+    if (registration?.showNotification) {
+      registration.showNotification(event.title, notificationOptions).catch((error) => {
+        console.error("Notification display error:", error);
+      });
+      return;
+    }
+
+    try {
+      new Notification(event.title, notificationOptions);
+    } catch (error) {
+      console.error("Notification display error:", error);
+    }
+  }, []);
+
+  const enableNotifications = useCallback(async () => {
+    if (!("Notification" in window)) {
+      toast.error("Browser notifications are not available on this device.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      setNotificationsEnabled(false);
+      window.localStorage.removeItem("fixmydoor-notifications-enabled");
+      toast.message("Notifications were not enabled.");
+      return;
+    }
+
+    await registerNotificationWorker();
+    setNotificationsEnabled(true);
+    window.localStorage.setItem("fixmydoor-notifications-enabled", "true");
+    toast.success("FixMyDoor Services updates are enabled.");
+  }, [registerNotificationWorker]);
+
   useEffect(() => {
     const savedPreference = window.localStorage.getItem("fixmydoor-cookie-choice-v2");
     const savedHumanCheck = window.localStorage.getItem("fixmydoor-human-check-v2");
@@ -254,6 +393,21 @@ export default function Home() {
       setCookieBannerOpen(true);
     }
   }, []);
+
+  useEffect(() => {
+    const supported = "Notification" in window && "serviceWorker" in navigator;
+    setNotificationSupported(supported);
+
+    if (!supported) {
+      return;
+    }
+
+    const enabled = window.localStorage.getItem("fixmydoor-notifications-enabled") === "true" && Notification.permission === "granted";
+    setNotificationsEnabled(enabled);
+    if (enabled) {
+      registerNotificationWorker();
+    }
+  }, [registerNotificationWorker]);
 
   useEffect(() => {
     const updateHeader = () => {
@@ -295,6 +449,13 @@ export default function Home() {
       axios.get<{ items: ContentItem[] }>("/api/content", { signal })
         .then(({ data }) => {
           if (active && Array.isArray(data.items)) {
+            const activeAdvertItems = data.items.filter((item) => item.category === "advert" && item.active);
+            const nextAdvertKeys = new Set(activeAdvertItems.map((item) => `${item.id}:${item.updatedAt || item.createdAt}`));
+            const previousAdvertKeys = advertNotificationKeysRef.current;
+            const newAdvert = previousAdvertKeys
+              ? activeAdvertItems.find((item) => !previousAdvertKeys.has(`${item.id}:${item.updatedAt || item.createdAt}`))
+              : undefined;
+
             const nextSignature = JSON.stringify(data.items.map((item) => [
               item.id,
               item.updatedAt,
@@ -305,6 +466,16 @@ export default function Home() {
             if (nextSignature !== contentSignatureRef.current) {
               contentSignatureRef.current = nextSignature;
               setContentItems(data.items);
+            }
+
+            advertNotificationKeysRef.current = nextAdvertKeys;
+            if (newAdvert) {
+              notifyVisitor({
+                type: "advert",
+                title: "New FixMyDoor Services advert",
+                message: newAdvert.title,
+                url: "/#booking-form",
+              });
             }
           }
         })
@@ -331,31 +502,93 @@ export default function Home() {
         loadContent();
       }
     };
+    const handleSiteRefresh = () => {
+      loadContent();
+    };
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("fixmydoor:refresh-content", handleSiteRefresh);
 
     return () => {
       active = false;
       controller.abort();
       window.clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("fixmydoor:refresh-content", handleSiteRefresh);
     };
-  }, []);
+  }, [notifyVisitor]);
 
   useEffect(() => {
     let active = true;
 
-    axios.get<{ reviews: Review[] }>("/api/reviews?limit=9")
-      .then(({ data }) => {
-        if (active && Array.isArray(data.reviews)) {
-          setReviews(data.reviews);
-        }
-      })
-      .catch((error) => {
-        console.error("Review load error:", error);
-      });
+    const loadReviews = () => {
+      axios.get<{ reviews: Review[] }>("/api/reviews?limit=9")
+        .then(({ data }) => {
+          if (active && Array.isArray(data.reviews)) {
+            const nextReviewKeys = new Set(data.reviews.map((review) => review.id));
+            const previousReviewKeys = reviewNotificationKeysRef.current;
+            const newReview = previousReviewKeys
+              ? data.reviews.find((review) => !previousReviewKeys.has(review.id))
+              : undefined;
+
+            setReviews(data.reviews);
+            reviewNotificationKeysRef.current = nextReviewKeys;
+
+            if (newReview) {
+              notifyVisitor({
+                type: "review",
+                title: "New FixMyDoor Services review",
+                message: `${newReview.rating}-star review from ${newReview.name}`,
+                url: "/#testimonials",
+              });
+            }
+          }
+        })
+        .catch((error) => {
+          console.error("Review load error:", error);
+        });
+    };
+
+    loadReviews();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        loadReviews();
+      }
+    }, 90000);
+    const handleSiteRefresh = () => {
+      loadReviews();
+    };
+    window.addEventListener("fixmydoor:refresh-reviews", handleSiteRefresh);
 
     return () => {
       active = false;
+      window.clearInterval(interval);
+      window.removeEventListener("fixmydoor:refresh-reviews", handleSiteRefresh);
+    };
+  }, [notifyVisitor]);
+
+  useEffect(() => {
+    if (!("EventSource" in window)) {
+      return;
+    }
+
+    const events = new EventSource("/api/site-events");
+    const handleSiteUpdate = (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data) as SiteUpdateEvent;
+        window.dispatchEvent(new Event(payload.type === "review" ? "fixmydoor:refresh-reviews" : "fixmydoor:refresh-content"));
+      } catch (error) {
+        console.error("Site update event error:", error);
+      }
+    };
+
+    events.addEventListener("site-update", handleSiteUpdate);
+    events.onerror = () => {
+      events.close();
+    };
+
+    return () => {
+      events.removeEventListener("site-update", handleSiteUpdate);
+      events.close();
     };
   }, []);
 
@@ -468,7 +701,8 @@ export default function Home() {
     desc: item.description || "",
     category: item.tag || "Project",
   }));
-  const dynamicAdverts = dynamicItems("advert").map((item) => ({
+  const dynamicAdverts: DisplayAdvert[] = dynamicItems("advert").map((item) => ({
+    id: item.id,
     title: item.title,
     description: item.description || "See what is available now and send a request for details.",
     tag: item.tag || "Promotion",
@@ -476,9 +710,12 @@ export default function Home() {
     isVideo: isVideoMedia(item.image),
     cta: item.items || "Send Request",
     bookingValue: item.bookingValue || "consultation",
+    updatedAt: item.updatedAt || item.createdAt,
+    alt: getAdvertAlt({ title: item.title, tag: item.tag || "Promotion" }),
   }));
-  const defaultAdverts = [
+  const defaultAdverts: DisplayAdvert[] = [
     {
+      id: "default-fixmydoor-services-ad",
       title: "Door, lock, furniture or hardware problem?",
       description: "FixMyDoor Services can help with repairs, installations, doors, furniture, and hardware sourcing. Call or message today.",
       tag: "Fast Help",
@@ -486,6 +723,8 @@ export default function Home() {
       isVideo: false,
       cta: "Book Now",
       bookingValue: "consultation",
+      updatedAt: "default",
+      alt: "Door lock furniture and hardware repair promotion from FixMyDoor Services",
     },
   ];
   const displayedServiceShowcase = dynamicServiceShowcase.length > 0 ? dynamicServiceShowcase : serviceShowcase;
@@ -494,12 +733,185 @@ export default function Home() {
   const displayedHardwareProducts = dynamicHardwareProducts.length > 0 ? dynamicHardwareProducts : hardwareProducts;
   const displayedProjectGallery = dynamicProjectGallery.length > 0 ? dynamicProjectGallery : projectGallery;
   const displayedAdverts = dynamicAdverts.length > 0 ? dynamicAdverts : defaultAdverts;
+  const displayedAdvertsSignature = displayedAdverts.map((advert) => `${advert.id}:${advert.updatedAt || advert.title}`).join("|");
+  const reviewSchemaItems = reviews.slice(0, 9);
+  const averageRating = reviewSchemaItems.length > 0
+    ? reviewSchemaItems.reduce((total, review) => total + review.rating, 0) / reviewSchemaItems.length
+    : 0;
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "LocalBusiness",
+        "@id": `${SITE_URL}/#business`,
+        name: "FixMyDoor Services",
+        url: `${SITE_URL}/`,
+        image: `${SITE_URL}/img5150-transparent.png`,
+        telephone: "+1-438-347-1823",
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: "10158 Rue Berri",
+          addressLocality: "Montreal",
+          addressRegion: "QC",
+          addressCountry: "CA",
+        },
+        areaServed: ["Montreal", "Laval", "Longueuil", "Brossard", "Quebec", "Canada"],
+        ...(reviewSchemaItems.length > 0
+          ? {
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: Number(averageRating.toFixed(1)),
+                reviewCount: reviewSchemaItems.length,
+                bestRating: 5,
+                worstRating: 1,
+              },
+              review: reviewSchemaItems.map((review) => ({
+                "@type": "Review",
+                "@id": `${SITE_URL}/#review-${review.id}`,
+                author: {
+                  "@type": "Person",
+                  name: review.name,
+                },
+                datePublished: review.createdAt || undefined,
+                reviewBody: review.quote,
+                reviewRating: {
+                  "@type": "Rating",
+                  ratingValue: review.rating,
+                  bestRating: 5,
+                  worstRating: 1,
+                },
+              })),
+            }
+          : {}),
+      },
+      ...displayedAdverts.map((advert, index) => ({
+        "@type": "Offer",
+        "@id": `${SITE_URL}/#promotion-${advert.id || index}`,
+        name: advert.title,
+        description: advert.description,
+        image: toAbsoluteUrl(advert.image),
+        url: `${SITE_URL}/#booking-form`,
+        availability: "https://schema.org/InStock",
+        itemOffered: {
+          "@type": "Service",
+          name: advert.title,
+          description: advert.description,
+          provider: {
+            "@id": `${SITE_URL}/#business`,
+          },
+        },
+      })),
+    ],
+  };
   const watchedAddress = form.watch("address");
   const watchedCountry = form.watch("country");
   const showInternationalRequestDetails = !isCanadaLocation(watchedCountry) || NON_CANADIAN_LOCATION_PATTERN.test(watchedAddress || "");
 
   const pauseAdvertSlider = (duration = SLIDE_HOLD_PAUSE_MS) => {
     advertPauseUntilRef.current = Date.now() + duration;
+  };
+
+  const dismissAdvert = () => {
+    window.sessionStorage.setItem("fixmydoor-dismissed-ad-signature", displayedAdvertsSignature);
+    setAdvertDismissed(true);
+  };
+
+  const openAdvertLightbox = (advert: DisplayAdvert) => {
+    pauseAdvertSlider(DOT_SELECTION_PAUSE_MS);
+    lightboxPointersRef.current.clear();
+    lightboxPinchRef.current = null;
+    lightboxDragRef.current = null;
+    setLightboxAdvert(advert);
+    setLightboxZoom(1);
+    setLightboxPan({ x: 0, y: 0 });
+  };
+
+  const closeAdvertLightbox = () => {
+    setLightboxAdvert(null);
+    setLightboxZoom(1);
+    setLightboxPan({ x: 0, y: 0 });
+    lightboxPointersRef.current.clear();
+    lightboxPinchRef.current = null;
+    lightboxDragRef.current = null;
+  };
+
+  const updateLightboxZoom = (nextZoom: number | ((currentZoom: number) => number)) => {
+    setLightboxZoom((currentZoom) => {
+      const resolvedZoom = typeof nextZoom === "function" ? nextZoom(currentZoom) : nextZoom;
+      const clampedZoom = clamp(resolvedZoom, 1, 5);
+      if (clampedZoom === 1) {
+        setLightboxPan({ x: 0, y: 0 });
+      }
+      return clampedZoom;
+    });
+  };
+
+  const handleLightboxWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    updateLightboxZoom((currentZoom) => currentZoom + (event.deltaY > 0 ? -0.18 : 0.18));
+  };
+
+  const handleLightboxPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    lightboxPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    const points = Array.from(lightboxPointersRef.current.values());
+    if (points.length >= 2) {
+      lightboxPinchRef.current = {
+        distance: pointerDistance(points),
+        zoom: lightboxZoom,
+      };
+      lightboxDragRef.current = null;
+      return;
+    }
+
+    if (lightboxZoom > 1) {
+      lightboxDragRef.current = {
+        pointerId: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        panX: lightboxPan.x,
+        panY: lightboxPan.y,
+      };
+    }
+  };
+
+  const handleLightboxPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!lightboxPointersRef.current.has(event.pointerId)) {
+      return;
+    }
+
+    lightboxPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const points = Array.from(lightboxPointersRef.current.values());
+
+    if (points.length >= 2 && lightboxPinchRef.current) {
+      const nextDistance = pointerDistance(points);
+      if (nextDistance > 0 && lightboxPinchRef.current.distance > 0) {
+        updateLightboxZoom(lightboxPinchRef.current.zoom * (nextDistance / lightboxPinchRef.current.distance));
+      }
+      return;
+    }
+
+    const drag = lightboxDragRef.current;
+    if (drag && drag.pointerId === event.pointerId && lightboxZoom > 1) {
+      setLightboxPan({
+        x: drag.panX + event.clientX - drag.x,
+        y: drag.panY + event.clientY - drag.y,
+      });
+    }
+  };
+
+  const handleLightboxPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    lightboxPointersRef.current.delete(event.pointerId);
+    if (lightboxPointersRef.current.size < 2) {
+      lightboxPinchRef.current = null;
+    }
+    if (lightboxDragRef.current?.pointerId === event.pointerId) {
+      lightboxDragRef.current = null;
+    }
   };
 
   const showPreviousAdvert = () => {
@@ -523,6 +935,31 @@ export default function Home() {
   useEffect(() => {
     setActiveAdvertIndex(0);
   }, [displayedAdverts.length]);
+
+  useEffect(() => {
+    setAdvertDismissed(window.sessionStorage.getItem("fixmydoor-dismissed-ad-signature") === displayedAdvertsSignature);
+  }, [displayedAdvertsSignature]);
+
+  useEffect(() => {
+    if (!lightboxAdvert) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeAdvertLightbox();
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [lightboxAdvert]);
 
   useEffect(() => {
     if (displayedAdverts.length <= 1) {
@@ -779,6 +1216,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
       <nav className={`sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/96 shadow-[0_8px_28px_rgba(47,36,28,0.06)] backdrop-blur transition-all duration-300 ${headerCompact ? "shadow-[0_12px_32px_rgba(47,36,28,0.12)]" : ""}`}>
         <div className={`container flex max-w-[1180px] items-center justify-between gap-2 transition-all duration-300 sm:gap-4 md:py-2.5 ${headerCompact ? "py-1" : "py-1.5"}`}>
           <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
@@ -907,7 +1345,7 @@ export default function Home() {
         </div>
       </section>
 
-      {displayedAdverts.length > 0 && (
+      {displayedAdverts.length > 0 && !advertDismissed && (
         <aside
           className="fixed bottom-3 left-3 right-3 z-40 sm:bottom-5 sm:left-auto sm:right-5 sm:w-[25rem]"
           onPointerDown={() => pauseAdvertSlider()}
@@ -919,21 +1357,37 @@ export default function Home() {
         >
           <div className="relative overflow-hidden rounded-[26px] border border-white/70 bg-white/94 shadow-[0_24px_70px_rgba(47,36,28,0.24)] ring-1 ring-primary/15 backdrop-blur-xl">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(212,165,116,0.30),_transparent_42%),linear-gradient(135deg,_rgba(255,250,243,0.96),_rgba(255,255,255,0.92)_55%,_rgba(241,223,205,0.86))]" />
+            <button
+              type="button"
+              onClick={dismissAdvert}
+              className="absolute right-2 top-2 z-20 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/92 text-secondary shadow-[0_10px_20px_rgba(47,36,28,0.14)] transition hover:-translate-y-0.5 hover:bg-secondary hover:text-white"
+              aria-label="Dismiss promotion"
+            >
+              <X className="h-4 w-4" />
+            </button>
             <div className="relative flex transition-transform duration-[760ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform" style={{ transform: `translateX(-${activeAdvertIndex * 100}%)` }}>
               {displayedAdverts.map((advert, index) => (
                 <article key={`${advert.title}-${index}`} className="min-w-full">
                   <div className="grid grid-cols-[6.75rem_1fr] gap-0 sm:grid-cols-[8rem_1fr]">
-                    <div className="relative min-h-[8.75rem] overflow-hidden bg-secondary sm:min-h-[9.75rem]">
+                    <button
+                      type="button"
+                      onClick={() => openAdvertLightbox(advert)}
+                      className="group relative min-h-[8.75rem] overflow-hidden bg-secondary text-left sm:min-h-[9.75rem]"
+                      aria-label={`Open ${advert.title} promotion fullscreen`}
+                    >
                       {advert.isVideo ? (
                         <video src={advert.image} className="h-full w-full object-cover" autoPlay muted loop playsInline />
                       ) : (
-                        <img src={advert.image} alt={advert.title} loading={index === 0 ? "eager" : "lazy"} decoding="async" className="h-full w-full object-cover" />
+                        <img src={advert.image} alt={advert.alt} loading={index === 0 ? "eager" : "lazy"} decoding="async" className="h-full w-full object-cover" />
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-secondary/42 via-transparent to-white/8" />
                       <span className="absolute left-2 top-2 rounded-full bg-primary px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.16em] text-white shadow-lg">
                         Ad
                       </span>
-                    </div>
+                      <span className="absolute bottom-2 right-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/92 text-secondary shadow-lg transition group-hover:scale-105" aria-hidden="true">
+                        <Maximize2 className="h-4 w-4" />
+                      </span>
+                    </button>
                     <div className="flex min-w-0 flex-col p-3.5 sm:p-4">
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-[0.62rem] font-black uppercase tracking-[0.18em] text-primary">
@@ -988,8 +1442,19 @@ export default function Home() {
                   />
                 ))}
               </div>
-              {displayedAdverts.length > 1 && (
-                <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5">
+                {notificationSupported && (
+                  <button
+                    type="button"
+                    onClick={enableNotifications}
+                    className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition ${notificationsEnabled ? "border-primary bg-primary text-white" : "border-primary/14 bg-white text-secondary hover:border-primary hover:text-primary"}`}
+                    aria-label={notificationsEnabled ? "FixMyDoor update notifications enabled" : "Enable FixMyDoor update notifications"}
+                  >
+                    <Bell className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                {displayedAdverts.length > 1 && (
+                  <>
                   <button
                     type="button"
                     onClick={showPreviousAdvert}
@@ -1006,11 +1471,95 @@ export default function Home() {
                   >
                     <ArrowRight className="h-3.5 w-3.5" />
                   </button>
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </aside>
+      )}
+
+      {lightboxAdvert && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-[#140f0b]/88 p-3 text-white backdrop-blur-md sm:p-5"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${lightboxAdvert.title} promotion preview`}
+        >
+          <button type="button" className="absolute inset-0 cursor-zoom-out" onClick={closeAdvertLightbox} aria-label="Close promotion preview" />
+          <div className="relative grid h-full max-h-[calc(100vh-1.5rem)] w-full max-w-6xl grid-rows-[auto_1fr_auto] overflow-hidden rounded-[28px] border border-white/14 bg-[#211813] shadow-[0_30px_90px_rgba(0,0,0,0.42)] sm:max-h-[calc(100vh-2.5rem)]">
+            <div className="relative z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-white/8 px-4 py-3 backdrop-blur">
+              <div className="min-w-0">
+                <p className="truncate text-[0.66rem] font-black uppercase tracking-[0.22em] text-primary">{lightboxAdvert.tag}</p>
+                <h2 className="truncate font-display text-lg font-bold sm:text-2xl">{lightboxAdvert.title}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeAdvertLightbox}
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-secondary shadow-lg transition hover:-translate-y-0.5 hover:bg-primary hover:text-white"
+                aria-label="Close promotion preview"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div
+              className="relative min-h-0 overflow-hidden bg-black/34 touch-none"
+              onWheel={handleLightboxWheel}
+              onPointerDown={handleLightboxPointerDown}
+              onPointerMove={handleLightboxPointerMove}
+              onPointerUp={handleLightboxPointerEnd}
+              onPointerCancel={handleLightboxPointerEnd}
+            >
+              <div className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full border border-white/12 bg-black/44 p-1.5 backdrop-blur">
+                <button type="button" onClick={() => updateLightboxZoom((currentZoom) => currentZoom - 0.25)} className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-secondary transition hover:bg-primary hover:text-white" aria-label="Zoom out">
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="min-w-12 text-center text-xs font-black">{Math.round(lightboxZoom * 100)}%</span>
+                <button type="button" onClick={() => updateLightboxZoom((currentZoom) => currentZoom + 0.25)} className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-secondary transition hover:bg-primary hover:text-white" aria-label="Zoom in">
+                  <Plus className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => { setLightboxZoom(1); setLightboxPan({ x: 0, y: 0 }); }} className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-secondary transition hover:bg-primary hover:text-white" aria-label="Reset zoom">
+                  <RotateCcw className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="flex h-full min-h-[18rem] items-center justify-center overflow-hidden p-4 sm:min-h-[28rem] sm:p-8">
+                {lightboxAdvert.isVideo ? (
+                  <video
+                    src={lightboxAdvert.image}
+                    className="max-h-full max-w-full rounded-[18px] object-contain shadow-2xl"
+                    style={{ transform: `translate3d(${lightboxPan.x}px, ${lightboxPan.y}px, 0) scale(${lightboxZoom})`, transformOrigin: "center", transition: lightboxPointersRef.current.size ? "none" : "transform 160ms ease" }}
+                    controls
+                    autoPlay
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    src={lightboxAdvert.image}
+                    alt={lightboxAdvert.alt}
+                    className="max-h-full max-w-full select-none rounded-[18px] object-contain shadow-2xl"
+                    draggable={false}
+                    style={{ transform: `translate3d(${lightboxPan.x}px, ${lightboxPan.y}px, 0) scale(${lightboxZoom})`, transformOrigin: "center", transition: lightboxPointersRef.current.size ? "none" : "transform 160ms ease" }}
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="relative z-10 flex flex-col gap-3 border-t border-white/10 bg-white/8 p-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+              <p className="max-w-3xl text-sm leading-relaxed text-white/78">{lightboxAdvert.description}</p>
+              <div className="flex shrink-0 gap-2">
+                <button type="button" onClick={() => handleCatalogPick(lightboxAdvert.bookingValue, lightboxAdvert.title)} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-primary/90">
+                  {lightboxAdvert.cta}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <a href={BUSINESS_WHATSAPP_URL} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-secondary shadow-lg transition hover:-translate-y-0.5 hover:text-primary">
+                  WhatsApp
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <section className="bg-[#2f241c] py-9 text-white md:py-10">
