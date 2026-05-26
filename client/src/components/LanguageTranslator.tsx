@@ -142,6 +142,20 @@ export default function LanguageTranslator({ className = "" }: LanguageTranslato
   };
 
   useEffect(() => {
+    const loadTranslator = () => {
+      ensureTranslatorLoaded();
+    };
+
+    if ("requestIdleCallback" in window) {
+      const idleId = window.requestIdleCallback(loadTranslator, { timeout: 2500 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = globalThis.setTimeout(loadTranslator, 1200);
+    return () => globalThis.clearTimeout(timeoutId);
+  }, [ensureTranslatorLoaded]);
+
+  useEffect(() => {
     if (document.cookie.includes("googtrans=/en/fr")) {
       setActiveLanguage("fr");
       ensureTranslatorLoaded().then(() => {

@@ -189,12 +189,12 @@ export default function ServicePage() {
   return (
     <main className="min-h-screen bg-[linear-gradient(135deg,_#f8f1e7,_#ffffff_55%,_#f4e2ca)] text-foreground">
       <nav className="border-b border-primary/10 bg-[#f7efe4]/95 backdrop-blur">
-        <div className="container flex max-w-[1180px] items-center justify-between gap-4 py-3">
-          <Link href="/" className="flex items-center gap-3">
-            <img src="/img5150-transparent.png" alt="FixMyDoor" className="h-14 w-auto object-contain" />
-            <span className="font-display text-lg font-bold text-secondary">FixMyDoor</span>
+        <div className="container flex max-w-[1180px] items-center justify-between gap-2 py-2 sm:gap-4 sm:py-3">
+          <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <img src="/img5150-transparent.png" alt="FixMyDoor" className="h-12 w-auto shrink-0 object-contain sm:h-14" />
+            <span className="hidden truncate font-display text-base font-bold text-secondary min-[430px]:inline sm:text-lg">FixMyDoor</span>
           </Link>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <a href="tel:+14383471823" className="hidden rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white sm:inline-flex">
               Call +1 (438) 347-1823
             </a>

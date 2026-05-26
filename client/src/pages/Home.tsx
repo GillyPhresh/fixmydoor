@@ -758,13 +758,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <nav className="sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/96 shadow-[0_8px_28px_rgba(47,36,28,0.06)] backdrop-blur">
-        <div className="container flex max-w-[1180px] items-center justify-between gap-3 py-2 sm:gap-4 md:py-2.5">
-          <div className="flex min-w-0 items-center gap-2.5 md:gap-3">
+        <div className="container flex max-w-[1180px] items-center justify-between gap-2 py-1.5 sm:gap-4 md:py-2.5">
+          <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
             <a href="/" className="flex shrink-0 items-center">
-              <img src="/img5150-transparent.png" alt="FixMyDoor logo" decoding="async" className="h-16 w-auto object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.14)] sm:h-[4.5rem] md:h-20" />
+              <img src="/img5150-transparent.png" alt="FixMyDoor logo" decoding="async" className="h-12 w-auto object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.14)] sm:h-16 md:h-20" />
             </a>
-            <div className="min-w-0">
-              <p className="font-display text-sm font-bold leading-tight text-secondary sm:text-base md:text-lg">
+            <div className="hidden min-w-0 min-[430px]:block">
+              <p className="truncate font-display text-sm font-bold leading-tight text-secondary sm:text-base md:text-lg">
                 FixMyDoor | Door & Furniture Repairs
               </p>
               <p className="mt-0.5 hidden text-[0.63rem] uppercase tracking-[0.16em] text-secondary/65 sm:block md:text-[0.68rem]">
@@ -777,8 +777,8 @@ export default function Home() {
               <a key={link.href} href={link.href} className="transition hover:text-primary">{link.label}</a>
             ))}
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <a href="tel:+14383471823" className="inline-flex items-center gap-1.5 rounded-2xl bg-primary px-3 py-2 text-xs font-bold text-white shadow-[0_10px_22px_rgba(180,101,50,0.18)] transition hover:-translate-y-0.5 hover:bg-primary/90 sm:px-4 sm:text-sm">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <a href="tel:+14383471823" className="inline-flex items-center gap-1.5 rounded-2xl bg-primary px-2.5 py-2 text-xs font-bold text-white shadow-[0_10px_22px_rgba(180,101,50,0.18)] transition hover:-translate-y-0.5 hover:bg-primary/90 sm:px-4 sm:text-sm">
               <Phone className="h-4 w-4" />
               <span className="hidden sm:inline">Call Now</span>
               <span className="sm:hidden">Call</span>
