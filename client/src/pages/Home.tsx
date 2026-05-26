@@ -794,6 +794,14 @@ export default function Home() {
             </button>
           </div>
         </div>
+        <div className="border-t border-primary/10 bg-white/55 px-4 py-1.5 text-center min-[430px]:hidden">
+          <p className="font-display text-[0.82rem] font-bold leading-tight text-secondary">
+            FixMyDoor | Door & Furniture Repairs
+          </p>
+          <p className="mt-0.5 text-[0.62rem] font-semibold uppercase leading-tight tracking-[0.08em] text-secondary/65">
+            Repairs, installations, doors, furniture, and hardware sourcing.
+          </p>
+        </div>
         {mobileMenuOpen && (
           <div className="border-t border-primary/10 bg-white lg:hidden">
             <div className="container grid max-w-[1180px] gap-2 py-3">
@@ -1061,19 +1069,21 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-5 rounded-[20px] border border-secondary/10 bg-secondary p-4 text-white md:mt-8 md:rounded-[24px] md:p-6">
-            <div className="grid gap-4 md:grid-cols-[0.7fr_1.3fr] md:items-center">
+          <div className="mt-5 rounded-[20px] border border-secondary/10 bg-secondary p-3 text-white md:mt-8 md:rounded-[24px] md:p-6">
+            <div className="grid gap-3 md:grid-cols-[0.7fr_1.3fr] md:items-center md:gap-4">
               <div>
-                <ShieldCheck className="h-7 w-7 text-primary md:h-8 md:w-8" />
-                <h3 className="mt-2 text-xl font-bold md:mt-3 md:text-2xl">Trust before the first visit</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-white/76 md:mt-2">
+                <div className="flex items-center gap-2 md:block">
+                  <ShieldCheck className="h-6 w-6 shrink-0 text-primary md:h-8 md:w-8" />
+                  <h3 className="text-lg font-bold md:mt-3 md:text-2xl">Trust before the first visit</h3>
+                </div>
+                <p className="mt-1.5 hidden text-sm leading-relaxed text-white/76 md:block">
                   The goal is simple: make the problem clear, protect the customer record, and recommend the next step that fits the job.
                 </p>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {trustDetails.map((detail) => (
-                  <div key={detail} className="flex gap-2 rounded-2xl bg-white/8 p-3 text-sm font-semibold text-white/86">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <div className="grid grid-cols-2 gap-2">
+                {trustDetails.map((detail, index) => (
+                  <div key={detail} className={`gap-1.5 rounded-2xl bg-white/8 p-2 text-[0.72rem] font-semibold leading-snug text-white/86 md:flex md:gap-2 md:p-3 md:text-sm ${index > 3 ? "hidden md:flex" : "flex"}`}>
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary md:h-4 md:w-4" />
                     <span>{detail}</span>
                   </div>
                 ))}

@@ -523,17 +523,19 @@ export default function Admin() {
 
   if (!authenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#f7efe5] via-white to-[#f3dfc7] px-4">
-        <Card className="w-full max-w-md border-[#dec4a3] shadow-xl">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#f7efe5] via-white to-[#f3dfc7] px-4 py-8">
+        <Card className="w-full max-w-md border-[#dec4a3] bg-white/95 shadow-[0_24px_70px_rgba(66,40,18,0.14)]">
           <CardHeader className="items-center text-center">
-            <img
-              src="/img5150-transparent.png"
-              alt="FixMyDoor logo"
-              className="mb-3 h-28 w-auto object-contain"
-            />
-            <CardTitle className="text-2xl font-display text-secondary">Admin Login</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              FixMyDoor booking dashboard
+            <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-[#f7efe5] shadow-inner ring-1 ring-[#ead8bf]">
+              <img
+                src="/img5150-transparent.png"
+                alt="FixMyDoor logo"
+                className="h-28 w-auto object-contain"
+              />
+            </div>
+            <CardTitle className="mt-3 text-2xl font-display text-secondary">Admin Login</CardTitle>
+            <p className="max-w-xs text-sm text-muted-foreground">
+              FixMyDoor booking dashboard for customer requests, reviews, service content, and follow-up.
             </p>
           </CardHeader>
           <CardContent>
@@ -558,6 +560,37 @@ export default function Admin() {
                   required
                 />
               </div>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#8a5a2d] underline-offset-4 transition hover:text-primary hover:underline"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    Forgot password?
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Forgot admin password?</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+                    <p>
+                      For security, the admin password cannot be reset from this public login page.
+                    </p>
+                    <p>
+                      Use the current admin account to change it inside the dashboard, or update the admin password securely from the website server environment.
+                    </p>
+                    <a
+                      href="mailto:info.fixmydoor@gmail.com?subject=FixMyDoor%20admin%20password%20help"
+                      className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2 font-bold text-white transition hover:bg-primary/90"
+                    >
+                      <Mail className="h-4 w-4" />
+                      Contact FixMyDoor support
+                    </a>
+                  </div>
+                </DialogContent>
+              </Dialog>
               <Button type="submit" className="w-full" disabled={loginLoading}>
                 {loginLoading ? "Logging in..." : "Login"}
               </Button>

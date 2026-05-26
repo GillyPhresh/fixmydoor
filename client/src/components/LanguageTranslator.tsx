@@ -74,6 +74,14 @@ function getGoogleTranslateElement() {
     | undefined;
 }
 
+function openGoogleTranslateFallback(language: "fr") {
+  const translatedUrl = new URL("https://translate.google.com/translate");
+  translatedUrl.searchParams.set("sl", "en");
+  translatedUrl.searchParams.set("tl", language);
+  translatedUrl.searchParams.set("u", window.location.href);
+  window.location.href = translatedUrl.toString();
+}
+
 export default function LanguageTranslator({ className = "" }: LanguageTranslatorProps) {
   const [activeLanguage, setActiveLanguage] = useState<"en" | "fr">("en");
   const [isLoading, setIsLoading] = useState(false);
@@ -137,7 +145,7 @@ export default function LanguageTranslator({ className = "" }: LanguageTranslato
     writeTranslateCookie("fr");
     await ensureTranslatorLoaded();
     if (!(await waitForGoogleTranslate("fr"))) {
-      window.location.reload();
+      openGoogleTranslateFallback("fr");
     }
   };
 
