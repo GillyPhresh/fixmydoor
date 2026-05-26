@@ -39,8 +39,8 @@ export { heroImage, technicianImage };
 
 export const featuredService = {
   tag: "Security Upgrade",
-  title: "Secure entry doors, clean fitting, and dependable repairs.",
-  desc: "From rekeying an entry door to fitting hardware or repairing furniture, FixMyDoor Services focuses on practical work that helps your space feel safer, cleaner, and easier to use.",
+  title: "Secure doors, clean fitting, and reliable repairs.",
+  desc: "From rekeying an entry door to repairing furniture, FixMyDoor Services focuses on practical work that makes your space safer and easier to use.",
 };
 
 export const featuredServiceCollage = [
@@ -72,28 +72,28 @@ export const serviceShowcase = [
   {
     src: frontDoorLocksmithImage,
     title: "Front Door Rekeying & Lock Upgrade",
-    desc: "When a spare key is missing, access changes, or a lock begins to feel loose, we can rekey, adjust, or recommend secure replacement hardware.",
+    desc: "If a key is missing or a lock feels loose, we can rekey, adjust, or recommend safer replacement hardware.",
     tag: "Security Upgrade",
     contain: false,
   },
   {
     src: entryDoorImage,
     title: "Entry Door Replacement",
-    desc: "A properly fitted front door should open smoothly, close securely, and present a clean finish from the outside.",
+    desc: "A good front door should open smoothly, close securely, and look clean from the outside.",
     tag: "Exterior Doors",
     contain: false,
   },
   {
     src: officeDeskRepairImage,
     title: "Desk & Cabinet Repairs",
-    desc: "Practical repairs for desks, cabinets, drawers, and storage pieces that still have useful life left in them.",
+    desc: "Practical repairs for desks, cabinets, drawers, and storage pieces that still have life in them.",
     tag: "Workspace Care",
     contain: false,
   },
   {
     src: executiveDeskShowcaseImage,
     title: "Office Furniture Refresh",
-    desc: "Support for office furniture that looks worn, feels loose, or would benefit from stronger, cleaner hardware.",
+    desc: "Support for office furniture that looks worn, feels loose, or needs stronger hardware.",
     tag: "Office Care",
     contain: false,
   },
@@ -102,15 +102,15 @@ export const serviceShowcase = [
 export const customerPaths = [
   {
     label: "Repair & Installation",
-    title: "Fix the door, lock, hinge, drawer, or furniture piece",
-    desc: "Tell us what is not working. We help with sticking doors, loose handles, damaged frames, drawer slides, cabinet hinges, and furniture repairs.",
+    title: "Fix a door, lock, drawer, or furniture piece",
+    desc: "Tell us what is not working. We help with sticking doors, loose handles, damaged frames, drawer slides, hinges, and furniture repairs.",
     cta: "Book a repair",
     href: "#booking-form",
   },
   {
     label: "Buy & Source",
-    title: "Find the right door, part, or hardware before you buy",
-    desc: "If you need doors, handles, locks, cylinders, hinges, drawer slides, or furniture parts, we help you choose a suitable option before you spend.",
+    title: "Find the right door, part, or hardware",
+    desc: "Need doors, handles, locks, hinges, slides, or furniture parts? We help you choose before you buy.",
     cta: "Browse Products",
     href: "#shop",
   },
@@ -119,7 +119,7 @@ export const customerPaths = [
 export const productCategories = [
   {
     title: "Doors & Entry Systems",
-    desc: "Entry, interior, glass-panel, steel, wood-look, Paladin, SED, and heavy-duty doors for homes, rentals, offices, and small commercial spaces.",
+    desc: "Entry, interior, glass-panel, steel, wood-look, Paladin, SED, and heavy-duty doors for homes, rentals, offices, and small shops.",
     items: "Paladin doors, SED doors, heavy doors, entry doors, interior doors, security doors, and sizes for different openings",
     image: fixmydoorDoorShowroomImage,
     accent: classicBrownEntryDoorImage,
@@ -127,7 +127,7 @@ export const productCategories = [
   },
   {
     title: "Locks, Handles & Door Hardware",
-    desc: "Handles, lock bodies, cylinders, hinges, knobs, and backplates for careful replacements or complete door hardware upgrades.",
+    desc: "Handles, lock bodies, cylinders, hinges, knobs, and backplates for simple replacements or full hardware upgrades.",
     items: "Handles, cylinders, hinges, lock bodies, backplates, and knob locks",
     image: frontDoorLocksmithImage,
     accent: commercialDoorCloserImage,
@@ -135,7 +135,7 @@ export const productCategories = [
   },
   {
     title: "Furniture Hardware & Tools",
-    desc: "Parts for drawers, cabinet doors, shelves, and furniture pieces that need stronger support, better alignment, or smoother movement.",
+    desc: "Parts for drawers, cabinet doors, shelves, and furniture that needs stronger support or smoother movement.",
     items: "Drawer slides, cabinet hinges, soft-close runners, and mounting hardware",
     image: greyCabinetInstallationImage,
     accent: blackOfficeCabinetsImage,

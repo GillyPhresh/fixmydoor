@@ -98,8 +98,48 @@ const ADVERT_SLIDE_DURATION_MS = 7000;
 const SLIDE_HOLD_PAUSE_MS = 12000;
 const DOT_SELECTION_PAUSE_MS = 9000;
 const SITE_URL = "https://www.fixmydoor.ca";
-const mobileScrollTrackClass = "fixmydoor-mobile-carousel flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:pb-0";
-const mobileScrollItemClass = "fixmydoor-flip-card w-[86%] max-w-[24rem] flex-none snap-center md:w-auto md:max-w-none md:flex-auto";
+const mobileScrollTrackClass = "fixmydoor-mobile-carousel flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:pb-0";
+const mobileScrollItemClass = "fixmydoor-flip-card w-[84%] max-w-[23rem] flex-none snap-center md:w-auto md:max-w-none md:flex-auto";
+
+type MobileLoopItem<T> = {
+  item: T;
+  loopKey: string;
+  isClone: boolean;
+  loopEdge?: "start" | "end";
+};
+
+function createMobileLoopItems<T>(items: T[], getKey: (item: T, index: number) => string): MobileLoopItem<T>[] {
+  if (items.length <= 1) {
+    return items.map((item, index) => ({
+      item,
+      loopKey: getKey(item, index),
+      isClone: false,
+    }));
+  }
+
+  const firstItem = items[0];
+  const lastItem = items[items.length - 1];
+
+  return [
+    {
+      item: lastItem,
+      loopKey: `loop-start-${getKey(lastItem, items.length - 1)}`,
+      isClone: true,
+      loopEdge: "start",
+    },
+    ...items.map((item, index) => ({
+      item,
+      loopKey: getKey(item, index),
+      isClone: false,
+    })),
+    {
+      item: firstItem,
+      loopKey: `loop-end-${getKey(firstItem, 0)}`,
+      isClone: true,
+      loopEdge: "end",
+    },
+  ];
+}
 
 type DisplayAdvert = {
   id: string;
@@ -171,35 +211,35 @@ function getAdvertAlt(advert: Pick<DisplayAdvert, "title" | "tag">) {
 }
 
 const serviceAreaNotes = [
-  "Coordinated from our Montreal office at 10158 Rue Berri.",
-  "Serving Montreal, Laval, Longueuil, Brossard, the West Island, nearby Quebec communities, and other Canadian locations by request.",
-  "International customers are welcome to contact us for sourcing, measurements, repair guidance, and product advice.",
+  "Based in Montreal at 10158 Rue Berri.",
+  "Serving Montreal, Laval, Longueuil, Brossard, the West Island, nearby Quebec areas, and other Canadian locations by request.",
+  "International customers can contact us for sourcing, measurements, repair advice, and product guidance.",
 ];
 
 const coreServiceDetails = [
   {
     title: "Door Repairs",
-    text: "For doors that stick, scrape, sag, rattle, or refuse to close properly, we review the frame, hinges, latch, handle, and daily use before recommending a practical repair.",
+    text: "We fix doors that stick, scrape, sag, rattle, or refuse to close properly, then explain the best repair option clearly.",
   },
   {
     title: "Door Installations",
-    text: "We support entry, interior, replacement, heavy-duty, wood, steel, glass-panel, and custom-fit door requests, including measurements, swing direction, hardware matching, delivery, and installation planning.",
+    text: "We help with entry, interior, heavy-duty, wood, steel, glass-panel, and custom-fit doors, including measurements and hardware matching.",
   },
   {
     title: "Furniture Repairs",
-    text: "We help with loose sofa frames, cabinet doors, drawers, desks, chairs, shelves, and furniture pieces that need stronger support, better hardware, or careful restoration.",
+    text: "We repair loose sofa frames, cabinet doors, drawers, desks, chairs, shelves, and furniture that needs stronger support.",
   },
   {
     title: "Furniture Installations",
-    text: "For homes, rentals, offices, and small business spaces, we handle furniture setup, fitting, alignment, hardware installation, and practical installation support.",
+    text: "We install and adjust furniture for homes, rentals, offices, and small business spaces.",
   },
   {
     title: "Locks, Hinges & Hardware",
-    text: "We assist with lock rekeying, replacement locks, handles, cylinders, hinges, drawer slides, cabinet hinges, backplates, knobs, and matching replacement parts.",
+    text: "We help with rekeying, replacement locks, handles, hinges, drawer slides, cabinet hinges, knobs, and matching parts.",
   },
   {
     title: "Hardware Sourcing",
-    text: "Before you buy, we can help source door hardware, furniture hardware, repair parts, doors, and equipment that match the required size, finish, and style.",
+    text: "Before you buy, we help find doors, furniture hardware, repair parts, and fittings that match your size and style.",
   },
 ];
 
@@ -217,23 +257,23 @@ const trustDetails = [
 const faqItems = [
   {
     question: "Can I send photos before booking?",
-    answer: "Yes. You can add up to three photos in the request form. Clear photos help us understand the door, lock, furniture, or part before we call.",
+    answer: "Yes. Add up to three photos in the request form so we can understand the issue before we call.",
   },
   {
     question: "Can you help me buy the right door or hardware?",
-    answer: "Yes. Share the size, quantity, finish, swing direction, and whether delivery or installation is needed. We will help narrow the options before you buy.",
+    answer: "Yes. Share the size, finish, swing direction, and installation needs. We will help you choose before you buy.",
   },
   {
     question: "Do you work only in Montreal?",
-    answer: "FixMyDoor Services is based in Montreal and welcomes requests from nearby Quebec communities, other parts of Canada, and international customers who need sourcing or repair guidance.",
+    answer: "FixMyDoor Services is based in Montreal and also helps nearby Quebec areas, other Canadian locations, and international sourcing requests.",
   },
   {
     question: "Do you handle urgent or emergency door issues?",
-    answer: "Yes. Mark the request as urgent or emergency, call directly, or send a WhatsApp message. Availability depends on location, timing, and the type of issue.",
+    answer: "Yes. Mark the request urgent, call, or send WhatsApp. Availability depends on location, timing, and the issue.",
   },
   {
     question: "Is there follow-up after the work?",
-    answer: "If something needs review after the agreed repair or installation scope, contact FixMyDoor Services with photos and booking details so it can be checked properly.",
+    answer: "Yes. Send photos and booking details if something needs review after the agreed work.",
   },
   {
     question: "Will I receive updates after booking?",
@@ -733,6 +773,14 @@ export default function Home() {
   const displayedHardwareProducts = dynamicHardwareProducts.length > 0 ? dynamicHardwareProducts : hardwareProducts;
   const displayedProjectGallery = dynamicProjectGallery.length > 0 ? dynamicProjectGallery : projectGallery;
   const displayedAdverts = dynamicAdverts.length > 0 ? dynamicAdverts : defaultAdverts;
+  const customerPathLoopItems = createMobileLoopItems(customerPaths, (item) => item.title);
+  const coreServiceLoopItems = createMobileLoopItems(coreServiceDetails, (item) => item.title);
+  const serviceShowcaseLoopItems = createMobileLoopItems(displayedServiceShowcase, (item) => item.title);
+  const productCategoryLoopItems = createMobileLoopItems(displayedProductCategories, (item) => item.title);
+  const doorProductLoopItems = createMobileLoopItems(displayedDoorProducts, (item) => item.title);
+  const hardwareProductLoopItems = createMobileLoopItems(displayedHardwareProducts, (item) => item.title);
+  const projectGalleryLoopItems = createMobileLoopItems(displayedProjectGallery, (item) => item.title);
+  const reviewLoopItems = createMobileLoopItems(featuredReviews, (item) => item.id);
   const displayedAdvertsSignature = displayedAdverts.map((advert) => `${advert.id}:${advert.updatedAt || advert.title}`).join("|");
   const reviewSchemaItems = reviews.slice(0, 9);
   const averageRating = reviewSchemaItems.length > 0
@@ -989,6 +1037,98 @@ export default function Home() {
       track.dataset.pauseUntil = String(Date.now() + 10000);
     };
 
+    const getCarouselItems = (track: HTMLElement) =>
+      Array.from(track.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
+
+    const getOriginalCarouselItems = (track: HTMLElement) =>
+      getCarouselItems(track).filter((item) => item.dataset.loopClone !== "true");
+
+    const getClosestCarouselItem = (track: HTMLElement) => {
+      const items = getCarouselItems(track);
+      if (!items.length) {
+        return undefined;
+      }
+
+      return items.reduce((closest, item) => {
+        const closestDistance = Math.abs(track.scrollLeft - closest.offsetLeft);
+        const itemDistance = Math.abs(track.scrollLeft - item.offsetLeft);
+        return itemDistance < closestDistance ? item : closest;
+      }, items[0]);
+    };
+
+    const setInstantCarouselPosition = (track: HTMLElement, left: number) => {
+      track.classList.add("fixmydoor-carousel-resetting");
+      track.scrollTo({ left, behavior: "auto" });
+      window.setTimeout(() => {
+        track.classList.remove("fixmydoor-carousel-resetting");
+      }, 40);
+    };
+
+    const primeTrackPosition = (track: HTMLElement) => {
+      if (
+        track.dataset.loopPrimed === "true" ||
+        window.matchMedia("(min-width: 768px)").matches ||
+        track.scrollWidth <= track.clientWidth + 8
+      ) {
+        return;
+      }
+
+      const firstOriginal = getOriginalCarouselItems(track)[0];
+      if (!firstOriginal) {
+        return;
+      }
+
+      track.dataset.loopPrimed = "true";
+      setInstantCarouselPosition(track, firstOriginal.offsetLeft);
+    };
+
+    const loopTrackEdges = (track: HTMLElement) => {
+      if (window.matchMedia("(min-width: 768px)").matches || track.scrollWidth <= track.clientWidth + 8) {
+        return;
+      }
+
+      const originals = getOriginalCarouselItems(track);
+      if (originals.length < 2) {
+        return;
+      }
+
+      const closestItem = getClosestCarouselItem(track);
+      if (!closestItem?.dataset.loopEdge) {
+        return;
+      }
+
+      const target = closestItem.dataset.loopEdge === "start" ? originals[originals.length - 1] : originals[0];
+      setInstantCarouselPosition(track, target.offsetLeft);
+    };
+
+    const handleTrackResize = (entries: ResizeObserverEntry[]) => {
+      entries.forEach((entry) => {
+        const track = entry.target as HTMLElement;
+        track.dataset.loopPrimed = "false";
+        window.setTimeout(() => primeTrackPosition(track), 60);
+      });
+    };
+
+    const resizeObserver = new ResizeObserver(handleTrackResize);
+
+    const handleTrackPointerUp = (event: Event) => {
+      const track = event.currentTarget as HTMLElement;
+      window.clearTimeout(Number(track.dataset.loopTimer || "0"));
+      const timerId = window.setTimeout(() => loopTrackEdges(track), 120);
+      track.dataset.loopTimer = String(timerId);
+    };
+
+    const handleTrackScroll = (event: Event) => {
+      const track = event.currentTarget as HTMLElement;
+      if (track.classList.contains("fixmydoor-carousel-resetting")) {
+        return;
+      }
+
+      window.clearTimeout(Number(track.dataset.loopTimer || "0"));
+      const timerId = window.setTimeout(() => loopTrackEdges(track), 90);
+      track.dataset.loopTimer = String(timerId);
+    };
+
     const revealObserver = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         const card = entry.target as HTMLElement;
@@ -1031,9 +1171,16 @@ export default function Home() {
 
         track.dataset.autoCarouselReady = "true";
         track.dataset.inView = "false";
+        track.dataset.loopPrimed = "false";
         track.addEventListener("pointerdown", pauseTrack);
+        track.addEventListener("pointerup", handleTrackPointerUp);
+        track.addEventListener("pointercancel", handleTrackPointerUp);
+        track.addEventListener("touchend", handleTrackPointerUp, { passive: true });
         track.addEventListener("touchstart", pauseTrack, { passive: true });
         track.addEventListener("wheel", pauseTrack, { passive: true });
+        track.addEventListener("scroll", handleTrackScroll, { passive: true });
+        resizeObserver.observe(track);
+        window.setTimeout(() => primeTrackPosition(track), 80);
         trackObserver.observe(track);
       });
     };
@@ -1060,22 +1207,17 @@ export default function Home() {
           return;
         }
 
-        const items = Array.from(track.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
+        primeTrackPosition(track);
+
+        const items = getCarouselItems(track);
         if (items.length < 2 || track.scrollWidth <= track.clientWidth + 8) {
           return;
         }
 
-        const currentIndex = items.reduce((closestIndex, item, index) => {
-          const currentDistance = Math.abs(track.scrollLeft - items[closestIndex].offsetLeft);
-          const nextDistance = Math.abs(track.scrollLeft - item.offsetLeft);
-          return nextDistance < currentDistance ? index : closestIndex;
-        }, 0);
-        const nextItem = items[(currentIndex + 1) % items.length];
-
-        track.scrollTo({
-          left: nextItem.offsetLeft,
-          behavior: "smooth",
-        });
+        const currentItem = getClosestCarouselItem(track);
+        const currentIndex = currentItem ? items.indexOf(currentItem) : 0;
+        const nextItem = items[Math.min(currentIndex + 1, items.length - 1)] || items[1] || items[0];
+        track.scrollTo({ left: nextItem.offsetLeft, behavior: "smooth" });
       });
     }, 8000);
 
@@ -1083,10 +1225,17 @@ export default function Home() {
       window.clearInterval(timer);
       document.querySelectorAll<HTMLElement>(".fixmydoor-mobile-carousel").forEach((track) => {
         track.removeEventListener("pointerdown", pauseTrack);
+        track.removeEventListener("pointerup", handleTrackPointerUp);
+        track.removeEventListener("pointercancel", handleTrackPointerUp);
+        track.removeEventListener("touchend", handleTrackPointerUp);
         track.removeEventListener("touchstart", pauseTrack);
         track.removeEventListener("wheel", pauseTrack);
+        track.removeEventListener("scroll", handleTrackScroll);
+        window.clearTimeout(Number(track.dataset.loopTimer || "0"));
+        resizeObserver.unobserve(track);
         trackObserver.unobserve(track);
       });
+      resizeObserver.disconnect();
       revealObserver.disconnect();
       trackObserver.disconnect();
     };
@@ -1220,10 +1369,23 @@ export default function Home() {
       return;
     }
 
-    track.scrollBy({
-      left: direction * Math.max(track.clientWidth * 0.82, 240),
-      behavior: "smooth",
-    });
+    track.dataset.pauseUntil = String(Date.now() + 7000);
+
+    const items = Array.from(track.children).filter((child): child is HTMLElement => child instanceof HTMLElement);
+    if (items.length <= 1) {
+      return;
+    }
+
+    const currentIndex = items.reduce((closestIndex, item, index) => {
+      const closestDistance = Math.abs(track.scrollLeft - items[closestIndex].offsetLeft);
+      const itemDistance = Math.abs(track.scrollLeft - item.offsetLeft);
+      return itemDistance < closestDistance ? index : closestIndex;
+    }, 0);
+    const fallbackIndex = direction > 0 ? 1 : items.length - 2;
+    const nextIndex = currentIndex + direction;
+    const nextItem = items[nextIndex] || items[fallbackIndex] || items[0];
+
+    track.scrollTo({ left: nextItem.offsetLeft, behavior: "smooth" });
   };
 
   const renderMobileCarouselControls = (trackId: string, count: number, dark = false) => {
@@ -1333,55 +1495,67 @@ export default function Home() {
           <div className="max-w-lg">
             <div className="mb-2 inline-flex items-center gap-2 rounded-2xl border border-primary/18 bg-white px-3.5 py-1.5 text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-secondary shadow-sm">
               <Globe2 className="h-4 w-4 text-primary" />
-              Canada-based. You can ask from anywhere.
+              Montreal-based. Requests welcome.
             </div>
-            <h1 className="font-display text-[2.05rem] font-bold leading-[1.04] text-secondary sm:text-4xl md:text-[3.05rem] xl:text-[3.35rem]">
-              Reliable help for doors, locks, furniture, and hardware.
+            <h1 className="font-display text-[1.9rem] font-bold leading-[1.06] text-secondary sm:text-4xl md:text-[3.05rem] xl:text-[3.25rem]">
+              Door, lock, furniture, or hardware problem?
             </h1>
-            <p className="mt-3 max-w-[32rem] text-[0.96rem] leading-relaxed text-foreground/75 md:text-[1.03rem]">
-              Send a photo, a short description, or the measurements you have. We will review the request and guide you toward a repair, replacement, installation, or sourcing option that makes sense.
+            <p className="mt-3 max-w-[32rem] text-[0.94rem] leading-relaxed text-foreground/75 md:text-[1.03rem]">
+              Send a photo or short note. FixMyDoor Services will review it and guide you to the right repair, installation, or product.
             </p>
-            <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
-              <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.24)] transition hover:-translate-y-0.5 hover:bg-primary/90">
-                Book a repair
+            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+              <button type="button" onClick={scrollToContactForm} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-3.5 py-2.5 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(180,101,50,0.24)] ring-1 ring-white/50 transition hover:-translate-y-0.5 hover:bg-primary/90 sm:px-4">
+                <span className="sm:hidden">Book Repair</span>
+                <span className="hidden sm:inline">Book a Repair</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
-              <a href="#shop" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-secondary/15 bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-[0_10px_24px_rgba(47,36,28,0.08)] transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">
+              <a href="#shop" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-secondary/15 bg-white px-3.5 py-2.5 text-sm font-extrabold text-secondary shadow-[0_10px_24px_rgba(47,36,28,0.08)] transition hover:-translate-y-0.5 hover:border-primary hover:text-primary sm:px-4">
                 <ShoppingBag className="h-4 w-4" />
-                Shop doors & hardware
+                <span className="sm:hidden">Shop Parts</span>
+                <span className="hidden sm:inline">Shop Doors & Hardware</span>
               </a>
-              <a href="tel:+14383471823" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(47,36,28,0.18)] transition hover:-translate-y-0.5 hover:bg-secondary/90">
+              <a href="tel:+14383471823" className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-secondary px-3.5 py-2.5 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(47,36,28,0.18)] transition hover:-translate-y-0.5 hover:bg-secondary/90 sm:col-span-1 sm:px-4">
                 <Phone className="h-4 w-4" />
-                Call +1 (438) 347-1823
+                <span className="sm:hidden">Call +1 (438) 347-1823</span>
+                <span className="hidden sm:inline">Call +1 (438) 347-1823</span>
               </a>
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-2.5">
-              <div className="rounded-2xl bg-white p-2.5 text-center shadow-lg shadow-primary/5 sm:p-3.5 sm:text-left">
-                <Zap className="mx-auto mb-1.5 h-4 w-4 text-primary sm:mx-0 sm:mb-2 sm:h-5 sm:w-5" />
-                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Quick Reply</p>
-                <p className="mt-1 hidden text-xs leading-relaxed text-foreground/65 sm:block">Tell us the issue and we will guide you from there.</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3 sm:gap-2.5">
+              <div className="flex items-start gap-2.5 rounded-[18px] border border-primary/10 bg-white p-3 shadow-[0_12px_28px_rgba(47,36,28,0.06)] sm:block sm:p-3.5">
+                <Zap className="mt-0.5 h-4 w-4 shrink-0 text-primary sm:mt-0 sm:mb-2 sm:h-5 sm:w-5" />
+                <div>
+                  <p className="text-[0.78rem] font-extrabold leading-tight text-secondary sm:text-sm">Quick Reply</p>
+                  <p className="mt-0.5 text-[0.72rem] leading-snug text-foreground/65 sm:mt-1 sm:text-xs sm:leading-relaxed">Tell us the issue. We will guide you from there.</p>
+                </div>
               </div>
-              <div className="rounded-2xl bg-white p-2.5 text-center shadow-lg shadow-primary/5 sm:p-3.5 sm:text-left">
-                <div className="mb-1.5 text-base font-black text-primary sm:mb-2 sm:text-xl">C$</div>
-                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Fair C$ Pricing</p>
-                <p className="mt-1 hidden text-xs leading-relaxed text-foreground/65 sm:block">Clear answers before any work starts.</p>
+              <div className="flex items-start gap-2.5 rounded-[18px] border border-primary/10 bg-white p-3 shadow-[0_12px_28px_rgba(47,36,28,0.06)] sm:block sm:p-3.5">
+                <div className="mt-0.5 text-base font-black leading-none text-primary sm:mt-0 sm:mb-2 sm:text-xl">C$</div>
+                <div>
+                  <p className="text-[0.78rem] font-extrabold leading-tight text-secondary sm:text-sm">Fair C$ Pricing</p>
+                  <p className="mt-0.5 text-[0.72rem] leading-snug text-foreground/65 sm:mt-1 sm:text-xs sm:leading-relaxed">Clear answers before any work starts.</p>
+                </div>
               </div>
-              <div className="rounded-2xl bg-white p-2.5 text-center shadow-lg shadow-primary/5 sm:p-3.5 sm:text-left">
-                <CheckCircle2 className="mx-auto mb-1.5 h-4 w-4 text-primary sm:mx-0 sm:mb-2 sm:h-5 sm:w-5" />
-                <p className="text-xs font-bold leading-tight text-secondary sm:text-base">Neat Finish</p>
-                <p className="mt-1 hidden text-xs leading-relaxed text-foreground/65 sm:block">Careful work without messy shortcuts.</p>
+              <div className="flex items-start gap-2.5 rounded-[18px] border border-primary/10 bg-white p-3 shadow-[0_12px_28px_rgba(47,36,28,0.06)] sm:block sm:p-3.5">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary sm:mt-0 sm:mb-2 sm:h-5 sm:w-5" />
+                <div>
+                  <p className="text-[0.78rem] font-extrabold leading-tight text-secondary sm:text-sm">Neat Finish</p>
+                  <p className="mt-0.5 text-[0.72rem] leading-snug text-foreground/65 sm:mt-1 sm:text-xs sm:leading-relaxed">Careful work without messy shortcuts.</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="relative">
-            <div className="relative overflow-hidden rounded-[28px] border border-white/60 bg-white p-2.5 shadow-[0_24px_70px_rgba(66,40,18,0.16)] md:rounded-[32px] md:p-3 md:shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
-              <img src={heroImage} alt="Front door lock rekeying service" loading="eager" decoding="async" className="h-[210px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
-              <div className="absolute bottom-3 left-3 right-3 rounded-[20px] bg-white/92 p-3 shadow-lg backdrop-blur md:bottom-7 md:left-7 md:right-7 md:max-w-sm md:rounded-[24px] md:p-4">
+          <div className="relative -mx-4 sm:mx-0">
+            <div className="relative overflow-hidden bg-transparent p-0 md:rounded-[32px] md:border md:border-white/60 md:bg-white md:p-3 md:shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
+              <img src={heroImage} alt="Front door lock rekeying service" loading="eager" decoding="async" className="h-[245px] w-full object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,_#f8f3ea_0%,_rgba(248,243,234,0)_24%,_rgba(248,243,234,0)_58%,_#f8f3ea_100%)] md:hidden" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#f8f3ea] to-transparent md:hidden" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#f8f3ea] to-transparent md:hidden" />
+              <div className="absolute bottom-3 left-4 right-4 rounded-[20px] bg-white/90 p-3 shadow-lg backdrop-blur md:bottom-7 md:left-7 md:right-7 md:max-w-sm md:rounded-[24px] md:p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
-                <h2 className="mt-1 text-xl font-bold text-secondary md:mt-2 md:text-2xl">Front Door Rekeying & Entry Security</h2>
+                <h2 className="mt-1 text-lg font-bold text-secondary md:mt-2 md:text-2xl">Rekeying & Entry Security</h2>
                 <p className="mt-1 text-xs leading-relaxed text-foreground/70 md:mt-2 md:text-sm">
-                  Lost key, tenant change, sticky lock, or loose handle? FixMyDoor Services can rekey, adjust, or recommend secure hardware so your front door feels right again.
+                  Lost key, tenant change, or loose handle? We can rekey, adjust, or recommend secure hardware.
                 </p>
               </div>
             </div>
@@ -1621,21 +1795,24 @@ export default function Home() {
 
           <div className="overflow-hidden md:overflow-visible">
             <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-4`}>
-            {customerPaths.map((path, index) => (
+            {customerPathLoopItems.map(({ item: path, loopKey, isClone, loopEdge }, index) => (
               <a
-                key={path.title}
+                key={loopKey}
                 href={path.href}
-                className={`group ${mobileScrollItemClass} overflow-hidden rounded-[24px] border border-white/10 p-5 shadow-[0_14px_38px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 ${
-                  index === 0 ? "bg-white text-secondary" : "bg-primary text-white"
+                data-loop-clone={isClone || undefined}
+                data-loop-edge={loopEdge}
+                aria-hidden={isClone || undefined}
+                className={`group ${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[24px] border border-white/10 p-5 shadow-[0_14px_38px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 ${
+                  path.label === "Repair & Installation" ? "bg-white text-secondary" : "bg-primary text-white"
                 }`}
               >
                 <span className={`inline-flex rounded-full px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.22em] ${
-                  index === 0 ? "bg-primary/10 text-primary" : "bg-white/18 text-white"
+                  path.label === "Repair & Installation" ? "bg-primary/10 text-primary" : "bg-white/18 text-white"
                 }`}>
                   {path.label}
                 </span>
                 <h3 className="mt-4 text-xl font-bold md:text-2xl">{path.title}</h3>
-                <p className={`mt-2 text-sm leading-relaxed ${index === 0 ? "text-foreground/68" : "text-white/82"}`}>{path.desc}</p>
+                <p className={`mt-2 text-sm leading-relaxed ${path.label === "Repair & Installation" ? "text-foreground/68" : "text-white/82"}`}>{path.desc}</p>
                 <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold">
                   {path.cta}
                   <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
@@ -1655,14 +1832,14 @@ export default function Home() {
               <h2 className="mt-2 font-display text-2xl font-bold text-secondary md:mt-3 md:text-4xl">What FixMyDoor Services does</h2>
             </div>
             <p className="text-sm leading-relaxed text-foreground/72 md:text-base">
-              FixMyDoor Services supports practical repair, installation, and sourcing requests. Customers contact us for small fixes, full door replacements, furniture installation, and guidance before buying the wrong hardware.
+              FixMyDoor Services helps with repairs, installations, furniture setup, and hardware sourcing. Share the issue, and we will guide you clearly.
             </p>
           </div>
 
           <div className="overflow-hidden md:overflow-visible">
             <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-4 xl:grid-cols-3`}>
-              {coreServiceDetails.map((service) => (
-                <article key={service.title} className={`${mobileScrollItemClass} rounded-[18px] border border-primary/10 bg-[#fffaf2] p-4 shadow-[0_10px_24px_rgba(47,36,28,0.05)] md:rounded-[22px] md:p-5`}>
+              {coreServiceLoopItems.map(({ item: service, loopKey, isClone, loopEdge }) => (
+                <article key={loopKey} data-loop-clone={isClone || undefined} data-loop-edge={loopEdge} aria-hidden={isClone || undefined} className={`${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} rounded-[18px] border border-primary/10 bg-[#fffaf2] p-4 shadow-[0_10px_24px_rgba(47,36,28,0.05)] md:rounded-[22px] md:p-5`}>
                   <h3 className="text-base font-bold text-secondary md:text-xl">{service.title}</h3>
                   <p className="mt-1.5 text-[0.82rem] leading-relaxed text-foreground/72 md:mt-2 md:text-sm">{service.text}</p>
                 </article>
@@ -1742,8 +1919,8 @@ export default function Home() {
 
             <div className="overflow-hidden md:overflow-visible">
               <div id="services-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-5`}>
-              {displayedServiceShowcase.map((service, index) => (
-                <article key={service.title} className={`${mobileScrollItemClass} overflow-hidden rounded-[24px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 md:rounded-[28px]`}>
+              {serviceShowcaseLoopItems.map(({ item: service, loopKey, isClone, loopEdge }, index) => (
+                <article key={loopKey} data-loop-clone={isClone || undefined} data-loop-edge={loopEdge} aria-hidden={isClone || undefined} className={`${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[24px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 md:rounded-[28px]`}>
                   <img
                     src={service.src}
                     alt={service.title}
@@ -1783,8 +1960,8 @@ export default function Home() {
 
           <div className="overflow-hidden md:overflow-visible">
             <div id="product-categories-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-3`}>
-            {displayedProductCategories.map((category, index) => (
-              <article key={category.title} className={`${mobileScrollItemClass} overflow-hidden rounded-[28px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)] md:rounded-[32px]`}>
+            {productCategoryLoopItems.map(({ item: category, loopKey, isClone, loopEdge }, index) => (
+              <article key={loopKey} data-loop-clone={isClone || undefined} data-loop-edge={loopEdge} aria-hidden={isClone || undefined} className={`${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[28px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)] md:rounded-[32px]`}>
                 <div className="relative h-52 overflow-hidden bg-[#f8f4ec] md:h-64">
                   <img src={category.image} alt={category.title} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   <img src={category.accent} alt="" loading="lazy" decoding="async" className="absolute bottom-4 right-4 h-24 w-24 rounded-2xl border-4 border-white bg-white object-cover shadow-xl" />
@@ -1828,12 +2005,15 @@ export default function Home() {
 
             <div className="overflow-hidden md:overflow-visible">
               <div id="door-products-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-3 md:gap-4 lg:grid-cols-5`}>
-              {displayedDoorProducts.map((product, index) => (
+              {doorProductLoopItems.map(({ item: product, loopKey, isClone, loopEdge }, index) => (
                 <button
-                  key={product.title}
+                  key={loopKey}
                   type="button"
                   onClick={() => handleCatalogPick("door-purchase", product.title)}
-                  className={`group ${mobileScrollItemClass} overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12`}
+                  data-loop-clone={isClone || undefined}
+                  data-loop-edge={loopEdge}
+                  aria-hidden={isClone || undefined}
+                  className={`group ${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12`}
                 >
                   <img src={product.image} alt={product.title} loading="lazy" decoding="async" className="h-56 w-full bg-white object-cover object-center transition duration-500 group-hover:scale-[1.03] md:h-64" />
                   <div className="p-4">
@@ -1864,12 +2044,15 @@ export default function Home() {
 
             <div className="overflow-hidden md:overflow-visible">
               <div id="hardware-products-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-3 md:gap-4 lg:grid-cols-5`}>
-              {displayedHardwareProducts.map((product, index) => (
+              {hardwareProductLoopItems.map(({ item: product, loopKey, isClone, loopEdge }, index) => (
                 <button
-                  key={product.title}
+                  key={loopKey}
                   type="button"
                   onClick={() => handleCatalogPick(product.tag.includes("Drawer") || product.tag.includes("Cabinet") ? "furniture-hardware-purchase" : "door-hardware-purchase", product.title)}
-                  className={`group ${mobileScrollItemClass} overflow-hidden rounded-[22px] border border-primary/10 bg-[#fffaf2] text-left transition hover:-translate-y-1`}
+                  data-loop-clone={isClone || undefined}
+                  data-loop-edge={loopEdge}
+                  aria-hidden={isClone || undefined}
+                  className={`group ${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[22px] border border-primary/10 bg-[#fffaf2] text-left transition hover:-translate-y-1`}
                 >
                   <img src={product.image} alt={product.title} loading="lazy" decoding="async" className="h-40 w-full bg-white object-contain p-3 transition duration-500 group-hover:scale-[1.03] md:h-48" />
                   <div className="p-4">
@@ -1897,8 +2080,8 @@ export default function Home() {
 
           <div className="overflow-hidden md:overflow-visible">
             <div id="project-gallery-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-6 xl:grid-cols-3`}>
-            {displayedProjectGallery.map((project, index) => (
-              <article key={project.title} className={`${mobileScrollItemClass} overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px]`}>
+            {projectGalleryLoopItems.map(({ item: project, loopKey, isClone, loopEdge }, index) => (
+              <article key={loopKey} data-loop-clone={isClone || undefined} data-loop-edge={loopEdge} aria-hidden={isClone || undefined} className={`${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px]`}>
                 <img src={project.src} alt={project.title} loading="lazy" decoding="async" className="h-56 w-full object-cover md:h-[300px]" />
                 <div className="p-5 md:p-6">
                   <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{project.category}</span>
@@ -1964,8 +2147,8 @@ export default function Home() {
           <div className={`grid gap-5 ${reviewFormOpen ? "lg:grid-cols-[1fr_0.62fr]" : ""} lg:items-start`}>
             <div className="overflow-hidden md:overflow-visible">
               <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-3 md:gap-4`}>
-              {featuredReviews.map((review, index) => (
-                <article key={review.id} className={`${mobileScrollItemClass} rounded-[22px] border border-primary/10 bg-white p-4 shadow-[0_12px_34px_rgba(0,0,0,0.05)]`}>
+              {reviewLoopItems.map(({ item: review, loopKey, isClone, loopEdge }, index) => (
+                <article key={loopKey} data-loop-clone={isClone || undefined} data-loop-edge={loopEdge} aria-hidden={isClone || undefined} className={`${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} rounded-[22px] border border-primary/10 bg-white p-4 shadow-[0_12px_34px_rgba(0,0,0,0.05)]`}>
                   <div className="mb-3 flex gap-1">
                     {Array.from({ length: 5 }).map((_, index) => (
                       <Star
@@ -2518,8 +2701,65 @@ export default function Home() {
 
       <footer className="relative overflow-hidden bg-[linear-gradient(135deg,_#241a14,_#342318_58%,_#1b130f)] text-white">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
-        <div className="container relative max-w-[1180px] py-4 md:py-5">
-          <div className="grid gap-3 md:grid-cols-[1.1fr_0.75fr_0.75fr_1fr]">
+        <div className="container relative max-w-[1180px] py-2 md:py-5">
+          <div className="md:hidden">
+            <div className="flex items-center gap-2.5 rounded-[18px] border border-primary/18 bg-white/[0.06] p-2.5">
+              <div className="flex h-10 w-14 shrink-0 items-center justify-center rounded-[14px] bg-white/90 px-2">
+                <img src="/img5150-transparent.png" alt="FixMyDoor logo" loading="lazy" decoding="async" className="h-8 w-auto object-contain" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="truncate font-display text-base font-bold">FixMyDoor Services</h3>
+                <p className="mt-0.5 text-[0.64rem] font-bold uppercase tracking-[0.14em] text-white/62">Door & Furniture Repairs</p>
+              </div>
+            </div>
+            <div className="mt-2 grid gap-2">
+              <details className="group rounded-[15px] border border-white/10 bg-white/[0.055] p-2.5">
+                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-bold">
+                  Contact
+                  <span className="text-primary transition group-open:rotate-45">+</span>
+                </summary>
+                <div className="mt-2 grid gap-1.5 text-xs">
+                  <a href="tel:+14383471823" className="rounded-xl bg-white/8 px-3 py-2 font-semibold text-white/86">+1 (438) 347-1823</a>
+                  <a href="mailto:info.fixmydoor@gmail.com" className="rounded-xl bg-white/8 px-3 py-2 font-semibold text-white/86">info.fixmydoor@gmail.com</a>
+                  <a href={BUSINESS_WHATSAPP_URL} target="_blank" rel="noreferrer" className="rounded-xl bg-white/8 px-3 py-2 font-semibold text-white/86">WhatsApp: {BUSINESS_WHATSAPP_DISPLAY}</a>
+                </div>
+              </details>
+              <details className="group rounded-[15px] border border-white/10 bg-white/[0.055] p-2.5">
+                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-bold">
+                  Quick Links
+                  <span className="text-primary transition group-open:rotate-45">+</span>
+                </summary>
+                <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                  {navLinks.slice(0, 6).map((link) => (
+                    <a key={link.href} href={link.href} className="rounded-xl bg-white/8 px-3 py-2 font-semibold text-white/78">{link.label}</a>
+                  ))}
+                </div>
+              </details>
+              <details className="group rounded-[15px] border border-white/10 bg-white/[0.055] p-2.5">
+                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-bold">
+                  Services
+                  <span className="text-primary transition group-open:rotate-45">+</span>
+                </summary>
+                <div className="mt-2 grid gap-1.5 text-xs">
+                  {footerServices.slice(0, 4).map((service) => (
+                    <button key={service.slug} type="button" onClick={() => handleServicePick(service)} className="rounded-xl bg-white/8 px-3 py-2 text-left font-semibold text-white/78">
+                      {service.title}
+                    </button>
+                  ))}
+                </div>
+              </details>
+            </div>
+            <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-white/10 pt-2.5">
+              <p className="text-[0.68rem] leading-relaxed text-white/58">&copy; 2017-2026 FixMyDoor Services.</p>
+              <div className="flex gap-1.5">
+                <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80" aria-label="Instagram"><Instagram className="h-3.5 w-3.5" /></a>
+                <a href="https://x.com/fixmydoor?s=11" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80" aria-label="X (Twitter)"><Twitter className="h-3.5 w-3.5" /></a>
+                <a href="https://www.facebook.com/share/1Mc9zS8fXa/?mibextid=wwXIfr" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80" aria-label="Facebook"><Facebook className="h-3.5 w-3.5" /></a>
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden gap-3 md:grid md:grid-cols-[1.1fr_0.75fr_0.75fr_1fr]">
             <div className="overflow-hidden rounded-[24px] border border-primary/18 bg-[linear-gradient(180deg,_rgba(255,255,255,0.09),_rgba(255,255,255,0.04))] p-3 shadow-[0_14px_36px_rgba(0,0,0,0.14)]">
               <div className="flex items-center gap-3">
                 <div className="flex h-14 w-20 shrink-0 items-center justify-center rounded-[18px] bg-white/88 px-2 py-1.5 shadow-[0_10px_20px_rgba(66,40,18,0.1)]">
@@ -2595,7 +2835,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4 text-xs text-white/60 md:flex-row md:items-center md:justify-between">
+          <div className="mt-5 hidden flex-col gap-2 border-t border-white/10 pt-4 text-xs text-white/60 md:flex md:flex-row md:items-center md:justify-between">
             <p>&copy; 2017-2026 FixMyDoor Services. Door and furniture repair support from Canada.</p>
             <p>Canada-based service. International requests welcome.</p>
           </div>

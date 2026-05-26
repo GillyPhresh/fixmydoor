@@ -227,6 +227,10 @@
     scroll-snap-stop: always;
   }
 
+  .fixmydoor-carousel-resetting {
+    scroll-behavior: auto !important;
+  }
+
   .fixmydoor-translate-element,
   .goog-te-banner-frame,
   .skiptranslate iframe,
