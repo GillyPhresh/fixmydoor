@@ -14,13 +14,13 @@ function setMeta(selector: string, attributeName: "name" | "property", attribute
 
 const defaultServiceDetail = {
   common: [
-    "Customers can send photos, measurements, location, and a short note about what is not working.",
-    "We review the issue and explain whether repair, replacement, installation, or sourcing makes the most sense.",
-    "The request is saved with a tracking link so follow-up stays organized.",
+    "Customers can send photos, measurements, location details, and a brief note about the issue.",
+    "We review the request and explain whether repair, replacement, installation, or sourcing is the best next step.",
+    "Each request is saved with a tracking link so follow-up remains organized.",
   ],
   process: [
     "Send the issue, photo, and location.",
-    "We confirm details, urgency, and the best next step.",
+    "We confirm the details, urgency, and most practical next step.",
     "We repair, install, or help source the correct item.",
   ],
   trust:

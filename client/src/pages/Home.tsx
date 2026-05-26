@@ -171,57 +171,57 @@ function getAdvertAlt(advert: Pick<DisplayAdvert, "title" | "tag">) {
 }
 
 const serviceAreaNotes = [
-  "Head office in Montreal at 10158 Rue Berri for local coordination.",
-  "Requests are welcome from Montreal, Laval, Longueuil, Brossard, the West Island, nearby Quebec communities, and other parts of Canada.",
-  "International requests are welcome for sourcing, measurements, repair guidance, and product questions.",
+  "Coordinated from our Montreal office at 10158 Rue Berri.",
+  "Serving Montreal, Laval, Longueuil, Brossard, the West Island, nearby Quebec communities, and other Canadian locations by request.",
+  "International customers are welcome to contact us for sourcing, measurements, repair guidance, and product advice.",
 ];
 
 const coreServiceDetails = [
   {
     title: "Door Repairs",
-    text: "Sticking, sagging, noisy, loose, damaged, or hard-to-close doors. We review the frame, hinges, latch, handle, and daily use so the repair plan is practical.",
+    text: "For doors that stick, scrape, sag, rattle, or refuse to close properly, we review the frame, hinges, latch, handle, and daily use before recommending a practical repair.",
   },
   {
     title: "Door Installations",
-    text: "Entry, interior, replacement, heavy-duty, wood, steel, glass-panel, and custom-fit door requests. We can help with measurements, swing direction, hardware matching, delivery, and installation planning.",
+    text: "We support entry, interior, replacement, heavy-duty, wood, steel, glass-panel, and custom-fit door requests, including measurements, swing direction, hardware matching, delivery, and installation planning.",
   },
   {
     title: "Furniture Repairs",
-    text: "Loose sofa frames, cabinet doors, drawers, desks, chairs, shelves, and furniture pieces that need stronger support, better hardware, or careful repair.",
+    text: "We help with loose sofa frames, cabinet doors, drawers, desks, chairs, shelves, and furniture pieces that need stronger support, better hardware, or careful restoration.",
   },
   {
     title: "Furniture Installations",
-    text: "Furniture setup, fitting, alignment, hardware installation, and practical installation support for homes, rentals, offices, and small business spaces.",
+    text: "For homes, rentals, offices, and small business spaces, we handle furniture setup, fitting, alignment, hardware installation, and practical installation support.",
   },
   {
     title: "Locks, Hinges & Hardware",
-    text: "Lock rekeying, lock replacement, handles, cylinders, hinges, drawer slides, cabinet hinges, backplates, knobs, and matching replacement parts.",
+    text: "We assist with lock rekeying, replacement locks, handles, cylinders, hinges, drawer slides, cabinet hinges, backplates, knobs, and matching replacement parts.",
   },
   {
     title: "Hardware Sourcing",
-    text: "Door hardware, furniture hardware, repair parts, doors, equipment, and product guidance before you spend money on the wrong size, finish, or style.",
+    text: "Before you buy, we can help source door hardware, furniture hardware, repair parts, doors, and equipment that match the required size, finish, and style.",
   },
 ];
 
 const trustDetails = [
-  "Clear explanation before work starts",
-  "Photo-based review for faster answers",
+  "Clear guidance before work begins",
+  "Photo review for faster answers",
   "Booking records and tracking links",
-  "Canada-based service with worldwide requests welcome",
-  "Urgent door and lock issues reviewed as quickly as availability allows",
-  "Follow-up available for the agreed repair or installation scope",
-  "Repair, installation, and sourcing support in one place",
-  "Customer details used only to respond to the request",
+  "Canada-based service with worldwide request support",
+  "Urgent door and lock issues reviewed as availability allows",
+  "Follow-up for the agreed repair or installation scope",
+  "Repair, installation, and sourcing handled together",
+  "Customer details used only for service communication",
 ];
 
 const faqItems = [
   {
     question: "Can I send photos before booking?",
-    answer: "Yes. Add up to three photos in the request form. It helps us understand the door, lock, furniture, or part before we call you.",
+    answer: "Yes. You can add up to three photos in the request form. Clear photos help us understand the door, lock, furniture, or part before we call.",
   },
   {
     question: "Can you help me buy the right door or hardware?",
-    answer: "Yes. Share the size, quantity, finish, swing direction, and whether you need delivery or installation. We will help narrow down the options.",
+    answer: "Yes. Share the size, quantity, finish, swing direction, and whether delivery or installation is needed. We will help narrow the options before you buy.",
   },
   {
     question: "Do you work only in Montreal?",
@@ -229,15 +229,15 @@ const faqItems = [
   },
   {
     question: "Do you handle urgent or emergency door issues?",
-    answer: "Yes. Mark the request as urgent or emergency in the form, call directly, or send a WhatsApp message. Availability depends on location, timing, and the type of issue.",
+    answer: "Yes. Mark the request as urgent or emergency, call directly, or send a WhatsApp message. Availability depends on location, timing, and the type of issue.",
   },
   {
     question: "Is there follow-up after the work?",
-    answer: "If something needs review after the agreed repair or installation scope, contact FixMyDoor Services quickly with photos and the booking details so it can be checked properly.",
+    answer: "If something needs review after the agreed repair or installation scope, contact FixMyDoor Services with photos and booking details so it can be checked properly.",
   },
   {
     question: "Will I receive updates after booking?",
-    answer: "Yes. Your confirmation email includes a tracking link. When your request is updated, you can also receive an email update.",
+    answer: "Yes. Your confirmation email includes a tracking link, and status changes can also be sent by email.",
   },
 ];
 
@@ -1214,6 +1214,50 @@ export default function Home() {
     toast.success(preference === "accepted" ? "Cookie preference saved." : "Optional cookies declined.");
   };
 
+  const scrollMobileCarousel = (trackId: string, direction: -1 | 1) => {
+    const track = document.getElementById(trackId);
+    if (!track) {
+      return;
+    }
+
+    track.scrollBy({
+      left: direction * Math.max(track.clientWidth * 0.82, 240),
+      behavior: "smooth",
+    });
+  };
+
+  const renderMobileCarouselControls = (trackId: string, count: number, dark = false) => {
+    if (count <= 1) {
+      return null;
+    }
+
+    return (
+      <div className={`mt-3 flex items-center justify-center gap-3 md:hidden ${dark ? "text-white" : "text-secondary"}`}>
+        <button
+          type="button"
+          onClick={() => scrollMobileCarousel(trackId, -1)}
+          className={`inline-flex h-9 w-9 items-center justify-center rounded-full border shadow-sm transition ${dark ? "border-white/14 bg-white/10 hover:bg-white/18" : "border-primary/12 bg-white hover:border-primary hover:text-primary"}`}
+          aria-label="Show previous item"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div className="flex items-center gap-1.5" aria-hidden="true">
+          {Array.from({ length: Math.min(count, 5) }).map((_, index) => (
+            <span key={index} className={`h-1.5 rounded-full ${index === 0 ? "w-5 bg-primary" : dark ? "w-1.5 bg-white/35" : "w-1.5 bg-secondary/25"}`} />
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => scrollMobileCarousel(trackId, 1)}
+          className={`inline-flex h-9 w-9 items-center justify-center rounded-full shadow-sm transition ${dark ? "bg-primary text-white hover:bg-primary/90" : "bg-secondary text-white hover:bg-primary"}`}
+          aria-label="Show next item"
+        >
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
@@ -1292,10 +1336,10 @@ export default function Home() {
               Canada-based. You can ask from anywhere.
             </div>
             <h1 className="font-display text-[2.05rem] font-bold leading-[1.04] text-secondary sm:text-4xl md:text-[3.05rem] xl:text-[3.35rem]">
-              Door trouble? We will help you sort it out.
+              Reliable help for doors, locks, furniture, and hardware.
             </h1>
             <p className="mt-3 max-w-[32rem] text-[0.96rem] leading-relaxed text-foreground/75 md:text-[1.03rem]">
-              Send a photo, a quick note, or the size you have. We will tell you what can be repaired, what should be replaced, and the next step that makes sense.
+              Send a photo, a short description, or the measurements you have. We will review the request and guide you toward a repair, replacement, installation, or sourcing option that makes sense.
             </p>
             <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
               <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.24)] transition hover:-translate-y-0.5 hover:bg-primary/90">
@@ -1381,7 +1425,8 @@ export default function Home() {
                         <img src={advert.image} alt={advert.alt} loading={index === 0 ? "eager" : "lazy"} decoding="async" className="h-full w-full object-cover" />
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-secondary/42 via-transparent to-white/8" />
-                      <span className="absolute left-2 top-2 rounded-full bg-primary px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.16em] text-white shadow-lg">
+                      <span className="absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.16em] text-white shadow-lg">
+                        <Bell className="h-3 w-3" />
                         Ad
                       </span>
                       <span className="absolute bottom-2 right-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/92 text-secondary shadow-lg transition group-hover:scale-105" aria-hidden="true">
@@ -1570,7 +1615,7 @@ export default function Home() {
               <h2 className="mt-2 font-display text-2xl font-bold md:text-4xl">Need a repair or the right part?</h2>
             </div>
             <p className="max-w-xl text-sm leading-relaxed text-white/72">
-              Start with the option that matches your situation. We will help you figure out what to do next.
+              Choose the path that matches your need. We will review the details and guide you through the next step with clear, practical advice.
             </p>
           </div>
 
@@ -1610,7 +1655,7 @@ export default function Home() {
               <h2 className="mt-2 font-display text-2xl font-bold text-secondary md:mt-3 md:text-4xl">What FixMyDoor Services does</h2>
             </div>
             <p className="text-sm leading-relaxed text-foreground/72 md:text-base">
-              FixMyDoor Services is built for practical repair, installation, and sourcing requests. Customers can contact us for one small fix, a full door replacement, furniture installation, or help finding the right hardware before buying.
+              FixMyDoor Services supports practical repair, installation, and sourcing requests. Customers contact us for small fixes, full door replacements, furniture installation, and guidance before buying the wrong hardware.
             </p>
           </div>
 
@@ -1655,7 +1700,7 @@ export default function Home() {
             <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary md:text-sm md:tracking-[0.4em]">What We Handle</p>
             <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:mt-4 md:text-5xl">Real fixes for everyday door and furniture problems</h2>
             <p className="mx-auto mt-3 max-w-3xl text-sm leading-relaxed text-foreground/70 md:mt-4 md:text-lg">
-              Doors, locks, hinges, cabinets, and furniture all wear down with daily use. We keep the explanation simple and focus on what will actually solve the problem.
+              Doors, locks, hinges, cabinets, and furniture wear down with daily use. We explain the options clearly and focus on the solution that is most likely to work well.
             </p>
           </div>
 
@@ -1696,7 +1741,7 @@ export default function Home() {
             </article>
 
             <div className="overflow-hidden md:overflow-visible">
-              <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-5`}>
+              <div id="services-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-5`}>
               {displayedServiceShowcase.map((service, index) => (
                 <article key={service.title} className={`${mobileScrollItemClass} overflow-hidden rounded-[24px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 md:rounded-[28px]`}>
                   <img
@@ -1714,6 +1759,7 @@ export default function Home() {
                 </article>
               ))}
               </div>
+              {renderMobileCarouselControls("services-mobile-carousel", displayedServiceShowcase.length)}
             </div>
           </div>
 
@@ -1727,7 +1773,7 @@ export default function Home() {
               <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary md:text-sm md:tracking-[0.4em]">Buy & Source</p>
               <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:mt-4 md:text-5xl">Need a door, handle, lock, hinge, or furniture part?</h2>
               <p className="mt-3 max-w-3xl text-sm leading-relaxed text-foreground/70 md:mt-4 md:text-lg">
-                Tell us what you want to fix, replace, or buy. We will help you choose the right option before you spend money on the wrong item.
+                Tell us what you want to repair, replace, or purchase. We will help you compare the options before you spend money on the wrong item.
               </p>
             </div>
             <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.2)] transition hover:-translate-y-0.5 hover:bg-primary/90">
@@ -1736,7 +1782,7 @@ export default function Home() {
           </div>
 
           <div className="overflow-hidden md:overflow-visible">
-            <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-3`}>
+            <div id="product-categories-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-3`}>
             {displayedProductCategories.map((category, index) => (
               <article key={category.title} className={`${mobileScrollItemClass} overflow-hidden rounded-[28px] border border-primary/12 bg-white shadow-[0_18px_50px_rgba(0,0,0,0.07)] md:rounded-[32px]`}>
                 <div className="relative h-52 overflow-hidden bg-[#f8f4ec] md:h-64">
@@ -1759,6 +1805,7 @@ export default function Home() {
               </article>
             ))}
             </div>
+            {renderMobileCarouselControls("product-categories-mobile-carousel", displayedProductCategories.length)}
           </div>
 
           <div className="mt-8 rounded-[28px] bg-[#2f241c] p-5 text-white shadow-[0_22px_70px_rgba(47,36,28,0.2)] sm:p-8 md:mt-12 md:rounded-[34px]">
@@ -1767,7 +1814,7 @@ export default function Home() {
                 <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">Door Buying Gallery</p>
                 <h3 className="mt-3 text-2xl font-bold md:text-3xl">Paladin, SED, heavy-duty, entry, interior, and custom-fit doors</h3>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/75">
-                  Different sizes are available, so you can ask about the type of door and opening size you need before buying.
+                  Ask about the door type, opening size, finish, and hardware needs before buying, so the final choice fits the space properly.
                 </p>
               </div>
               <button
@@ -1780,7 +1827,7 @@ export default function Home() {
             </div>
 
             <div className="overflow-hidden md:overflow-visible">
-              <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-3 md:gap-4 lg:grid-cols-5`}>
+              <div id="door-products-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-3 md:gap-4 lg:grid-cols-5`}>
               {displayedDoorProducts.map((product, index) => (
                 <button
                   key={product.title}
@@ -1796,6 +1843,7 @@ export default function Home() {
                 </button>
               ))}
               </div>
+              {renderMobileCarouselControls("door-products-mobile-carousel", displayedDoorProducts.length, true)}
             </div>
           </div>
 
@@ -1815,7 +1863,7 @@ export default function Home() {
             </div>
 
             <div className="overflow-hidden md:overflow-visible">
-              <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-3 md:gap-4 lg:grid-cols-5`}>
+              <div id="hardware-products-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-3 md:gap-4 lg:grid-cols-5`}>
               {displayedHardwareProducts.map((product, index) => (
                 <button
                   key={product.title}
@@ -1831,6 +1879,7 @@ export default function Home() {
                 </button>
               ))}
               </div>
+              {renderMobileCarouselControls("hardware-products-mobile-carousel", displayedHardwareProducts.length)}
             </div>
           </div>
         </div>
@@ -1842,12 +1891,12 @@ export default function Home() {
             <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary md:text-sm md:tracking-[0.4em]">Our Work</p>
             <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:mt-4 md:text-5xl">Recent jobs customers usually ask about</h2>
             <p className="mx-auto mt-3 max-w-3xl text-sm leading-relaxed text-foreground/70 md:mt-4 md:text-lg">
-              These examples show the type of door, lock, and furniture work we are often asked to look at.
+              These examples reflect the types of door, lock, hardware, and furniture requests customers often ask us to review.
             </p>
           </div>
 
           <div className="overflow-hidden md:overflow-visible">
-            <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-6 xl:grid-cols-3`}>
+            <div id="project-gallery-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-6 xl:grid-cols-3`}>
             {displayedProjectGallery.map((project, index) => (
               <article key={project.title} className={`${mobileScrollItemClass} overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px]`}>
                 <img src={project.src} alt={project.title} loading="lazy" decoding="async" className="h-56 w-full object-cover md:h-[300px]" />
@@ -1859,6 +1908,7 @@ export default function Home() {
               </article>
             ))}
             </div>
+            {renderMobileCarouselControls("project-gallery-mobile-carousel", displayedProjectGallery.length)}
           </div>
         </div>
       </section>
@@ -1991,16 +2041,31 @@ export default function Home() {
 
       <section id="how-it-works" className="section-divider bg-white py-6 md:py-8">
         <div className="container max-w-[1180px]">
-          <div className="mb-4 flex flex-col gap-2 text-center md:flex-row md:items-center md:justify-between md:text-left">
+          <div className="mb-3 flex flex-col gap-2 text-center md:mb-4 md:flex-row md:items-center md:justify-between md:text-left">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">How It Works</p>
-              <h2 className="mt-1 font-display text-2xl font-bold text-secondary md:text-3xl">Simple from first message to finished job.</h2>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary md:text-xs md:tracking-[0.28em]">How It Works</p>
+              <h2 className="mt-1 font-display text-xl font-bold text-secondary md:text-3xl">Simple from first message to finished job.</h2>
             </div>
             <button type="button" onClick={scrollToContactForm} className="inline-flex items-center justify-center rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white shadow-[0_12px_28px_rgba(180,101,50,0.18)] transition hover:-translate-y-0.5 hover:bg-primary/90">
               Start Booking
             </button>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-[20px] border border-primary/10 bg-background p-3 md:hidden">
+            {[
+              ["1", "Contact", "Send the issue, photos, and location."],
+              ["2", "Plan", "We review the details and confirm the next step."],
+              ["3", "Complete", "We repair, install, or source the right item."],
+            ].map(([number, title, text]) => (
+              <div key={number} className="flex items-center gap-3 border-b border-primary/10 py-2.5 last:border-b-0">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">{number}</span>
+                <div>
+                  <h3 className="text-sm font-bold text-secondary">{title}</h3>
+                  <p className="text-xs leading-relaxed text-foreground/68">{text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden gap-3 md:grid md:grid-cols-3">
             <div className="flex gap-3 rounded-[20px] border border-primary/10 bg-background p-4">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">1</div>
               <div>
@@ -2026,9 +2091,48 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-[linear-gradient(180deg,_#fffdf8,_#f4eadc)] py-8 md:py-12">
+      <section className="bg-[linear-gradient(180deg,_#fffdf8,_#f4eadc)] py-5 md:py-12">
         <div className="container max-w-[1180px]">
-          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="grid gap-2 md:hidden">
+            <details className="group rounded-[18px] border border-primary/10 bg-white p-4 shadow-sm" open>
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-secondary">
+                Service areas
+                <span className="text-primary transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-2 text-xs leading-relaxed text-foreground/70">
+                We coordinate from Montreal and welcome requests from Quebec, other parts of Canada, and international customers who need sourcing or repair guidance.
+              </p>
+            </details>
+            <details className="group rounded-[18px] border border-primary/10 bg-white p-4 shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-secondary">
+                Workmanship promise
+                <span className="text-primary transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-2 text-xs leading-relaxed text-foreground/70">
+                We aim for repairs that feel solid in daily use. If follow-up is needed within the agreed scope, send photos and the booking details for review.
+              </p>
+            </details>
+            <details className="group rounded-[18px] border border-primary/10 bg-white p-4 shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-secondary">
+                Clear request records
+                <span className="text-primary transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-2 text-xs leading-relaxed text-foreground/70">
+                Requests are saved in the dashboard, sent to the team, and confirmed to customers with a tracking link.
+              </p>
+            </details>
+            <details className="group rounded-[18px] border border-primary/10 bg-white p-4 shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-secondary">
+                Privacy note
+                <span className="text-primary transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-2 text-xs leading-relaxed text-foreground/70">
+                Contact details are used only for service communication. Please do not send lock codes or private access details through the form.
+              </p>
+            </details>
+          </div>
+
+          <div className="hidden gap-5 md:grid lg:grid-cols-[0.9fr_1.1fr]">
             <article className="rounded-[28px] bg-[#2f241c] p-6 text-white shadow-[0_18px_50px_rgba(47,36,28,0.18)] md:p-7">
               <p className="text-xs font-bold uppercase tracking-[0.32em] text-primary">Service Areas</p>
               <h2 className="mt-3 font-display text-3xl font-bold md:text-4xl">Canada-based, open to international requests</h2>
@@ -2071,15 +2175,26 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-white py-8 md:py-12">
+      <section className="bg-white py-5 md:py-12">
         <div className="container max-w-[1180px]">
-          <div className="mb-6 text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary">Questions Customers Ask</p>
-            <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:text-4xl">A few answers before you book</h2>
+          <div className="mb-4 text-center md:mb-6">
+            <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary md:text-xs md:tracking-[0.34em]">Questions Customers Ask</p>
+            <h2 className="mt-2 font-display text-xl font-bold text-secondary md:mt-3 md:text-4xl">A few answers before you book</h2>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-2 md:hidden">
             {faqItems.map((item, index) => (
-              <article key={item.question} className={`rounded-[24px] border border-primary/10 bg-background p-5 ${index > 1 ? "hidden md:block" : ""}`}>
+              <details key={item.question} className="group rounded-[18px] border border-primary/10 bg-background p-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-secondary">
+                  <span>{item.question}</span>
+                  <span className="text-primary transition group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-2 text-xs leading-relaxed text-foreground/70">{item.answer}</p>
+              </details>
+            ))}
+          </div>
+          <div className="hidden gap-4 md:grid md:grid-cols-2">
+            {faqItems.map((item, index) => (
+              <article key={item.question} className="rounded-[24px] border border-primary/10 bg-background p-5">
                 <h3 className="text-lg font-bold text-secondary">{item.question}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-foreground/70">{item.answer}</p>
               </article>
@@ -2134,7 +2249,21 @@ export default function Home() {
                   <p className="mt-2 inline-flex rounded-xl bg-primary/10 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-primary">Canada-based, open to international requests</p>
                 </div>
               </div>
-              <div className="rounded-[22px] bg-[#2f241c] p-5 text-white shadow-[0_14px_34px_rgba(47,36,28,0.16)] sm:col-span-2 md:col-span-1">
+              <details className="group rounded-[18px] bg-[#2f241c] p-4 text-white shadow-[0_14px_34px_rgba(47,36,28,0.16)] sm:col-span-2 md:hidden">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                  <span>
+                    <span className="block text-[0.66rem] font-bold uppercase tracking-[0.2em] text-primary">Before You Send</span>
+                    <span className="mt-1 block text-sm font-bold">A clear request gets a faster reply.</span>
+                  </span>
+                  <span className="text-primary transition group-open:rotate-45">+</span>
+                </summary>
+                <div className="mt-3 grid gap-2">
+                  <p className="rounded-2xl bg-white/8 p-3 text-xs leading-relaxed text-white/78">
+                    For repairs, tell us what is faulty, where it is located, and upload a useful photo. For buying, share the item, size, color, quantity, and any style reference you have.
+                  </p>
+                </div>
+              </details>
+              <div className="hidden rounded-[22px] bg-[#2f241c] p-5 text-white shadow-[0_14px_34px_rgba(47,36,28,0.16)] sm:col-span-2 md:col-span-1 md:block">
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-primary">Before You Send</p>
                 <h3 className="mt-2 text-xl font-bold">A clear request gets a faster reply.</h3>
                 <div className="mt-4 grid gap-3">
