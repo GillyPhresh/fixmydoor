@@ -192,7 +192,14 @@ export default function ServicePage() {
         <div className="container flex max-w-[1180px] items-center justify-between gap-2 py-2 sm:gap-4 sm:py-3">
           <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <img src="/img5150-transparent.png" alt="FixMyDoor" className="h-12 w-auto shrink-0 object-contain sm:h-14" />
-            <span className="hidden truncate font-display text-base font-bold text-secondary min-[430px]:inline sm:text-lg">FixMyDoor Services</span>
+            <span className="hidden min-w-0 max-w-[18rem] min-[430px]:block sm:max-w-[24rem] md:max-w-[32rem]">
+              <span className="block truncate font-display text-[0.82rem] font-bold leading-tight text-secondary sm:text-base md:text-lg">
+                FixMyDoor Services | Door & Furniture Repairs
+              </span>
+              <span className="mt-0.5 block truncate text-[0.56rem] font-semibold uppercase leading-tight tracking-[0.08em] text-secondary/65 sm:text-[0.63rem] sm:tracking-[0.12em] md:text-[0.68rem]">
+                Repairs, installations, doors, furniture, and hardware sourcing.
+              </span>
+            </span>
           </Link>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <a href="tel:+14383471823" className="hidden rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white sm:inline-flex">

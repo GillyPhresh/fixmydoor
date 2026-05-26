@@ -777,16 +777,16 @@ export default function Home() {
                 <span className="absolute -right-1 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm" aria-hidden="true" />
               </span>
             </a>
-            <div className="hidden min-w-0 min-[430px]:block">
-              <p className="truncate font-display text-sm font-bold leading-tight text-secondary sm:text-base md:text-lg">
+            <div className="hidden min-w-0 max-w-[13.5rem] min-[430px]:block sm:max-w-[20rem] md:max-w-[28rem] lg:max-w-[23rem] xl:max-w-[30rem]">
+              <p className="truncate font-display text-[0.82rem] font-bold leading-tight text-secondary sm:text-base md:text-lg">
                 FixMyDoor Services | Door & Furniture Repairs
               </p>
-              <p className="mt-0.5 hidden text-[0.63rem] uppercase tracking-[0.16em] text-secondary/65 sm:block md:text-[0.68rem]">
+              <p className="mt-0.5 truncate text-[0.56rem] font-semibold uppercase leading-tight tracking-[0.08em] text-secondary/65 sm:text-[0.63rem] sm:tracking-[0.12em] md:text-[0.68rem]">
                 Repairs, installations, doors, furniture, and hardware sourcing.
               </p>
             </div>
           </div>
-          <div className="hidden gap-4 text-sm font-semibold lg:flex xl:gap-5">
+          <div className="hidden gap-2 text-xs font-semibold xl:flex 2xl:gap-4 2xl:text-sm">
             {navLinks.map((link) => (
               <a key={link.href} href={link.href} className="transition hover:text-primary">{link.label}</a>
             ))}
