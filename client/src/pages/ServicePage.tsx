@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowRight, CheckCircle2, Globe2, Phone, ShieldCheck, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LanguageTranslator from "@/components/LanguageTranslator";
 import { resolveSeoPage, serviceSeoPages } from "@shared/seo";
 
 function setMeta(selector: string, attributeName: "name" | "property", attributeValue: string, content: string) {
@@ -193,9 +194,12 @@ export default function ServicePage() {
             <img src="/img5150-transparent.png" alt="FixMyDoor" className="h-14 w-auto object-contain" />
             <span className="font-display text-lg font-bold text-secondary">FixMyDoor</span>
           </Link>
-          <a href="tel:+14383471823" className="hidden rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white sm:inline-flex">
-            Call +1 (438) 347-1823
-          </a>
+          <div className="flex shrink-0 items-center gap-2">
+            <a href="tel:+14383471823" className="hidden rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white sm:inline-flex">
+              Call +1 (438) 347-1823
+            </a>
+            <LanguageTranslator />
+          </div>
         </div>
       </nav>
 

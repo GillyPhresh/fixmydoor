@@ -3,7 +3,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense, useEffect } from "react";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
-import LanguageTranslator from "./components/LanguageTranslator";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
@@ -123,7 +122,6 @@ function App() {
       >
         <TooltipProvider>
           <Toaster />
-          <LanguageTranslator />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

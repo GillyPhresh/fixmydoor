@@ -32,6 +32,7 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import LanguageTranslator from "@/components/LanguageTranslator";
 import type { BookingRequest, ContentItem, Review, ReviewRequest } from "@shared/types";
 import { serviceCatalog as defaultServiceCatalog, type ServiceCatalogItem } from "@shared/services";
 import {
@@ -782,6 +783,7 @@ export default function Home() {
               <span className="hidden sm:inline">Call Now</span>
               <span className="sm:hidden">Call</span>
             </a>
+            <LanguageTranslator />
             <button
               type="button"
               onClick={() => setMobileMenuOpen((open) => !open)}
@@ -1036,33 +1038,35 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-white py-10 md:py-14">
+      <section className="bg-white py-8 md:py-14">
         <div className="container max-w-[1180px]">
-          <div className="mb-6 grid gap-4 md:grid-cols-[0.75fr_1.25fr] md:items-end">
+          <div className="mb-5 grid gap-3 md:mb-6 md:grid-cols-[0.75fr_1.25fr] md:items-end md:gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary">Core Services</p>
-              <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:text-4xl">What FixMyDoor does</h2>
+              <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary md:text-xs md:tracking-[0.34em]">Core Services</p>
+              <h2 className="mt-2 font-display text-2xl font-bold text-secondary md:mt-3 md:text-4xl">What FixMyDoor does</h2>
             </div>
             <p className="text-sm leading-relaxed text-foreground/72 md:text-base">
               FixMyDoor is built for practical repair, installation, and sourcing requests. Customers can contact us for one small fix, a full door replacement, furniture installation, or help finding the right hardware before buying.
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {coreServiceDetails.map((service) => (
-              <article key={service.title} className="rounded-[22px] border border-primary/10 bg-[#fffaf2] p-5 shadow-[0_12px_32px_rgba(47,36,28,0.055)]">
-                <h3 className="text-xl font-bold text-secondary">{service.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-foreground/72">{service.text}</p>
-              </article>
-            ))}
+          <div className="overflow-hidden md:overflow-visible">
+            <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-4 xl:grid-cols-3`}>
+              {coreServiceDetails.map((service) => (
+                <article key={service.title} className={`${mobileScrollItemClass} rounded-[18px] border border-primary/10 bg-[#fffaf2] p-4 shadow-[0_10px_24px_rgba(47,36,28,0.05)] md:rounded-[22px] md:p-5`}>
+                  <h3 className="text-base font-bold text-secondary md:text-xl">{service.title}</h3>
+                  <p className="mt-1.5 text-[0.82rem] leading-relaxed text-foreground/72 md:mt-2 md:text-sm">{service.text}</p>
+                </article>
+              ))}
+            </div>
           </div>
 
-          <div className="mt-6 rounded-[24px] border border-secondary/10 bg-secondary p-5 text-white md:mt-8 md:p-6">
+          <div className="mt-5 rounded-[20px] border border-secondary/10 bg-secondary p-4 text-white md:mt-8 md:rounded-[24px] md:p-6">
             <div className="grid gap-4 md:grid-cols-[0.7fr_1.3fr] md:items-center">
               <div>
-                <ShieldCheck className="h-8 w-8 text-primary" />
-                <h3 className="mt-3 text-2xl font-bold">Trust before the first visit</h3>
-                <p className="mt-2 text-sm leading-relaxed text-white/76">
+                <ShieldCheck className="h-7 w-7 text-primary md:h-8 md:w-8" />
+                <h3 className="mt-2 text-xl font-bold md:mt-3 md:text-2xl">Trust before the first visit</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-white/76 md:mt-2">
                   The goal is simple: make the problem clear, protect the customer record, and recommend the next step that fits the job.
                 </p>
               </div>
