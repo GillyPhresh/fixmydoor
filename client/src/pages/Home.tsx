@@ -477,12 +477,23 @@ export default function Home() {
     cta: item.items || "Send Request",
     bookingValue: item.bookingValue || "consultation",
   }));
+  const defaultAdverts = [
+    {
+      title: "Door, lock, furniture or hardware problem?",
+      description: "FixMyDoor Services can help with repairs, installations, doors, furniture, and hardware sourcing. Call or message today.",
+      tag: "Fast Help",
+      image: heroImage,
+      isVideo: false,
+      cta: "Book Now",
+      bookingValue: "consultation",
+    },
+  ];
   const displayedServiceShowcase = dynamicServiceShowcase.length > 0 ? dynamicServiceShowcase : serviceShowcase;
   const displayedProductCategories = dynamicProductCategories.length > 0 ? dynamicProductCategories : productCategories;
   const displayedDoorProducts = dynamicDoorProducts.length > 0 ? dynamicDoorProducts : doorProducts;
   const displayedHardwareProducts = dynamicHardwareProducts.length > 0 ? dynamicHardwareProducts : hardwareProducts;
   const displayedProjectGallery = dynamicProjectGallery.length > 0 ? dynamicProjectGallery : projectGallery;
-  const displayedAdverts = dynamicAdverts;
+  const displayedAdverts = dynamicAdverts.length > 0 ? dynamicAdverts : defaultAdverts;
   const watchedAddress = form.watch("address");
   const watchedCountry = form.watch("country");
   const showInternationalRequestDetails = !isCanadaLocation(watchedCountry) || NON_CANADIAN_LOCATION_PATTERN.test(watchedAddress || "");
@@ -883,12 +894,12 @@ export default function Home() {
 
           <div className="relative">
             <div className="relative overflow-hidden rounded-[28px] border border-white/60 bg-white p-2.5 shadow-[0_24px_70px_rgba(66,40,18,0.16)] md:rounded-[32px] md:p-3 md:shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
-              <img src={heroImage} alt="Lock rekeying service at a front door" loading="eager" decoding="async" className="h-[210px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
+              <img src={heroImage} alt="Front door lock rekeying service" loading="eager" decoding="async" className="h-[210px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
               <div className="absolute bottom-3 left-3 right-3 rounded-[20px] bg-white/92 p-3 shadow-lg backdrop-blur md:bottom-7 md:left-7 md:right-7 md:max-w-sm md:rounded-[24px] md:p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
-                <h2 className="mt-1 text-xl font-bold text-secondary md:mt-2 md:text-2xl">Front Door Rekeying</h2>
+                <h2 className="mt-1 text-xl font-bold text-secondary md:mt-2 md:text-2xl">Front Door Rekeying & Entry Security</h2>
                 <p className="mt-1 text-xs leading-relaxed text-foreground/70 md:mt-2 md:text-sm">
-                  If a key goes missing or the lock starts acting up, we can rekey the entry and help the door feel secure again.
+                  Lost key, tenant change, sticky lock, or loose handle? FixMyDoor Services can rekey, adjust, or recommend secure hardware so your front door feels right again.
                 </p>
               </div>
             </div>
@@ -897,128 +908,109 @@ export default function Home() {
       </section>
 
       {displayedAdverts.length > 0 && (
-        <section className="bg-white py-4 md:py-6">
-          <div className="container max-w-[1180px]">
-            <div
-              className="overflow-hidden rounded-[28px] border border-primary/12 bg-[linear-gradient(135deg,_#fffaf3,_#ffffff_58%,_#f1dfcd)] shadow-[0_18px_48px_rgba(66,40,18,0.10)] md:rounded-[32px]"
-              onPointerDown={() => pauseAdvertSlider()}
-              onPointerUp={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
-              onPointerCancel={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
-              onMouseEnter={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
-              aria-live="polite"
-            >
-              <div className="flex transition-transform duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform" style={{ transform: `translateX(-${activeAdvertIndex * 100}%)` }}>
-                {displayedAdverts.map((advert, index) => (
-                  <article key={`${advert.title}-${index}`} className="grid min-w-full gap-0 md:grid-cols-[1.03fr_0.97fr] md:items-stretch">
-                    <div className="flex flex-col justify-center p-5 sm:p-6 md:p-7">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-primary px-3 py-1 text-[0.66rem] font-bold uppercase tracking-[0.22em] text-white">
-                            {advert.tag}
-                          </span>
-                          <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-secondary/55">Latest Offer</span>
-                        </div>
-                        <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-secondary/55">
+        <aside
+          className="fixed bottom-3 left-3 right-3 z-40 sm:bottom-5 sm:left-auto sm:right-5 sm:w-[25rem]"
+          onPointerDown={() => pauseAdvertSlider()}
+          onPointerUp={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
+          onPointerCancel={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
+          onMouseEnter={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
+          aria-live="polite"
+          aria-label="FixMyDoor Services promotion"
+        >
+          <div className="relative overflow-hidden rounded-[26px] border border-white/70 bg-white/94 shadow-[0_24px_70px_rgba(47,36,28,0.24)] ring-1 ring-primary/15 backdrop-blur-xl">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(212,165,116,0.30),_transparent_42%),linear-gradient(135deg,_rgba(255,250,243,0.96),_rgba(255,255,255,0.92)_55%,_rgba(241,223,205,0.86))]" />
+            <div className="relative flex transition-transform duration-[760ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform" style={{ transform: `translateX(-${activeAdvertIndex * 100}%)` }}>
+              {displayedAdverts.map((advert, index) => (
+                <article key={`${advert.title}-${index}`} className="min-w-full">
+                  <div className="grid grid-cols-[6.75rem_1fr] gap-0 sm:grid-cols-[8rem_1fr]">
+                    <div className="relative min-h-[8.75rem] overflow-hidden bg-secondary sm:min-h-[9.75rem]">
+                      {advert.isVideo ? (
+                        <video src={advert.image} className="h-full w-full object-cover" autoPlay muted loop playsInline />
+                      ) : (
+                        <img src={advert.image} alt={advert.title} loading={index === 0 ? "eager" : "lazy"} decoding="async" className="h-full w-full object-cover" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-secondary/42 via-transparent to-white/8" />
+                      <span className="absolute left-2 top-2 rounded-full bg-primary px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.16em] text-white shadow-lg">
+                        Ad
+                      </span>
+                    </div>
+                    <div className="flex min-w-0 flex-col p-3.5 sm:p-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-[0.62rem] font-black uppercase tracking-[0.18em] text-primary">
+                          {advert.tag}
+                        </span>
+                        <span className="shrink-0 text-[0.62rem] font-bold uppercase tracking-[0.16em] text-secondary/45">
                           {index + 1}/{displayedAdverts.length}
                         </span>
                       </div>
-                      <h2 className="mt-4 font-display text-[1.8rem] font-bold leading-tight text-secondary sm:text-[2.1rem]">
+                      <h2 className="mt-1.5 max-h-[2.7rem] overflow-hidden font-display text-[1.05rem] font-bold leading-tight text-secondary sm:max-h-[3rem] sm:text-[1.2rem]">
                         {advert.title}
                       </h2>
-                      <p className="mt-3 max-w-xl text-sm leading-relaxed text-foreground/72 md:text-[0.97rem]">
+                      <p className="mt-1.5 max-h-10 overflow-hidden text-[0.78rem] leading-relaxed text-foreground/68 sm:max-h-11 sm:text-[0.82rem]">
                         {advert.description}
                       </p>
-                      <div className="mt-5 flex flex-wrap items-center gap-2.5">
+                      <div className="mt-auto flex items-center gap-2 pt-3">
                         <button
                           type="button"
                           onClick={() => handleCatalogPick(advert.bookingValue, advert.title)}
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(47,36,28,0.12)] transition hover:-translate-y-0.5 hover:bg-primary"
+                          className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-secondary px-3 text-[0.76rem] font-black text-white shadow-[0_12px_24px_rgba(47,36,28,0.16)] transition hover:-translate-y-0.5 hover:bg-primary"
                         >
                           {advert.cta}
-                          <ArrowRight className="h-4 w-4" />
+                          <ArrowRight className="h-3.5 w-3.5" />
                         </button>
                         <a
                           href={BUSINESS_WHATSAPP_URL}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-primary/18 bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-[0_10px_22px_rgba(47,36,28,0.08)] transition hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+                          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-primary/18 bg-white text-secondary shadow-[0_10px_22px_rgba(47,36,28,0.08)] transition hover:-translate-y-0.5 hover:border-primary hover:text-primary"
+                          aria-label="Message FixMyDoor Services on WhatsApp"
                         >
                           <MessageCircle className="h-4 w-4" />
-                          WhatsApp
                         </a>
-                        <div className="ml-auto hidden items-center gap-2 md:flex">
-                          <button
-                            type="button"
-                            onClick={showPreviousAdvert}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary/14 bg-white text-secondary transition hover:border-primary hover:text-primary"
-                            aria-label="Show previous advert"
-                          >
-                            <ArrowLeft className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={showNextAdvert}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-white transition hover:bg-primary"
-                            aria-label="Show next advert"
-                          >
-                            <ArrowRight className="h-4 w-4" />
-                          </button>
-                        </div>
                       </div>
                     </div>
-                    <div className="relative min-h-[220px] overflow-hidden bg-[linear-gradient(160deg,_#6b3f43_0%,_#845057_46%,_#ecd8c3_100%)] md:min-h-[280px]">
-                      {advert.isVideo ? (
-                        <video src={advert.image} className="h-full min-h-[220px] w-full object-cover md:min-h-[280px]" autoPlay muted loop playsInline controls />
-                      ) : (
-                        <img src={advert.image} alt={advert.title} loading={index === 0 ? "eager" : "lazy"} decoding="async" className="h-full min-h-[220px] w-full object-contain p-4 md:min-h-[280px] md:p-5" />
-                      )}
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-secondary/22 via-transparent to-white/6" />
-                    </div>
-                  </article>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="relative flex items-center justify-between gap-3 border-t border-primary/10 bg-white/72 px-3.5 py-2.5 backdrop-blur sm:px-4">
+              <div className="flex items-center gap-1.5">
+                {displayedAdverts.map((advert, index) => (
+                  <button
+                    key={`${advert.title}-${index}`}
+                    type="button"
+                    onClick={() => {
+                      pauseAdvertSlider(DOT_SELECTION_PAUSE_MS);
+                      setActiveAdvertIndex(index);
+                    }}
+                    className={`h-2 rounded-full transition-all ${activeAdvertIndex === index ? "w-6 bg-primary" : "w-2 bg-secondary/22 hover:bg-secondary/38"}`}
+                    aria-label={`Show advert ${index + 1}`}
+                  />
                 ))}
               </div>
-              <div className="flex items-center justify-between gap-3 border-t border-primary/10 bg-white/80 px-5 py-3 backdrop-blur sm:px-6">
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-secondary/60">
-                  Published promotions from admin
-                </p>
-                <div className="flex items-center gap-2">
-                  <div className="flex shrink-0 gap-2">
-                    {displayedAdverts.map((advert, index) => (
-                      <button
-                        key={`${advert.title}-${index}`}
-                        type="button"
-                        onClick={() => {
-                          pauseAdvertSlider(DOT_SELECTION_PAUSE_MS);
-                          setActiveAdvertIndex(index);
-                        }}
-                        className={`h-2.5 rounded-full transition-all ${activeAdvertIndex === index ? "w-7 bg-primary" : "w-2.5 bg-secondary/20 hover:bg-secondary/35"}`}
-                        aria-label={`Show advert ${index + 1}`}
-                      />
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-2 md:hidden">
-                    <button
-                      type="button"
-                      onClick={showPreviousAdvert}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-primary/14 bg-white text-secondary transition hover:border-primary hover:text-primary"
-                      aria-label="Show previous advert"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={showNextAdvert}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-white transition hover:bg-primary"
-                      aria-label="Show next advert"
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                  </div>
+              {displayedAdverts.length > 1 && (
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={showPreviousAdvert}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-primary/14 bg-white text-secondary transition hover:border-primary hover:text-primary"
+                    aria-label="Show previous advert"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={showNextAdvert}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-white transition hover:bg-primary"
+                    aria-label="Show next advert"
+                  >
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
-        </section>
+        </aside>
       )}
 
       <section className="bg-[#2f241c] py-9 text-white md:py-10">
@@ -1247,7 +1239,7 @@ export default function Home() {
                   onClick={() => handleCatalogPick("door-purchase", product.title)}
                   className={`group ${mobileScrollItemClass} overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12`}
                 >
-                  <img src={product.image} alt={product.title} loading="lazy" decoding="async" className="h-48 w-full bg-white object-cover transition duration-500 group-hover:scale-[1.03] md:h-56" />
+                  <img src={product.image} alt={product.title} loading="lazy" decoding="async" className="h-56 w-full bg-white object-cover object-center transition duration-500 group-hover:scale-[1.03] md:h-64" />
                   <div className="p-4">
                     <span className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary">{product.tag}</span>
                     <p className="mt-2 font-bold text-white">{product.title}</p>

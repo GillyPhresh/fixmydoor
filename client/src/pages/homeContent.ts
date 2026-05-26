@@ -1,21 +1,28 @@
 import heroImage from "./Images/Why Rekeying Your Locks in Columbus, Ohio Is Essential for Your Home's Security.jpg";
 import technicianImage from "./Images/richard-ampofo.jpg";
-import entryDoorImage from "./Images/entry-door-replacement-alt.jpg";
-import brokenDoorImage from "./Images/kicked-down-doors-alt.jpg";
-import forcedEntryImage from "./Images/forced-entry-broken-door.jpg";
-import whiteDoorImage from "./Images/white-internal-doors-classic.jpg";
-import solidWoodDoorImage from "./Images/front-door-envy.jpg";
-import modernDoorImage from "./Images/modern-interior-door-avon.jpg";
-import locksmithImage from "./Images/locksmith-updated-lock.jpg";
-import warmEntryImage from "./Images/warm-entry-glow.jpg";
-import officeDeskRepairImage from "./Images/office-desk-repair.jpg";
-import sofaFrameRepairImage from "./Images/sofa-frame-repair.jpg";
-import furnitureMovingTeamImage from "./Images/furniture-moving-team.jpg";
-import executiveDeskShowcaseImage from "./Images/desk-monitor-plant-ai-generated.jpg";
-import doorHardwareRefreshImage from "./Images/one-stop-home-services.jpg";
-import woodenDoorShowcaseImage from "./Images/wooden-door-showcase.jpg";
-import doorShowroomOptionsImage from "./Images/catalog/door-showroom-options.jpg";
-import modernEntranceIdeasImage from "./Images/catalog/modern-main-entrance-ideas.jpg";
+import doorRepairToolsImage from "./Images/real/door-repair-tools.jpg";
+import frontDoorLocksmithImage from "./Images/real/front-door-locksmith-rekeying.jpg";
+import fixmydoorDoorShowroomImage from "./Images/real/fixmydoor-door-showroom.png";
+import darkGlassEntryDoorImage from "./Images/real/dark-glass-entry-door.jpg";
+import classicBrownEntryDoorImage from "./Images/real/classic-brown-entry-door.jpg";
+import woodGlassFrontDoorImage from "./Images/real/wood-glass-front-door.jpg";
+import entryDoorImage from "./Images/real/modern-farmhouse-entry-door.jpg";
+import whiteGlassEntryDoorImage from "./Images/real/white-glass-entry-door.jpg";
+import whitePanelInteriorDoorImage from "./Images/real/white-panel-interior-door.jpg";
+import brownCustomInteriorDoorImage from "./Images/real/brown-custom-interior-door.jpg";
+import woodHallwayInteriorDoorsImage from "./Images/real/wood-hallway-interior-doors.jpg";
+import woodOfficeGlassDoorImage from "./Images/real/wood-office-glass-door.jpg";
+import commercialDoorCloserImage from "./Images/real/commercial-door-closer.jpg";
+import officeDeskRepairImage from "./Images/real/second-hand-office-desk.jpg";
+import officeFurnitureSuiteImage from "./Images/real/office-furniture-suite.jpg";
+import executiveDeskShowcaseImage from "./Images/real/office-reception-desk.jpg";
+import singleOfficeDeskImage from "./Images/real/single-office-desk.jpg";
+import officeChairSupportImage from "./Images/real/office-chair-support.jpg";
+import builtInOfficeFurnitureImage from "./Images/real/built-in-office-furniture.jpg";
+import blackOfficeCabinetsImage from "./Images/real/black-office-cabinets.jpg";
+import greyCabinetInstallationImage from "./Images/real/grey-cabinet-installation.jpg";
+import bedroomFurnitureInstallationImage from "./Images/real/bedroom-furniture-installation.jpg";
+import bedFrameInstallationImage from "./Images/real/bed-frame-installation.jpg";
 import blackHandleLockHingeKitImage from "./Images/catalog/black-handle-lock-hinge-kit.jpg";
 import chromeBathroomHandleLockKitImage from "./Images/catalog/chrome-bathroom-handle-lock-kit.jpg";
 import silverMortiseHandleCylinderKitImage from "./Images/catalog/silver-mortise-handle-cylinder-kit.jpg";
@@ -27,44 +34,35 @@ import euroCylinderLocksImage from "./Images/catalog/euro-cylinder-locks.jpg";
 import cylindricalKnobLockImage from "./Images/catalog/cylindrical-knob-lock.jpg";
 import brassMortiseHandleLockImage from "./Images/catalog/brass-mortise-handle-lock.jpg";
 import doorHandleStyleGridImage from "./Images/catalog/door-handle-style-grid.jpg";
-import blackSecurityDoorImage from "./Images/catalog/black-security-door.jpg";
-import brownSecurityDoorImage from "./Images/catalog/brown-security-door.jpg";
-import threeSecurityDoorsImage from "./Images/catalog/three-security-doors.jpg";
-import wideGreyGlassEntryDoorImage from "./Images/catalog/wide-grey-glass-entry-door.jpg";
-import woodGlassEntryDoorImage from "./Images/catalog/wood-glass-entry-door.jpg";
-import modernWoodEntryDoorHouseImage from "./Images/catalog/modern-wood-entry-door-house.jpg";
-import brownPanelFrontDoorImage from "./Images/catalog/brown-panel-front-door.jpg";
-import fourDoorProductLineImage from "./Images/catalog/four-door-product-line.jpg";
-import woodDoorProductLineImage from "./Images/catalog/wood-door-product-line.jpg";
 
 export { heroImage, technicianImage };
 
 export const featuredService = {
   tag: "Security Upgrade",
-  title: "Front-door security and the small fixes people need every day.",
-  desc: "From rekeying a front door to fixing furniture hardware, we handle the jobs that make a home or workspace easier to use again.",
+  title: "Front-door security, clean fitting, and practical repairs.",
+  desc: "From rekeying an entry door to fitting hardware or repairing furniture, FixMyDoor Services focuses on work that makes the space easier, safer, and cleaner to use.",
 };
 
 export const featuredServiceCollage = [
   {
-    src: doorHardwareRefreshImage,
-    title: "Fresh Lock Hardware",
+    src: commercialDoorCloserImage,
+    title: "Commercial Door Closer",
     tag: "Entry Door",
     featured: true,
   },
   {
-    src: woodenDoorShowcaseImage,
-    title: "Wood Door Fitting",
+    src: brownCustomInteriorDoorImage,
+    title: "Wood Interior Door Fitting",
     tag: "Door Work",
   },
   {
-    src: sofaFrameRepairImage,
-    title: "Sofa Frame Repair",
+    src: greyCabinetInstallationImage,
+    title: "Cabinet Hardware Setup",
     tag: "Furniture",
   },
   {
-    src: furnitureMovingTeamImage,
-    title: "Furniture Setup Help",
+    src: builtInOfficeFurnitureImage,
+    title: "Office Furniture Setup",
     tag: "Setup",
     featured: true,
   },
@@ -72,30 +70,32 @@ export const featuredServiceCollage = [
 
 export const serviceShowcase = [
   {
-    src: heroImage,
-    title: "Front Door Rekeying",
-    desc: "Useful when keys are missing, tenants change, or the lock no longer feels safe.",
+    src: frontDoorLocksmithImage,
+    title: "Front Door Rekeying & Lock Upgrade",
+    desc: "Useful when a spare key is missing, access changes, or the lock starts feeling loose. FixMyDoor Services can rekey, adjust, or recommend the right secure hardware.",
     tag: "Security Upgrade",
+    contain: false,
   },
   {
     src: entryDoorImage,
     title: "Entry Door Replacement",
     desc: "A better-fitting front door that opens smoothly, closes properly, and looks cleaner from outside.",
     tag: "Exterior Doors",
+    contain: false,
   },
   {
     src: officeDeskRepairImage,
     title: "Desk & Cabinet Repairs",
     desc: "Fixes for desks, cabinets, drawers, and storage pieces that still have life left in them.",
     tag: "Workspace Care",
-    contain: true,
+    contain: false,
   },
   {
     src: executiveDeskShowcaseImage,
     title: "Office Furniture Refresh",
     desc: "Help for office furniture that looks worn, feels loose, or needs better hardware.",
     tag: "Office Care",
-    contain: true,
+    contain: false,
   },
 ];
 
@@ -121,39 +121,39 @@ export const productCategories = [
     title: "Doors & Entry Systems",
     desc: "Entry, interior, glass-panel, steel, wood-look, Paladin, SED, and heavy-duty doors for homes, rentals, offices, and small commercial spaces.",
     items: "Paladin doors, SED doors, heavy doors, entry doors, interior doors, security doors, and sizes for different openings",
-    image: doorShowroomOptionsImage,
-    accent: modernEntranceIdeasImage,
+    image: fixmydoorDoorShowroomImage,
+    accent: classicBrownEntryDoorImage,
     bookingValue: "door-purchase",
   },
   {
     title: "Locks, Handles & Door Hardware",
     desc: "Handles, lock bodies, cylinders, hinges, knobs, and backplates for replacements or full door upgrades.",
     items: "Handles, cylinders, hinges, lock bodies, backplates, and knob locks",
-    image: silverMortiseHandleCylinderKitImage,
-    accent: chromeBackplateHandleLockKitImage,
+    image: frontDoorLocksmithImage,
+    accent: commercialDoorCloserImage,
     bookingValue: "door-hardware-purchase",
   },
   {
     title: "Furniture Hardware & Tools",
     desc: "Parts for drawers, cabinet doors, shelves, and furniture pieces that need stronger support or smoother movement.",
     items: "Drawer slides, cabinet hinges, soft-close runners, and mounting hardware",
-    image: blackDrawerSlideWithDrawerImage,
-    accent: softCloseCabinetHingesImage,
+    image: greyCabinetInstallationImage,
+    accent: blackOfficeCabinetsImage,
     bookingValue: "furniture-hardware-purchase",
   },
 ];
 
 export const doorProducts = [
-  { title: "Modern Front Door Ideas", image: modernEntranceIdeasImage, tag: "Modern Entry" },
-  { title: "Black Security Door", image: blackSecurityDoorImage, tag: "Security" },
-  { title: "Brown Security Door", image: brownSecurityDoorImage, tag: "Security" },
-  { title: "Security Door Set", image: threeSecurityDoorsImage, tag: "Door Range" },
-  { title: "Wide Grey Glass Entry Door", image: wideGreyGlassEntryDoorImage, tag: "Glass Entry" },
-  { title: "Wood Glass Entry Door", image: woodGlassEntryDoorImage, tag: "Wood Entry" },
-  { title: "Modern Wood Front Door", image: modernWoodEntryDoorHouseImage, tag: "Exterior Door" },
-  { title: "Brown Panel Front Door", image: brownPanelFrontDoorImage, tag: "Classic Door" },
-  { title: "Four-Door Product Line", image: fourDoorProductLineImage, tag: "Interior Options" },
-  { title: "Wood Door Product Line", image: woodDoorProductLineImage, tag: "Interior Options" },
+  { title: "FixMyDoor Door Display", image: fixmydoorDoorShowroomImage, tag: "Paladin & SED Range" },
+  { title: "Classic Brown Entry Door", image: classicBrownEntryDoorImage, tag: "Heavy-Duty Entry" },
+  { title: "Dark Glass Entry Door", image: darkGlassEntryDoorImage, tag: "Security Entry" },
+  { title: "Wood-Glass Front Door", image: woodGlassFrontDoorImage, tag: "Custom-Fit Entry" },
+  { title: "White Glass Entry Door", image: whiteGlassEntryDoorImage, tag: "Glass Entry" },
+  { title: "Modern Farmhouse Entry Door", image: entryDoorImage, tag: "Exterior Door" },
+  { title: "White Interior Panel Door", image: whitePanelInteriorDoorImage, tag: "Interior Door" },
+  { title: "Brown Custom Interior Door", image: brownCustomInteriorDoorImage, tag: "Wood Interior" },
+  { title: "Wood Hallway Interior Doors", image: woodHallwayInteriorDoorsImage, tag: "Interior Options" },
+  { title: "Office Glass & Wood Door", image: woodOfficeGlassDoorImage, tag: "Commercial Door" },
 ];
 
 export const hardwareProducts = [
@@ -171,16 +171,16 @@ export const hardwareProducts = [
 
 export const projectGallery = [
   {
-    src: brokenDoorImage,
-    title: "Damaged Frame Repair",
-    desc: "When a door frame is damaged by impact or forced entry, the first goal is to make it safe and usable again.",
-    category: "Frame Repair",
+    src: doorRepairToolsImage,
+    title: "Door Repair Preparation",
+    desc: "A real repair setup with tools ready for door adjustment, sealing, hardware work, and final checks.",
+    category: "Door Repair",
   },
   {
-    src: locksmithImage,
-    title: "Lock Rekeying",
-    desc: "A good option when keys are missing, access needs to change, or the lock feels worn out.",
-    category: "Lock Service",
+    src: frontDoorLocksmithImage,
+    title: "Lock Rekeying & Hardware Check",
+    desc: "When access changes or a lock feels unreliable, the entry hardware can be checked, adjusted, rekeyed, or replaced.",
+    category: "Security Upgrade",
   },
   {
     src: entryDoorImage,
@@ -189,22 +189,76 @@ export const projectGallery = [
     category: "Door Upgrade",
   },
   {
-    src: warmEntryImage,
-    title: "Entryway Refresh",
-    desc: "A cleaner entrance that looks better from outside and works well day to day.",
+    src: classicBrownEntryDoorImage,
+    title: "Heavy-Duty Entry Door Option",
+    desc: "A strong exterior door style for customers comparing secure entry options before buying or installing.",
+    category: "Entry Door",
+  },
+  {
+    src: darkGlassEntryDoorImage,
+    title: "Security Entry Door Fit",
+    desc: "Heavy-duty and glass-panel entry doors need accurate measurements, hardware matching, and clean alignment.",
+    category: "Security Door",
+  },
+  {
+    src: woodGlassFrontDoorImage,
+    title: "Custom Wood-Glass Door",
+    desc: "Custom-fit front doors can improve the entrance while keeping the lockset, hinges, and frame practical.",
+    category: "Custom Door",
+  },
+  {
+    src: whiteGlassEntryDoorImage,
+    title: "Glass Entry Door Refresh",
+    desc: "A brighter entry door style that improves curb appeal while keeping daily use practical.",
     category: "Exterior Finish",
   },
   {
-    src: whiteDoorImage,
+    src: whitePanelInteriorDoorImage,
     title: "Interior Door Tune-Up",
     desc: "Alignment help for interior doors that scrape, swing badly, or will not sit properly in the frame.",
     category: "Interior Repair",
   },
   {
-    src: modernDoorImage,
-    title: "Modern Door Installation",
-    desc: "A cleaner modern door setup with straight lines and a finished look.",
-    category: "Design Upgrade",
+    src: woodOfficeGlassDoorImage,
+    title: "Office Door Installation",
+    desc: "Commercial and office doors need clean fitting, working hardware, and a professional finish.",
+    category: "Office Door",
+  },
+  {
+    src: officeFurnitureSuiteImage,
+    title: "Office Furniture Setup",
+    desc: "Office desks, storage, and wall cabinets need careful fitting so the workspace looks clean and functions well.",
+    category: "Office Furniture",
+  },
+  {
+    src: singleOfficeDeskImage,
+    title: "Single Office Desk Fit",
+    desc: "Desk setup and alignment support for small offices, private rooms, and workstations.",
+    category: "Desk Setup",
+  },
+  {
+    src: officeChairSupportImage,
+    title: "Office Chair & Workstation Support",
+    desc: "Workspace support includes furniture selection, assembly, and practical advice for daily comfort.",
+    category: "Workspace Care",
+  },
+  {
+    src: blackOfficeCabinetsImage,
+    title: "Cabinet Handle & Storage Work",
+    desc: "Cabinet doors, handles, shelves, and storage units can be adjusted or fitted for better use.",
+    category: "Cabinet Hardware",
+  },
+  {
+    src: bedroomFurnitureInstallationImage,
+    title: "Bedroom Furniture Installation",
+    desc: "Furniture installation can include bed frames, headboards, drawers, and matching hardware.",
+    category: "Furniture Setup",
+  },
+  {
+    src: bedFrameInstallationImage,
+    title: "Bed Frame Assembly",
+    desc: "Bed frames and bedroom furniture need secure assembly, clean alignment, and stable support.",
+    category: "Furniture Assembly",
   },
 ];
 
