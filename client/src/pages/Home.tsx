@@ -1545,13 +1545,10 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative -mx-4 sm:mx-0">
-            <div className="relative overflow-hidden bg-transparent p-0 md:rounded-[32px] md:border md:border-white/60 md:bg-white md:p-3 md:shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
-              <img src={heroImage} alt="Front door lock rekeying service" loading="eager" decoding="async" className="h-[245px] w-full object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,_#f8f3ea_0%,_rgba(248,243,234,0)_24%,_rgba(248,243,234,0)_58%,_#f8f3ea_100%)] md:hidden" />
-              <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#f8f3ea] to-transparent md:hidden" />
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#f8f3ea] to-transparent md:hidden" />
-              <div className="absolute bottom-3 left-4 right-4 rounded-[20px] bg-white/90 p-3 shadow-lg backdrop-blur md:bottom-7 md:left-7 md:right-7 md:max-w-sm md:rounded-[24px] md:p-4">
+          <div className="relative">
+            <div className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white p-2 shadow-[0_24px_70px_rgba(66,40,18,0.16)] md:rounded-[32px] md:p-3 md:shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
+              <img src={heroImage} alt="Front door lock rekeying service" loading="eager" decoding="async" className="h-[235px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
+              <div className="absolute bottom-4 left-4 right-4 rounded-[20px] border border-white/70 bg-white/94 p-3 shadow-[0_14px_30px_rgba(47,36,28,0.16)] md:bottom-7 md:left-7 md:right-7 md:max-w-sm md:rounded-[24px] md:p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
                 <h2 className="mt-1 text-lg font-bold text-secondary md:mt-2 md:text-2xl">Rekeying & Entry Security</h2>
                 <p className="mt-1 text-xs leading-relaxed text-foreground/70 md:mt-2 md:text-sm">
@@ -1794,7 +1791,7 @@ export default function Home() {
           </div>
 
           <div className="overflow-hidden md:overflow-visible">
-            <div className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-4`}>
+            <div id="customer-path-mobile-carousel" className={`${mobileScrollTrackClass} gap-3 md:grid md:grid-cols-2 md:gap-4`}>
             {customerPathLoopItems.map(({ item: path, loopKey, isClone, loopEdge }, index) => (
               <a
                 key={loopKey}
@@ -1802,7 +1799,8 @@ export default function Home() {
                 data-loop-clone={isClone || undefined}
                 data-loop-edge={loopEdge}
                 aria-hidden={isClone || undefined}
-                className={`group ${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[24px] border border-white/10 p-5 shadow-[0_14px_38px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 ${
+                tabIndex={isClone ? -1 : undefined}
+                className={`group ${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} min-h-[13rem] overflow-hidden rounded-[24px] border border-white/10 p-5 shadow-[0_14px_38px_rgba(0,0,0,0.14)] transition hover:-translate-y-1 ${
                   path.label === "Repair & Installation" ? "bg-white text-secondary" : "bg-primary text-white"
                 }`}
               >
@@ -1820,6 +1818,7 @@ export default function Home() {
               </a>
             ))}
             </div>
+            {renderMobileCarouselControls("customer-path-mobile-carousel", customerPaths.length, true)}
           </div>
         </div>
       </section>
@@ -2572,15 +2571,18 @@ export default function Home() {
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="preferredDate" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Preferred Date</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <div className="sm:col-span-2 rounded-[22px] border border-primary/10 bg-background p-4">
-                  <div className="flex items-center gap-2">
+                <details className="group sm:col-span-2 rounded-[22px] border border-primary/10 bg-background p-3 shadow-sm">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-[18px] bg-white px-3 py-3 text-left transition group-open:bg-[#fffaf2]">
+                    <div className="flex min-w-0 items-center gap-2.5">
                     <Ruler className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-bold text-secondary">Helpful details for repairs or buying</p>
-                      <p className="text-xs leading-relaxed text-foreground/65">Add what you know. These details help us understand the job faster and avoid asking the same questions later.</p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-secondary">Measurements & buying details</p>
+                        <p className="mt-0.5 text-xs leading-relaxed text-foreground/65">Optional. Click to add size, quantity, color, delivery, or installation details.</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-black leading-none text-primary transition group-open:rotate-45">+</span>
+                  </summary>
+                  <div className="mt-3 grid gap-4 rounded-[18px] bg-white p-3 sm:grid-cols-2 sm:p-4">
                     <FormField control={form.control} name="dimensions" render={({ field }) => (
                       <FormItem>
                         <FormLabel className="font-semibold text-foreground">Size / Measurements</FormLabel>
@@ -2638,7 +2640,7 @@ export default function Home() {
                       </FormItem>
                     )} />
                   </div>
-                </div>
+                </details>
                 <div className="sm:col-span-2 rounded-[22px] border border-dashed border-primary/30 bg-white p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-start gap-3">
