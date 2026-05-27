@@ -394,7 +394,7 @@ function allowedOriginsForRequest(req: express.Request) {
 }
 
 function getPublicImageUrl() {
-  return `${getPublicBaseUrl()}/img5150-transparent.png`;
+  return `${getPublicBaseUrl()}/og-fixmydoor-service.jpg`;
 }
 
 function replacePublicUrlTokens(template: string) {
@@ -465,6 +465,18 @@ function renderPageStructuredData(pagePath: string) {
         "url": canonicalUrl,
       },
       {
+        "@type": "FAQPage",
+        "@id": `${canonicalUrl}#faq`,
+        "mainEntity": buildServiceFaqs(servicePage).map((item) => ({
+          "@type": "Question",
+          "name": item.question,
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": item.answer,
+          },
+        })),
+      },
+      {
         "@type": "BreadcrumbList",
         "@id": `${canonicalUrl}#breadcrumb`,
         "itemListElement": [
@@ -488,6 +500,70 @@ function renderPageStructuredData(pagePath: string) {
   return `    <script type="application/ld+json">${JSON.stringify(structuredData).replace(/</g, "\\u003c")}</script>`;
 }
 
+function buildServiceFaqs(servicePage: (typeof serviceSeoPages)[string]) {
+  return [
+    {
+      question: `What information should I send for ${servicePage.eyebrow.toLowerCase()}?`,
+      answer: `Send clear photos, your city or country, measurements if available, and a short note about the issue. FixMyDoor Services reviews those details before recommending repair, installation, replacement, or sourcing.`,
+    },
+    {
+      question: "Can FixMyDoor Services help in Montreal and outside Canada?",
+      answer: "Yes. The business is based in Montreal, Quebec, supports Canadian requests, and can also review international product sourcing or repair guidance requests.",
+    },
+    {
+      question: "Will I know the next step before work starts?",
+      answer: "Yes. The goal is to explain the practical next step clearly before customers spend money on the wrong door, lock, hinge, furniture part, or hardware item.",
+    },
+  ];
+}
+
+function renderAlternateLinks(canonicalUrl: string) {
+  return [
+    `    <link rel="alternate" hreflang="en-ca" href="${escapeHtml(canonicalUrl)}" />`,
+    `    <link rel="alternate" hreflang="fr-ca" href="${escapeHtml(`${canonicalUrl}${canonicalUrl.includes("?") ? "&" : "?"}lang=fr`)}" />`,
+    `    <link rel="alternate" hreflang="x-default" href="${escapeHtml(canonicalUrl)}" />`,
+  ].join("\n");
+}
+
+function renderServiceFallbackContent(pagePath: string) {
+  const page = resolveSeoPage(pagePath);
+  const servicePage = serviceSeoPages[page.path];
+
+  if (!servicePage) {
+    return "";
+  }
+
+  const publicBaseUrl = getPublicBaseUrl();
+  const canonicalUrl = servicePage.path === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${servicePage.path}`;
+  const faqs = buildServiceFaqs(servicePage);
+
+  return `    <noscript>
+      <main style="font-family: Arial, sans-serif; max-width: 980px; margin: 0 auto; padding: 32px 18px; color: #2f241c;">
+        <img src="/img5150-transparent.png" alt="FixMyDoor Services logo" style="width: 180px; height: auto;" />
+        <p style="font-weight: 700; color: #b46532; text-transform: uppercase; letter-spacing: .08em;">${escapeHtml(servicePage.eyebrow)}</p>
+        <h1>${escapeHtml(servicePage.title)}</h1>
+        <p>${escapeHtml(servicePage.description)}</p>
+        <h2>What this service covers</h2>
+        <ul>${servicePage.bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+        <h2>How FixMyDoor Services handles the request</h2>
+        <ol>
+          <li>Send photos, measurements, location, and the best way to contact you.</li>
+          <li>FixMyDoor Services reviews the details and confirms the practical next step.</li>
+          <li>The request is handled as repair, installation, replacement planning, or hardware sourcing.</li>
+        </ol>
+        <h2>Frequently asked questions</h2>
+        ${faqs.map((item) => `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.answer)}</p>`).join("")}
+        <h2>Service areas</h2>
+        <p>FixMyDoor Services is based in Montreal, Quebec and welcomes requests from Montreal, Laval, Longueuil, Brossard, nearby Quebec communities, other Canadian locations, and international customers who need door, furniture, or hardware sourcing guidance.</p>
+        <h2>Contact FixMyDoor Services</h2>
+        <p>Phone: <a href="tel:+14383471823">+1 (438) 347-1823</a></p>
+        <p>Email: <a href="mailto:info.fixmydoor@gmail.com">info.fixmydoor@gmail.com</a></p>
+        <p>WhatsApp: <a href="https://wa.me/233242011305">+233 24 201 1305</a></p>
+        <p>Canonical page: <a href="${escapeHtml(canonicalUrl)}">${escapeHtml(canonicalUrl)}</a></p>
+      </main>
+    </noscript>`;
+}
+
 function renderIndexHtmlForPath(template: string, pagePath = "/") {
   const page = resolveSeoPage(pagePath);
   const publicBaseUrl = getPublicBaseUrl();
@@ -498,6 +574,9 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
     .replace(/<title>.*?<\/title>/s, `<title>${escapeHtml(page.title)}</title>`)
     .replace(/<link rel="canonical" href="[^"]*" \/>/, `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`);
 
+  html = html
+    .replace(/    <link rel="alternate" hreflang="en-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="fr-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="x-default" href="[^"]*" \/>/, renderAlternateLinks(canonicalUrl));
+
   html = replaceMetaContent(html, "name", "description", page.description);
   html = replaceMetaContent(html, "name", "keywords", page.keywords);
   html = replaceMetaContent(html, "property", "og:title", page.title);
@@ -505,6 +584,11 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
   html = replaceMetaContent(html, "property", "og:url", canonicalUrl);
   html = replaceMetaContent(html, "name", "twitter:title", page.title);
   html = replaceMetaContent(html, "name", "twitter:description", page.description);
+
+  const serviceFallbackContent = renderServiceFallbackContent(pagePath);
+  if (serviceFallbackContent) {
+    html = html.replace(/    <noscript>[\s\S]*?<\/noscript>/, serviceFallbackContent);
+  }
 
   return structuredData ? html.replace("</head>", `${structuredData}\n  </head>`) : html;
 }

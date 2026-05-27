@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import LanguageTranslator from "@/components/LanguageTranslator";
 import { resolveSeoPage, serviceSeoPages } from "@shared/seo";
 
+const SITE_URL = "https://www.fixmydoor.ca";
+
 function setMeta(selector: string, attributeName: "name" | "property", attributeValue: string, content: string) {
   const meta = document.querySelector(selector) || document.createElement("meta");
   meta.setAttribute(attributeName, attributeValue);
@@ -170,11 +172,68 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
   },
 };
 
+function buildServiceFaqs(page: (typeof serviceSeoPages)[string]) {
+  return [
+    {
+      question: `What information should I send for ${page.eyebrow.toLowerCase()}?`,
+      answer: "Send photos, measurements if available, your city or country, and a short note about what is not working. That helps us understand whether repair, installation, replacement, or sourcing is the right next step.",
+    },
+    {
+      question: "Can FixMyDoor Services help customers outside Montreal?",
+      answer: "Yes. FixMyDoor Services is based in Montreal and welcomes Quebec, Canada-wide, and international requests for door, furniture, and hardware support.",
+    },
+    {
+      question: "Will I receive clear guidance before work starts?",
+      answer: "Yes. We aim to explain the practical next step before customers spend money on the wrong part, door, furniture hardware, or service.",
+    },
+  ];
+}
+
 export default function ServicePage() {
   const [location] = useLocation();
   const resolvedPage = resolveSeoPage(location);
   const page = serviceSeoPages[resolvedPage.path] || serviceSeoPages["/door-repair"];
   const detail = serviceDetails[page.path] || defaultServiceDetail;
+  const serviceFaqs = buildServiceFaqs(page);
+  const canonicalUrl = `${SITE_URL}${page.path}`;
+  const serviceStructuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        "@id": `${canonicalUrl}#service`,
+        name: page.structuredServiceName,
+        description: page.description,
+        serviceType: page.structuredServiceName,
+        url: canonicalUrl,
+        provider: {
+          "@id": `${SITE_URL}/#business`,
+          name: "FixMyDoor Services",
+        },
+        areaServed: ["Montreal", "Quebec", "Canada", "International requests"],
+      },
+      {
+        "@type": "FAQPage",
+        "@id": `${canonicalUrl}#faq`,
+        mainEntity: serviceFaqs.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: item.answer,
+          },
+        })),
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${canonicalUrl}#breadcrumb`,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+          { "@type": "ListItem", position: 2, name: page.eyebrow, item: canonicalUrl },
+        ],
+      },
+    ],
+  };
 
   useEffect(() => {
     document.title = page.title;
@@ -188,6 +247,7 @@ export default function ServicePage() {
 
   return (
     <main className="min-h-screen bg-[linear-gradient(135deg,_#f8f1e7,_#ffffff_55%,_#f4e2ca)] text-foreground">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceStructuredData) }} />
       <nav className="border-b border-primary/10 bg-[#f7efe4]/95 backdrop-blur">
         <div className="container flex max-w-[1180px] items-center justify-between gap-2 py-2 sm:gap-4 sm:py-3">
           <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
@@ -293,6 +353,28 @@ export default function ServicePage() {
             </div>
             <p className="mt-5 rounded-2xl bg-white/8 p-4 text-sm leading-relaxed text-white/82">{detail.trust}</p>
           </article>
+        </div>
+      </section>
+
+      <section className="container max-w-[1180px] pb-12">
+        <div className="grid gap-5 rounded-[28px] border border-primary/12 bg-white p-5 shadow-[0_16px_44px_rgba(66,40,18,0.08)] md:grid-cols-[0.78fr_1.22fr] md:p-6">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">FAQ</p>
+            <h2 className="mt-3 text-3xl font-bold text-secondary">Questions customers ask</h2>
+            <p className="mt-3 text-sm leading-relaxed text-foreground/68">
+              These answers help customers understand the request before calling or sending photos.
+            </p>
+          </div>
+          <div className="grid gap-3">
+            {serviceFaqs.map((item) => (
+              <details key={item.question} className="group rounded-2xl bg-background p-4">
+                <summary className="cursor-pointer list-none text-sm font-bold text-secondary marker:hidden">
+                  {item.question}
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-foreground/72">{item.answer}</p>
+              </details>
+            ))}
+          </div>
         </div>
       </section>
     </main>

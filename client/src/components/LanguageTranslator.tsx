@@ -165,7 +165,8 @@ export default function LanguageTranslator({ className = "" }: LanguageTranslato
   };
 
   useEffect(() => {
-    const savedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    const requestedLanguage = new URLSearchParams(window.location.search).get("lang");
+    const savedLanguage = requestedLanguage === "fr" ? "fr" : window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
     if (savedLanguage === "fr") {
       chooseLanguage("fr");
     }

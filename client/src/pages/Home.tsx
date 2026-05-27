@@ -800,7 +800,8 @@ export default function Home() {
         "@id": `${SITE_URL}/#business`,
         name: "FixMyDoor Services",
         url: `${SITE_URL}/`,
-        image: `${SITE_URL}/img5150-transparent.png`,
+        logo: `${SITE_URL}/img5150-transparent.png`,
+        image: `${SITE_URL}/og-fixmydoor-service.jpg`,
         telephone: "+1-438-347-1823",
         address: {
           "@type": "PostalAddress",
@@ -855,6 +856,18 @@ export default function Home() {
           },
         },
       })),
+      {
+        "@type": "FAQPage",
+        "@id": `${SITE_URL}/#faq`,
+        mainEntity: faqItems.map((item) => ({
+          "@type": "Question",
+          name: item.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: item.answer,
+          },
+        })),
+      },
     ],
   };
   const watchedAddress = form.watch("address");
@@ -2049,7 +2062,7 @@ export default function Home() {
             </div>
 
             <div className="overflow-hidden md:overflow-visible">
-              <div id="door-products-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-3 md:gap-4 lg:grid-cols-5`}>
+              <div id="door-products-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5`}>
               {doorProductLoopItems.map(({ item: product, loopKey, isClone, loopEdge }, index) => (
                 <button
                   key={loopKey}
@@ -2058,10 +2071,10 @@ export default function Home() {
                   data-loop-clone={isClone || undefined}
                   data-loop-edge={loopEdge}
                   aria-hidden={isClone || undefined}
-                  className={`group ${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12`}
+                  className={`group flex h-full flex-col ${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[22px] bg-white/8 text-left transition hover:-translate-y-1 hover:bg-white/12`}
                 >
-                  <img src={product.image} alt={product.title} loading="lazy" decoding="async" className="h-56 w-full bg-white object-cover object-center transition duration-500 group-hover:scale-[1.03] md:h-64" />
-                  <div className="p-4">
+                  <img src={product.image} alt={product.title} loading="lazy" decoding="async" className="h-56 w-full shrink-0 bg-white object-cover object-center transition duration-500 group-hover:scale-[1.03] md:h-52 lg:h-60 xl:h-64" />
+                  <div className="flex flex-1 flex-col justify-between p-4">
                     <span className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary">{product.tag}</span>
                     <p className="mt-2 font-bold text-white">{product.title}</p>
                   </div>
