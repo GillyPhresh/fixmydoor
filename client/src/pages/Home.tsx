@@ -1914,7 +1914,7 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 min-[481px]:grid-cols-3 md:gap-3 lg:grid-cols-4 lg:p-2">
+                <div className="grid grid-cols-2 gap-3 min-[481px]:grid-cols-3 md:gap-3 lg:grid-cols-3 lg:p-2">
                   {featuredServiceCollage.map((item, index) => (
                     <figure key={`${item.title}-${index}`} className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-white/5 shadow-[0_14px_34px_rgba(0,0,0,0.14)]">
                       <img

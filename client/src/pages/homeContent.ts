@@ -53,38 +53,18 @@ export const featuredService = {
 export const featuredServiceCollage = [
   {
     src: modernWoodMainEntranceDoorImage,
-    title: "Exterior Door",
-    tag: "Exterior Door",
-  },
-  {
-    src: modernWoodMainEntranceDoorImage,
     title: "Entry Door",
     tag: "Exterior Door",
   },
   {
     src: commercialDoorCloserImage,
-    title: "Door Hardware",
-    tag: "Door Hardware",
-  },
-  {
-    src: commercialDoorCloserImage,
     title: "Commercial Door Closer",
-    tag: "Door Closer",
-  },
-  {
-    src: damagedDoorLockPrepImage,
-    title: "Repair Prep",
-    tag: "Repair Prep",
+    tag: "Door Hardware",
   },
   {
     src: damagedDoorLockPrepImage,
     title: "Door Work",
-    tag: "Door Work",
-  },
-  {
-    src: brownCustomInteriorDoorImage,
-    title: "Door Fitting",
-    tag: "Door Fitting",
+    tag: "Repair Prep",
   },
   {
     src: blackMatteModernInteriorDoorImage,
@@ -97,39 +77,9 @@ export const featuredServiceCollage = [
     tag: "Cabinet Work",
   },
   {
-    src: officeFurnitureSuiteImage,
-    title: "Furniture",
-    tag: "Furniture",
-  },
-  {
-    src: singleOfficeDeskImage,
-    title: "Furniture",
-    tag: "Furniture",
-  },
-  {
-    src: blackOfficeCabinetsImage,
-    title: "Cabinet Hardware Setup",
-    tag: "Furniture",
-  },
-  {
-    src: builtInOfficeFurnitureImage,
-    title: "Setup",
-    tag: "Setup",
-  },
-  {
     src: builtInOfficeFurnitureImage,
     title: "Office Furniture Setup",
-    tag: "Office Furniture Setup",
-  },
-  {
-    src: officeChairSupportImage,
-    title: "Office Care",
-    tag: "Office Care",
-  },
-  {
-    src: officeChairSupportImage,
-    title: "Chair Hardware Support",
-    tag: "Office Care",
+    tag: "Setup",
   },
 ];
 

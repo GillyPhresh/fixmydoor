@@ -623,7 +623,7 @@ function renderAlternateLinks(canonicalUrl: string) {
   ].join("\n");
 }
 
-function renderServiceFallbackContent(pagePath: string) {
+function renderServiceFallbackMain(pagePath: string) {
   const page = resolveSeoPage(pagePath);
   const servicePage = serviceSeoPages[page.path];
 
@@ -635,8 +635,7 @@ function renderServiceFallbackContent(pagePath: string) {
   const canonicalUrl = servicePage.path === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${servicePage.path}`;
   const faqs = buildServiceFaqs(servicePage);
 
-  return `    <noscript>
-      <main style="font-family: Arial, sans-serif; max-width: 980px; margin: 0 auto; padding: 32px 18px; color: #2f241c;">
+  return `<main data-seo-fallback="true" style="font-family: Arial, sans-serif; max-width: 980px; margin: 0 auto; padding: 32px 18px; color: #2f241c;">
         <img src="/img5150-transparent.png" alt="FixMyDoor Services logo" style="width: 180px; height: auto;" />
         <p style="font-weight: 700; color: #b46532; text-transform: uppercase; letter-spacing: .08em;">${escapeHtml(servicePage.eyebrow)}</p>
         <h1>${escapeHtml(servicePage.title)}</h1>
@@ -658,8 +657,15 @@ function renderServiceFallbackContent(pagePath: string) {
         <p>Email: <a href="mailto:info.fixmydoor@gmail.com">info.fixmydoor@gmail.com</a></p>
         <p>WhatsApp: <a href="https://wa.me/233242011305">+233 24 201 1305</a></p>
         <p>Canonical page: <a href="${escapeHtml(canonicalUrl)}">${escapeHtml(canonicalUrl)}</a></p>
-      </main>
-    </noscript>`;
+      </main>`;
+}
+
+function renderServiceFallbackContent(pagePath: string) {
+  const fallbackMain = renderServiceFallbackMain(pagePath);
+
+  return fallbackMain ? `    <noscript>
+      ${fallbackMain}
+    </noscript>` : "";
 }
 
 function renderIndexHtmlForPath(template: string, pagePath = "/") {
@@ -680,8 +686,15 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
   html = replaceMetaContent(html, "property", "og:title", page.title);
   html = replaceMetaContent(html, "property", "og:description", page.description);
   html = replaceMetaContent(html, "property", "og:url", canonicalUrl);
+  html = replaceMetaContent(html, "property", "og:image", getPublicImageUrl());
   html = replaceMetaContent(html, "name", "twitter:title", page.title);
   html = replaceMetaContent(html, "name", "twitter:description", page.description);
+  html = replaceMetaContent(html, "name", "twitter:image", getPublicImageUrl());
+
+  const serviceRootFallback = renderServiceFallbackMain(pagePath);
+  if (serviceRootFallback) {
+    html = html.replace('<div id="root"></div>', `<div id="root">\n      ${serviceRootFallback}\n    </div>`);
+  }
 
   const serviceFallbackContent = renderServiceFallbackContent(pagePath);
   if (serviceFallbackContent) {
