@@ -1,18 +1,23 @@
 import heroImage from "./Images/Why Rekeying Your Locks in Columbus, Ohio Is Essential for Your Home's Security.jpg";
 import technicianImage from "./Images/richard-ampofo.jpg";
-import doorRepairToolsImage from "./Images/real/door-repair-tools.jpg";
 import frontDoorLocksmithImage from "./Images/real/front-door-locksmith-rekeying.jpg";
 import fixmydoorDoorShowroomImage from "./Images/real/fixmydoor-door-showroom.png";
 import darkGlassEntryDoorImage from "./Images/real/dark-glass-entry-door.jpg";
-import classicBrownEntryDoorImage from "./Images/real/classic-brown-entry-door.jpg";
 import woodGlassFrontDoorImage from "./Images/real/wood-glass-front-door.jpg";
 import entryDoorImage from "./Images/real/modern-farmhouse-entry-door.jpg";
 import whiteGlassEntryDoorImage from "./Images/real/white-glass-entry-door.jpg";
 import whitePanelInteriorDoorImage from "./Images/real/white-panel-interior-door.jpg";
 import brownCustomInteriorDoorImage from "./Images/real/brown-custom-interior-door.jpg";
-import woodHallwayInteriorDoorsImage from "./Images/real/wood-hallway-interior-doors.jpg";
 import woodOfficeGlassDoorImage from "./Images/real/wood-office-glass-door.jpg";
 import commercialDoorCloserImage from "./Images/real/commercial-door-closer.jpg";
+import blackMatteModernInteriorDoorImage from "./Images/real/black-matte-modern-interior-door.jpg";
+import entryDoorSelectionShowroomImage from "./Images/real/entry-door-selection-showroom.jpg";
+import modernWoodMainEntranceDoorImage from "./Images/real/modern-wood-main-entrance-door.jpg";
+import modernEntryDoorIdeasGridImage from "./Images/real/modern-entry-door-ideas-grid.jpg";
+import classicPanelEntryDoorImage from "./Images/real/classic-panel-entry-door.jpg";
+import forcedEntryBrokenWoodDoorImage from "./Images/real/forced-entry-broken-wood-door.jpg";
+import damagedDoorLockPrepImage from "./Images/real/damaged-door-lock-prep.jpg";
+import kickedDoorFrameRepairImage from "./Images/real/kicked-door-frame-repair.jpg";
 import officeDeskRepairImage from "./Images/real/second-hand-office-desk.jpg";
 import officeFurnitureSuiteImage from "./Images/real/office-furniture-suite.jpg";
 import executiveDeskShowcaseImage from "./Images/real/office-reception-desk.jpg";
@@ -45,7 +50,7 @@ export const featuredService = {
 
 export const featuredServiceCollage = [
   {
-    src: entryDoorImage,
+    src: modernWoodMainEntranceDoorImage,
     title: "Entry Door",
     tag: "Exterior Door",
   },
@@ -55,12 +60,12 @@ export const featuredServiceCollage = [
     tag: "Door Hardware",
   },
   {
-    src: brownCustomInteriorDoorImage,
+    src: damagedDoorLockPrepImage,
     title: "Door Work",
-    tag: "Interior Service",
+    tag: "Repair Prep",
   },
   {
-    src: woodHallwayInteriorDoorsImage,
+    src: blackMatteModernInteriorDoorImage,
     title: "Wood Interior Door Fitting",
     tag: "Door Fitting",
   },
@@ -88,14 +93,14 @@ export const featuredServiceCollage = [
 
 export const serviceShowcase = [
   {
-    src: frontDoorLocksmithImage,
-    title: "Front Door Rekeying & Lock Upgrade",
-    desc: "If a key is missing or a lock feels loose, we can rekey, adjust, or recommend safer replacement hardware.",
-    tag: "Security Upgrade",
+    src: forcedEntryBrokenWoodDoorImage,
+    title: "Forced-Entry Door Repair",
+    desc: "Broken door edges, damaged lock areas, and split wood need careful repair before the door can feel secure again.",
+    tag: "Door Repair",
     contain: false,
   },
   {
-    src: entryDoorImage,
+    src: modernWoodMainEntranceDoorImage,
     title: "Entry Door Replacement",
     desc: "A good front door should open smoothly, close securely, and look clean from the outside.",
     tag: "Exterior Doors",
@@ -139,8 +144,8 @@ export const productCategories = [
     title: "Doors & Entry Systems",
     desc: "Entry, interior, glass-panel, steel, wood-look, Paladin, SED, and heavy-duty doors for homes, rentals, offices, and small shops.",
     items: "Paladin doors, SED doors, heavy doors, entry doors, interior doors, security doors, and sizes for different openings",
-    image: fixmydoorDoorShowroomImage,
-    accent: classicBrownEntryDoorImage,
+    image: entryDoorSelectionShowroomImage,
+    accent: modernWoodMainEntranceDoorImage,
     bookingValue: "door-purchase",
   },
   {
@@ -163,14 +168,17 @@ export const productCategories = [
 
 export const doorProducts = [
   { title: "FixMyDoor Door Display", image: fixmydoorDoorShowroomImage, tag: "Paladin & SED Range" },
-  { title: "Classic Brown Entry Door", image: classicBrownEntryDoorImage, tag: "Heavy-Duty Entry" },
+  { title: "Entry Door Selection", image: entryDoorSelectionShowroomImage, tag: "Showroom Options" },
+  { title: "Modern Wood Main Entrance", image: modernWoodMainEntranceDoorImage, tag: "Exterior Entry" },
+  { title: "Modern Entry Door Ideas", image: modernEntryDoorIdeasGridImage, tag: "Style Options" },
+  { title: "Classic Panel Entry Door", image: classicPanelEntryDoorImage, tag: "Traditional Entry" },
   { title: "Dark Glass Entry Door", image: darkGlassEntryDoorImage, tag: "Security Entry" },
   { title: "Wood-Glass Front Door", image: woodGlassFrontDoorImage, tag: "Custom-Fit Entry" },
   { title: "White Glass Entry Door", image: whiteGlassEntryDoorImage, tag: "Glass Entry" },
   { title: "Modern Farmhouse Entry Door", image: entryDoorImage, tag: "Exterior Door" },
+  { title: "Black Matte Interior Door", image: blackMatteModernInteriorDoorImage, tag: "Modern Interior" },
   { title: "White Interior Panel Door", image: whitePanelInteriorDoorImage, tag: "Interior Door" },
   { title: "Brown Custom Interior Door", image: brownCustomInteriorDoorImage, tag: "Wood Interior" },
-  { title: "Wood Hallway Interior Doors", image: woodHallwayInteriorDoorsImage, tag: "Interior Options" },
   { title: "Office Glass & Wood Door", image: woodOfficeGlassDoorImage, tag: "Commercial Door" },
 ];
 
@@ -189,27 +197,27 @@ export const hardwareProducts = [
 
 export const projectGallery = [
   {
-    src: doorRepairToolsImage,
-    title: "Door Repair Preparation",
-    desc: "A practical repair setup with tools ready for door adjustment, sealing, hardware work, and final checks.",
+    src: forcedEntryBrokenWoodDoorImage,
+    title: "Forced-Entry Door Damage",
+    desc: "Severe lock-side damage needs proper assessment, stronger repair work, and secure replacement hardware when needed.",
     category: "Door Repair",
   },
   {
-    src: frontDoorLocksmithImage,
-    title: "Lock Rekeying & Hardware Check",
-    desc: "When access changes or a lock feels unreliable, the entry hardware can be checked, adjusted, rekeyed, or replaced.",
-    category: "Security Upgrade",
+    src: kickedDoorFrameRepairImage,
+    title: "Kicked Door Frame Repair",
+    desc: "Damaged jambs and strike areas can affect security, closing, and alignment, so they need careful repair planning.",
+    category: "Frame Repair",
   },
   {
-    src: entryDoorImage,
-    title: "Entry Door Install",
+    src: modernWoodMainEntranceDoorImage,
+    title: "Modern Entry Door Install",
     desc: "A front-door update with cleaner gaps, a smoother swing, and more reliable daily use.",
     category: "Door Upgrade",
   },
   {
-    src: classicBrownEntryDoorImage,
-    title: "Heavy-Duty Entry Door Option",
-    desc: "A strong exterior door style for customers comparing secure entry options before buying or installing.",
+    src: entryDoorSelectionShowroomImage,
+    title: "Entry Door Selection",
+    desc: "Different entry-door styles help customers compare glass, panel, color, and security options before buying.",
     category: "Entry Door",
   },
   {
@@ -231,9 +239,9 @@ export const projectGallery = [
     category: "Exterior Finish",
   },
   {
-    src: whitePanelInteriorDoorImage,
-    title: "Interior Door Tune-Up",
-    desc: "Alignment help for interior doors that scrape, swing badly, or will not sit properly in the frame.",
+    src: blackMatteModernInteriorDoorImage,
+    title: "Modern Interior Door Fit",
+    desc: "Interior doors need clean alignment, proper handle placement, and a smooth swing for everyday use.",
     category: "Interior Repair",
   },
   {
