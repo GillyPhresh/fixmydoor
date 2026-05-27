@@ -353,7 +353,7 @@ export default function Home() {
     }
 
     try {
-      const registration = await navigator.serviceWorker.register("/fixmydoor-notifications-sw.js");
+      const registration = await navigator.serviceWorker.register("/sw.js");
       notificationRegistrationRef.current = registration;
       return registration;
     } catch (error) {

@@ -22,6 +22,10 @@
     <meta name="geo.region" content="CA-QC" />
     <meta name="geo.placename" content="Montreal, Quebec, Canada" />
     <meta name="theme-color" content="#6B4423" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="FixMyDoor" />
     <meta property="og:title" content="FixMyDoor Services | Door Repair, Furniture Repair & Hardware Sourcing" />
     <meta property="og:description" content="Door repairs, lock rekeying, entry door installation, furniture repairs, buying doors, furniture parts, and hardware sourcing across Canada and international requests." />
     <meta property="og:url" content="__PUBLIC_SITE_URL__/" />
@@ -36,7 +40,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/fixmydoor-favicon.png" type="image/png" />
-    <link rel="apple-touch-icon" href="/fixmydoor-favicon.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -170,6 +174,19 @@
       </main>
     </noscript>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function() {
+          navigator.serviceWorker.register("/sw.js")
+            .then(function(reg) {
+              console.log("FixMyDoor SW registered:", reg.scope);
+            })
+            .catch(function(err) {
+              console.log("SW registration failed:", err);
+            });
+        });
+      }
+    </script>
   </body>
 
 </html>

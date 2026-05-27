@@ -1829,7 +1829,7 @@ async function startServer() {
         return;
       }
 
-      if (filePath.endsWith("index.html")) {
+      if (filePath.endsWith("index.html") || filePath.endsWith("sw.js") || filePath.endsWith("manifest.json")) {
         res.setHeader("Cache-Control", "no-store");
       } else if (/\.(?:js|css|png|jpe?g|webp|gif|svg|ico|woff2?)$/i.test(filePath)) {
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
