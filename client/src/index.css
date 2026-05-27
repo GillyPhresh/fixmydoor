@@ -231,35 +231,6 @@
     scroll-behavior: auto !important;
   }
 
-  .fixmydoor-translate-element,
-  .goog-te-banner-frame,
-  .skiptranslate iframe,
-  iframe.goog-te-balloon-frame,
-  #goog-gt-tt,
-  .VIpgJd-yAWNEb-L7lbkb,
-  .VIpgJd-ZVi9od-aZ2wEe,
-  .VIpgJd-ZVi9od-aZ2wEe-OiiCO,
-  .VIpgJd-yAWNEb-hvhgNd {
-    position: absolute !important;
-    left: -9999px !important;
-    width: 1px !important;
-    height: 1px !important;
-    overflow: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    visibility: hidden !important;
-  }
-
-  .goog-logo-link,
-  .goog-te-gadget span {
-    display: none !important;
-  }
-
-  .goog-te-gadget {
-    height: 0 !important;
-    overflow: hidden !important;
-  }
-
   .fixmydoor-flip-card {
     opacity: 1;
     transform: none;
