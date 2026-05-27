@@ -84,3 +84,29 @@ self.addEventListener("notificationclick", (event) => {
     }
   })());
 });
+
+self.addEventListener("push", (event) => {
+  let payload = {
+    title: "FixMyDoor Services",
+    message: "You have a new FixMyDoor Services update.",
+    url: "/"
+  };
+
+  if (event.data) {
+    try {
+      payload = { ...payload, ...event.data.json() };
+    } catch {
+      payload.message = event.data.text();
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || "FixMyDoor Services", {
+      body: payload.message || "You have a new FixMyDoor Services update.",
+      icon: "/icons/icon-192x192.png",
+      badge: "/icons/icon-96x96.png",
+      tag: "fixmydoor-services-update",
+      data: { url: payload.url || "/" }
+    })
+  );
+});

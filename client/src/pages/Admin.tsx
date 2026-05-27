@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText } from "lucide-react";
+import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText, Send } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
 
@@ -62,6 +62,15 @@ type EmailRuntimeStatus = {
   missing: string[];
   lastVerifyError: string;
   lastSendError: string;
+};
+
+type PushNotificationLogEntry = {
+  id: string;
+  title: string;
+  message: string;
+  sentAt: string;
+  delivered: number;
+  failed: number;
 };
 
 function formatPreferredDate(dateString?: string | null) {
@@ -151,6 +160,11 @@ export default function Admin() {
   const [emailTestLoading, setEmailTestLoading] = useState(false);
   const [emailStatusLoading, setEmailStatusLoading] = useState(false);
   const [emailStatus, setEmailStatus] = useState<EmailRuntimeStatus | null>(null);
+  const [pushTitle, setPushTitle] = useState("");
+  const [pushMessage, setPushMessage] = useState("");
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushSubscriberCount, setPushSubscriberCount] = useState(0);
+  const [pushNotifications, setPushNotifications] = useState<PushNotificationLogEntry[]>([]);
 
   useEffect(() => {
     checkAuthStatus();
@@ -162,6 +176,12 @@ export default function Admin() {
       fetchReviews();
       fetchContentItems();
       fetchEmailStatus();
+      fetchPushNotifications();
+      if (window.location.pathname === "/admin/notify") {
+        window.setTimeout(() => {
+          document.getElementById("push-notification-manager")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 250);
+      }
     }
   }, [authenticated]);
 
@@ -298,6 +318,41 @@ export default function Admin() {
       }
     } finally {
       setEmailStatusLoading(false);
+    }
+  };
+
+  const fetchPushNotifications = async () => {
+    try {
+      const response = await axios.get<{ subscriberCount: number; notifications: PushNotificationLogEntry[] }>("/api/admin/notifications");
+      setPushSubscriberCount(response.data.subscriberCount || 0);
+      setPushNotifications(response.data.notifications || []);
+    } catch (err) {
+      console.error("Failed to fetch push notifications:", err);
+    }
+  };
+
+  const sendPushNotification = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!pushTitle.trim() || !pushMessage.trim()) {
+      toast.error("Notification title and message are required");
+      return;
+    }
+
+    setPushLoading(true);
+    try {
+      const response = await axios.post("/api/admin/notifications/send", {
+        title: pushTitle,
+        message: pushMessage,
+        url: "/",
+      });
+      setPushTitle("");
+      setPushMessage("");
+      await fetchPushNotifications();
+      toast.success(`Notification sent. Delivered: ${response.data.delivered || 0}, failed: ${response.data.failed || 0}`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Failed to send notification");
+    } finally {
+      setPushLoading(false);
     }
   };
 
@@ -778,6 +833,14 @@ export default function Admin() {
               <Button
                 type="button"
                 variant="outline"
+                onClick={() => document.getElementById("push-notification-manager")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              >
+                <Bell className="mr-2 h-4 w-4" />
+                Notifications
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => document.getElementById("website-content-manager")?.scrollIntoView({ behavior: "smooth", block: "start" })}
               >
                 <Save className="mr-2 h-4 w-4" />
@@ -819,6 +882,77 @@ export default function Admin() {
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card id="push-notification-manager" className="mb-6 scroll-mt-8 border-[#ead8bf] bg-white shadow-sm">
+          <CardHeader>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a5a2d]">Push Notifications</p>
+                <CardTitle className="mt-1 text-2xl font-display text-secondary">Send update to subscribers</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {pushSubscriberCount} visitor{pushSubscriberCount === 1 ? "" : "s"} currently subscribed.
+                </p>
+              </div>
+              <Button type="button" variant="outline" onClick={fetchPushNotifications}>
+                Refresh
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-5 lg:grid-cols-[0.7fr_1.3fr]">
+            <form onSubmit={sendPushNotification} className="space-y-4 rounded-2xl border border-primary/10 bg-[#fffaf2] p-4">
+              <div>
+                <Label htmlFor="push-title">Title</Label>
+                <Input
+                  id="push-title"
+                  value={pushTitle}
+                  onChange={(event) => setPushTitle(event.target.value)}
+                  maxLength={90}
+                  placeholder="New FixMyDoor update"
+                />
+              </div>
+              <div>
+                <Label htmlFor="push-message">Message</Label>
+                <Textarea
+                  id="push-message"
+                  value={pushMessage}
+                  onChange={(event) => setPushMessage(event.target.value)}
+                  maxLength={240}
+                  rows={4}
+                  placeholder="Write the message customers should receive..."
+                />
+              </div>
+              <Button type="submit" className="w-full bg-[#8a5a2d] text-white hover:bg-[#71451f]" disabled={pushLoading}>
+                <Send className="mr-2 h-4 w-4" />
+                {pushLoading ? "Sending..." : "Send Notification"}
+              </Button>
+            </form>
+            <div className="rounded-2xl border border-primary/10 bg-background p-4">
+              <h3 className="font-bold text-secondary">Recent notification log</h3>
+              {pushNotifications.length === 0 ? (
+                <p className="mt-3 text-sm text-muted-foreground">No push notifications have been sent yet.</p>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  {pushNotifications.slice(0, 5).map((notification) => (
+                    <div key={notification.id} className="rounded-2xl bg-white p-3 shadow-sm">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <p className="font-bold text-secondary">{notification.title}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
+                        </div>
+                        <Badge variant={notification.failed > 0 ? "secondary" : "default"}>
+                          {notification.delivered} sent
+                        </Badge>
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {new Date(notification.sentAt).toLocaleString()} | Failed: {notification.failed}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 

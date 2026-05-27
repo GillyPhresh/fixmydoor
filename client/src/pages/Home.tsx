@@ -98,6 +98,7 @@ const ADVERT_SLIDE_DURATION_MS = 7000;
 const SLIDE_HOLD_PAUSE_MS = 12000;
 const DOT_SELECTION_PAUSE_MS = 9000;
 const SITE_URL = "https://www.fixmydoor.ca";
+const NOTIFICATION_CHOICE_KEY = "fixmydoor-push-choice-v1";
 const mobileScrollTrackClass = "fixmydoor-mobile-carousel flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:pb-0";
 const mobileScrollItemClass = "fixmydoor-flip-card w-[84%] max-w-[23rem] flex-none snap-center md:w-auto md:max-w-none md:flex-auto";
 
@@ -141,6 +142,13 @@ function createMobileLoopItems<T>(items: T[], getKey: (item: T, index: number) =
   ];
 }
 
+function urlBase64ToUint8Array(value: string) {
+  const padding = "=".repeat((4 - (value.length % 4)) % 4);
+  const base64 = `${value}${padding}`.replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
 type DisplayAdvert = {
   id: string;
   title: string;
@@ -155,7 +163,7 @@ type DisplayAdvert = {
 };
 
 type SiteUpdateEvent = {
-  type: "advert" | "review";
+  type: "advert" | "review" | "notification";
   title: string;
   message: string;
   url?: string;
@@ -298,6 +306,8 @@ export default function Home() {
   const [lightboxPan, setLightboxPan] = useState({ x: 0, y: 0 });
   const [notificationSupported, setNotificationSupported] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationPromptOpen, setNotificationPromptOpen] = useState(false);
+  const [notificationPromptLoading, setNotificationPromptLoading] = useState(false);
   const advertPauseUntilRef = useRef(0);
   const formReadyAtRef = useRef(Date.now());
   const contentSignatureRef = useRef("");
@@ -362,6 +372,27 @@ export default function Home() {
     }
   }, []);
 
+  const subscribeForPushNotifications = useCallback(async (registration: ServiceWorkerRegistration) => {
+    if (!registration.pushManager) {
+      throw new Error("Push notifications are not available on this device.");
+    }
+
+    const keyResponse = await axios.get<{ publicKey: string }>("/api/push/public-key");
+    const publicKey = keyResponse.data.publicKey;
+    if (!publicKey) {
+      throw new Error("Push notification key is not ready.");
+    }
+
+    const existingSubscription = await registration.pushManager.getSubscription();
+    const subscription = existingSubscription || await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+
+    await axios.post("/api/push/subscribe", subscription.toJSON());
+    return subscription;
+  }, []);
+
   const notifyVisitor = useCallback((event: SiteUpdateEvent) => {
     toast.message(event.title, {
       description: event.message,
@@ -408,19 +439,36 @@ export default function Home() {
       return;
     }
 
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      setNotificationsEnabled(false);
-      window.localStorage.removeItem("fixmydoor-notifications-enabled");
-      toast.message("Notifications were not enabled.");
-      return;
-    }
+    try {
+      setNotificationPromptLoading(true);
+      const registration = await registerNotificationWorker();
+      if (!registration) {
+        throw new Error("Service worker registration failed.");
+      }
 
-    await registerNotificationWorker();
-    setNotificationsEnabled(true);
-    window.localStorage.setItem("fixmydoor-notifications-enabled", "true");
-    toast.success("FixMyDoor Services updates are enabled.");
-  }, [registerNotificationWorker]);
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setNotificationsEnabled(false);
+        setNotificationPromptOpen(false);
+        window.localStorage.setItem(NOTIFICATION_CHOICE_KEY, "denied");
+        window.localStorage.removeItem("fixmydoor-notifications-enabled");
+        toast.message("Notifications were not enabled.");
+        return;
+      }
+
+      await subscribeForPushNotifications(registration);
+      setNotificationsEnabled(true);
+      setNotificationPromptOpen(false);
+      window.localStorage.setItem(NOTIFICATION_CHOICE_KEY, "allowed");
+      window.localStorage.setItem("fixmydoor-notifications-enabled", "true");
+      toast.success("FixMyDoor Services updates are enabled.");
+    } catch (error) {
+      console.error("Push notification setup error:", error);
+      toast.error("Unable to enable notifications right now.");
+    } finally {
+      setNotificationPromptLoading(false);
+    }
+  }, [registerNotificationWorker, subscribeForPushNotifications]);
 
   useEffect(() => {
     const savedPreference = window.localStorage.getItem("fixmydoor-cookie-choice-v2");
@@ -435,7 +483,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const supported = "Notification" in window && "serviceWorker" in navigator;
+    const supported = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
     setNotificationSupported(supported);
 
     if (!supported) {
@@ -444,10 +492,22 @@ export default function Home() {
 
     const enabled = window.localStorage.getItem("fixmydoor-notifications-enabled") === "true" && Notification.permission === "granted";
     setNotificationsEnabled(enabled);
-    if (enabled) {
-      registerNotificationWorker();
+    const savedChoice = window.localStorage.getItem(NOTIFICATION_CHOICE_KEY);
+    if (!enabled && !savedChoice && Notification.permission === "default") {
+      const timer = window.setTimeout(() => setNotificationPromptOpen(true), 2200);
+      return () => window.clearTimeout(timer);
     }
-  }, [registerNotificationWorker]);
+
+    if (enabled) {
+      registerNotificationWorker().then((registration) => {
+        if (registration) {
+          subscribeForPushNotifications(registration).catch((error) => {
+            console.error("Push re-subscribe error:", error);
+          });
+        }
+      });
+    }
+  }, [registerNotificationWorker, subscribeForPushNotifications]);
 
   useEffect(() => {
     const updateHeader = () => {
@@ -555,7 +615,7 @@ export default function Home() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("fixmydoor:refresh-content", handleSiteRefresh);
     };
-  }, [notifyVisitor]);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -615,6 +675,21 @@ export default function Home() {
     const handleSiteUpdate = (event: MessageEvent) => {
       try {
         const payload = JSON.parse(event.data) as SiteUpdateEvent;
+        if (payload.type === "notification") {
+          toast.message(payload.title, {
+            description: payload.message,
+            action: payload.url
+              ? {
+                  label: "View",
+                  onClick: () => {
+                    window.location.href = payload.url || "/";
+                  },
+                }
+              : undefined,
+          });
+          return;
+        }
+
         window.dispatchEvent(new Event(payload.type === "review" ? "fixmydoor:refresh-reviews" : "fixmydoor:refresh-content"));
       } catch (error) {
         console.error("Site update event error:", error);
@@ -630,7 +705,7 @@ export default function Home() {
       events.removeEventListener("site-update", handleSiteUpdate);
       events.close();
     };
-  }, []);
+  }, [notifyVisitor]);
 
   const onSubmit = async (data: BookingFormData) => {
     const payload: BookingRequest = {
@@ -1579,9 +1654,48 @@ export default function Home() {
         </div>
       </section>
 
+      {notificationPromptOpen && notificationSupported && !notificationsEnabled && (
+        <aside className="fixed bottom-4 left-3 right-3 z-50 sm:left-auto sm:right-5 sm:max-w-[24rem]" aria-live="polite">
+          <div className="overflow-hidden rounded-[24px] border border-primary/18 bg-white shadow-[0_24px_70px_rgba(47,36,28,0.22)]">
+            <div className="flex gap-3 bg-[#2f241c] p-4 text-white">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FAF6F0]">
+                <img src="/icons/icon-96x96.png" alt="" className="h-9 w-9 object-contain" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-black uppercase tracking-[0.18em] text-primary">FixMyDoor updates</p>
+                <h2 className="mt-1 text-lg font-bold leading-tight">Stay updated with FixMyDoor Services.</h2>
+                <p className="mt-1 text-sm leading-relaxed text-white/75">
+                  Allow notifications to receive helpful tips, service updates, and new offers.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 bg-[#fffaf2] p-3">
+              <button
+                type="button"
+                onClick={enableNotifications}
+                disabled={notificationPromptLoading}
+                className="inline-flex flex-1 items-center justify-center rounded-2xl bg-primary px-4 py-2.5 text-sm font-black text-white transition hover:bg-primary/90 disabled:opacity-70"
+              >
+                {notificationPromptLoading ? "Enabling..." : "Allow"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  window.localStorage.setItem(NOTIFICATION_CHOICE_KEY, "dismissed");
+                  setNotificationPromptOpen(false);
+                }}
+                className="inline-flex flex-1 items-center justify-center rounded-2xl border border-primary/18 bg-white px-4 py-2.5 text-sm font-black text-secondary transition hover:border-primary hover:text-primary"
+              >
+                No Thanks
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
+
       {displayedAdverts.length > 0 && !advertDismissed && (
         <aside
-          className="fixed bottom-3 left-3 right-3 z-40 sm:bottom-5 sm:left-auto sm:right-5 sm:w-[25rem]"
+          className={`fixed left-3 right-3 z-40 sm:left-auto sm:right-5 sm:w-[25rem] ${notificationPromptOpen && notificationSupported && !notificationsEnabled ? "bottom-[15rem] sm:bottom-[15.5rem]" : "bottom-3 sm:bottom-5"}`}
           onPointerDown={() => pauseAdvertSlider()}
           onPointerUp={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}
           onPointerCancel={() => pauseAdvertSlider(DOT_SELECTION_PAUSE_MS)}

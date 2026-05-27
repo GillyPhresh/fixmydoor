@@ -99,6 +99,7 @@ function Router() {
         <Route path={"/hardware-sourcing"} component={ServicePageRoute} />
         <Route path={"/international-requests"} component={ServicePageRoute} />
         <Route path={"/admin"} component={AdminRoute} />
+        <Route path={"/admin/notify"} component={AdminRoute} />
         <Route path={"/track/:token"} component={TrackBookingRoute} />
         <Route path={"/404"} component={NotFound} />
         {/* Final fallback route */}

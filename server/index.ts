@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
-import { randomUUID } from "crypto";
+import { createCipheriv, createECDH, createHmac, createPrivateKey, createSign, generateKeyPairSync, randomBytes, randomUUID } from "crypto";
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -39,12 +39,30 @@ const uploadDir = process.env.UPLOAD_DIR || defaultUploadDir;
 const PUBLIC_SITE_URL_TOKEN = "__PUBLIC_SITE_URL__";
 const PUBLIC_IMAGE_URL_TOKEN = "__PUBLIC_IMAGE_URL__";
 type SiteEventPayload = {
-  type: "advert" | "review";
+  type: "advert" | "review" | "notification";
   title: string;
   message: string;
   url?: string;
 };
 const siteEventClients = new Set<Response>();
+type StoredPushSubscription = {
+  endpoint: string;
+  expirationTime?: number | null;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+};
+type PushNotificationLogEntry = {
+  id: string;
+  title: string;
+  message: string;
+  sentAt: string;
+  delivered: number;
+  failed: number;
+};
 const mediaTypes: Record<string, { extension: string; kind: "image" | "video" }> = {
   "image/png": { extension: "png", kind: "image" },
   "image/jpeg": { extension: "jpg", kind: "image" },
@@ -102,6 +120,177 @@ function escapeHtml(value: unknown) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function base64UrlEncode(value: Buffer | string) {
+  return Buffer.from(value).toString("base64url");
+}
+
+function base64UrlDecode(value: string) {
+  return Buffer.from(value, "base64url");
+}
+
+function getPushStorePath(fileName: string) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  return path.join(uploadDir, fileName);
+}
+
+function loadJsonFile<T>(fileName: string, fallback: T): T {
+  try {
+    const filePath = getPushStorePath(fileName);
+    if (!fs.existsSync(filePath)) {
+      return fallback;
+    }
+
+    return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
+  } catch (error) {
+    console.error(`Failed to load ${fileName}:`, error);
+    return fallback;
+  }
+}
+
+function saveJsonFile<T>(fileName: string, data: T) {
+  fs.writeFileSync(getPushStorePath(fileName), JSON.stringify(data, null, 2), "utf8");
+}
+
+function getVapidKeys() {
+  const existing = loadJsonFile<{ publicKey: string; privateKey: string } | null>("push-vapid-keys.json", null);
+  if (existing?.publicKey && existing?.privateKey) {
+    return existing;
+  }
+
+  const generated = (generateKeyPairSync as any)("ec", {
+    namedCurve: "prime256v1",
+    publicKeyEncoding: { format: "jwk" },
+    privateKeyEncoding: { format: "jwk" },
+  }) as { publicKey: JsonWebKey; privateKey: JsonWebKey };
+
+  const publicKey = Buffer.concat([
+    Buffer.from([4]),
+    base64UrlDecode(generated.publicKey.x || ""),
+    base64UrlDecode(generated.publicKey.y || ""),
+  ]).toString("base64url");
+  const privateKey = generated.privateKey.d || "";
+  const keys = { publicKey, privateKey };
+  saveJsonFile("push-vapid-keys.json", keys);
+  return keys;
+}
+
+function loadPushSubscriptions() {
+  return loadJsonFile<StoredPushSubscription[]>("push-subscriptions.json", []);
+}
+
+function savePushSubscriptions(subscriptions: StoredPushSubscription[]) {
+  saveJsonFile("push-subscriptions.json", subscriptions);
+}
+
+function loadPushNotificationLog() {
+  return loadJsonFile<PushNotificationLogEntry[]>("push-notification-log.json", []);
+}
+
+function savePushNotificationLog(entries: PushNotificationLogEntry[]) {
+  saveJsonFile("push-notification-log.json", entries.slice(0, 20));
+}
+
+function isValidPushSubscription(value: any): value is Omit<StoredPushSubscription, "createdAt" | "updatedAt"> {
+  return Boolean(
+    value &&
+    typeof value.endpoint === "string" &&
+    value.endpoint.startsWith("https://") &&
+    value.keys &&
+    typeof value.keys.p256dh === "string" &&
+    typeof value.keys.auth === "string"
+  );
+}
+
+function hkdfExpand(prk: Buffer, info: Buffer | string, length: number) {
+  const buffers: Buffer[] = [];
+  let previous = Buffer.alloc(0);
+  let counter = 1;
+
+  while (Buffer.concat(buffers).length < length) {
+    previous = createHmac("sha256", prk)
+      .update(previous)
+      .update(typeof info === "string" ? Buffer.from(info) : info)
+      .update(Buffer.from([counter++]))
+      .digest();
+    buffers.push(previous);
+  }
+
+  return Buffer.concat(buffers).subarray(0, length);
+}
+
+function createVapidJwt(subscriptionEndpoint: string) {
+  const { publicKey, privateKey } = getVapidKeys();
+  const audience = new URL(subscriptionEndpoint).origin;
+  const header = base64UrlEncode(JSON.stringify({ typ: "JWT", alg: "ES256" }));
+  const payload = base64UrlEncode(JSON.stringify({
+    aud: audience,
+    exp: Math.floor(Date.now() / 1000) + 12 * 60 * 60,
+    sub: "mailto:info.fixmydoor@gmail.com",
+  }));
+  const signingInput = `${header}.${payload}`;
+  const publicKeyBuffer = base64UrlDecode(publicKey);
+  const jwk = {
+    kty: "EC",
+    crv: "P-256",
+    x: publicKeyBuffer.subarray(1, 33).toString("base64url"),
+    y: publicKeyBuffer.subarray(33, 65).toString("base64url"),
+    d: privateKey,
+  };
+  const key = createPrivateKey({ key: jwk, format: "jwk" });
+  const signature = createSign("sha256").update(signingInput).end().sign({ key, dsaEncoding: "ieee-p1363" });
+
+  return {
+    publicKey,
+    token: `${signingInput}.${base64UrlEncode(signature)}`,
+  };
+}
+
+function encryptPushPayload(subscription: StoredPushSubscription, payload: string) {
+  const receiverPublicKey = base64UrlDecode(subscription.keys.p256dh);
+  const authSecret = base64UrlDecode(subscription.keys.auth);
+  const salt = randomBytes(16);
+  const localCurve = createECDH("prime256v1");
+  localCurve.generateKeys();
+  const senderPublicKey = localCurve.getPublicKey();
+  const sharedSecret = localCurve.computeSecret(receiverPublicKey);
+  const prkKey = createHmac("sha256", authSecret).update(sharedSecret).digest();
+  const keyInfo = Buffer.concat([
+    Buffer.from("WebPush: info\0"),
+    receiverPublicKey,
+    senderPublicKey,
+  ]);
+  const ikm = hkdfExpand(prkKey, keyInfo, 32);
+  const prk = createHmac("sha256", salt).update(ikm).digest();
+  const cek = hkdfExpand(prk, "Content-Encoding: aes128gcm\0", 16);
+  const nonce = hkdfExpand(prk, "Content-Encoding: nonce\0", 12);
+  const plaintext = Buffer.concat([Buffer.from(payload), Buffer.from([2])]);
+  const cipher = createCipheriv("aes-128-gcm", cek, nonce);
+  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final(), cipher.getAuthTag()]);
+  const recordSize = Buffer.alloc(4);
+  recordSize.writeUInt32BE(4096, 0);
+  const header = Buffer.concat([salt, recordSize, Buffer.from([senderPublicKey.length]), senderPublicKey]);
+
+  return Buffer.concat([header, encrypted]);
+}
+
+async function sendPushNotification(subscription: StoredPushSubscription, payload: { title: string; message: string; url?: string }) {
+  const vapid = createVapidJwt(subscription.endpoint);
+  const body = encryptPushPayload(subscription, JSON.stringify(payload));
+  const response = await fetch(subscription.endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `vapid t=${vapid.token}, k=${vapid.publicKey}`,
+      "Content-Encoding": "aes128gcm",
+      "Content-Type": "application/octet-stream",
+      TTL: "86400",
+      Urgency: "normal",
+    },
+    body,
+  });
+
+  return response;
 }
 
 function isInternationalBooking(booking: Booking) {
@@ -1186,6 +1375,105 @@ async function startServer() {
     });
   });
 
+  app.get("/api/push/public-key", (_req, res) => {
+    try {
+      return res.json({ publicKey: getVapidKeys().publicKey });
+    } catch (error) {
+      console.error("Push public key error:", error);
+      return res.status(500).json({ success: false, error: "Push notifications are not available right now" });
+    }
+  });
+
+  app.post("/api/push/subscribe", (req, res) => {
+    if (!isValidPushSubscription(req.body)) {
+      return res.status(400).json({ success: false, error: "Invalid push subscription" });
+    }
+
+    const now = new Date().toISOString();
+    const subscriptions = loadPushSubscriptions();
+    const existingIndex = subscriptions.findIndex((subscription) => subscription.endpoint === req.body.endpoint);
+    const nextSubscription: StoredPushSubscription = {
+      endpoint: req.body.endpoint,
+      expirationTime: req.body.expirationTime ?? null,
+      keys: req.body.keys,
+      createdAt: existingIndex >= 0 ? subscriptions[existingIndex].createdAt : now,
+      updatedAt: now,
+    };
+
+    if (existingIndex >= 0) {
+      subscriptions[existingIndex] = nextSubscription;
+    } else {
+      subscriptions.push(nextSubscription);
+    }
+
+    savePushSubscriptions(subscriptions);
+    return res.json({ success: true, subscriberCount: subscriptions.length });
+  });
+
+  app.get("/api/admin/notifications", requireAuth, (_req, res) => {
+    return res.json({
+      subscriberCount: loadPushSubscriptions().length,
+      notifications: loadPushNotificationLog(),
+      publicKeyReady: Boolean(getVapidKeys().publicKey),
+    });
+  });
+
+  app.post("/api/admin/notifications/send", requireAuth, async (req, res) => {
+    const title = String(req.body?.title || "").trim().slice(0, 90);
+    const message = String(req.body?.message || "").trim().slice(0, 240);
+    const url = String(req.body?.url || "/").trim() || "/";
+
+    if (!title || !message) {
+      return res.status(400).json({ success: false, error: "Title and message are required" });
+    }
+
+    const subscriptions = loadPushSubscriptions();
+    let delivered = 0;
+    let failed = 0;
+    const deadEndpoints = new Set<string>();
+
+    await Promise.all(subscriptions.map(async (subscription) => {
+      try {
+        const response = await sendPushNotification(subscription, { title, message, url });
+        if (response.ok) {
+          delivered += 1;
+          return;
+        }
+
+        failed += 1;
+        if ([404, 410].includes(response.status)) {
+          deadEndpoints.add(subscription.endpoint);
+        }
+      } catch (error) {
+        failed += 1;
+        console.error("Push send error:", error);
+      }
+    }));
+
+    if (deadEndpoints.size > 0) {
+      savePushSubscriptions(subscriptions.filter((subscription) => !deadEndpoints.has(subscription.endpoint)));
+    }
+
+    const logEntry: PushNotificationLogEntry = {
+      id: randomUUID(),
+      title,
+      message,
+      sentAt: new Date().toISOString(),
+      delivered,
+      failed,
+    };
+    savePushNotificationLog([logEntry, ...loadPushNotificationLog()]);
+    broadcastSiteEvent({ type: "notification", title, message, url });
+
+    return res.json({
+      success: true,
+      delivered,
+      failed,
+      subscriberCount: loadPushSubscriptions().length,
+      notification: logEntry,
+    });
+  });
+
   app.post("/api/media", async (req, res) => {
     try {
       const url = saveDataUrlMedia(req.body?.dataUrl, { allowVideo: false, maxBytes: 1_800_000 });
@@ -1790,6 +2078,7 @@ async function startServer() {
     return (
       normalizedPath === "/" ||
       normalizedPath === "/admin" ||
+      normalizedPath === "/admin/notify" ||
       normalizedPath === "/404" ||
       normalizedPath.startsWith("/track/") ||
       Boolean(serviceSeoPages[normalizedPath])
