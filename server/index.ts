@@ -119,8 +119,8 @@ function normalizeTranslationTexts(value: unknown) {
 }
 
 async function translateWithDeepL(texts: string[], targetLanguage: TranslationTarget) {
-  const apiKey = process.env.DEEPL_API_KEY;
-  if (!apiKey) {
+  const apiKey = (process.env.DEEPL_API_KEY || "").trim();
+  if (!isUsableSecret(apiKey)) {
     return null;
   }
 
@@ -151,8 +151,8 @@ async function translateWithDeepL(texts: string[], targetLanguage: TranslationTa
 }
 
 async function translateWithGoogleCloud(texts: string[], targetLanguage: TranslationTarget) {
-  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY || process.env.GOOGLE_CLOUD_TRANSLATE_API_KEY;
-  if (!apiKey) {
+  const apiKey = (process.env.GOOGLE_TRANSLATE_API_KEY || process.env.GOOGLE_CLOUD_TRANSLATE_API_KEY || "").trim();
+  if (!isUsableSecret(apiKey)) {
     return null;
   }
 
@@ -193,6 +193,23 @@ async function translateTexts(texts: string[], targetLanguage: TranslationTarget
   }
 
   return null;
+}
+
+function isUsableSecret(value?: string) {
+  const normalized = (value || "").trim();
+  return Boolean(
+    normalized &&
+    normalized.length >= 12 &&
+    !/^your[_-]?/i.test(normalized) &&
+    !/^(changeme|placeholder|example|test|demo)$/i.test(normalized)
+  );
+}
+
+function getTranslationProviderStatus() {
+  return {
+    deepl: isUsableSecret(process.env.DEEPL_API_KEY),
+    google: isUsableSecret(process.env.GOOGLE_TRANSLATE_API_KEY || process.env.GOOGLE_CLOUD_TRANSLATE_API_KEY),
+  };
 }
 
 function isInternationalBooking(booking: Booking) {
@@ -747,6 +764,8 @@ async function startServer() {
   const server = createServer(app);
   const isProduction = process.env.NODE_ENV === "production";
 
+  app.disable("x-powered-by");
+
   if (isProduction) {
     app.set("trust proxy", 1);
   }
@@ -759,6 +778,9 @@ async function startServer() {
 
   // Security middleware
   app.use(helmet({
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "same-site" },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -770,6 +792,19 @@ async function startServer() {
         connectSrc: ["'self'", "https://www.google-analytics.com", "https://analytics.google.com", "https://region1.google-analytics.com", "https://translate.googleapis.com", "https://translate-pa.googleapis.com", "https://www.gstatic.com"],
         frameSrc: ["'self'", "https://translate.google.com"],
         objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'self'"],
+      },
+    },
+    permissionsPolicy: {
+      features: {
+        camera: [],
+        microphone: [],
+        geolocation: [],
+        payment: [],
+        usb: [],
+        fullscreen: ["self"],
       },
     },
     hsts: {
@@ -780,6 +815,14 @@ async function startServer() {
   }));
 
   app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+    res.setHeader("X-Download-Options", "noopen");
+
+    if (isProduction && /^\/(?:src|server|shared|attached_assets|\.git|\.env|node_modules)(?:\/|$)/i.test(req.path)) {
+      return res.status(404).send("Not found");
+    }
+
     const redirectUrl = canonicalHostRedirectUrl(req);
     if (!redirectUrl) {
       return next();
@@ -919,6 +962,15 @@ async function startServer() {
         },
       });
     }
+  });
+
+  app.get("/api/translate/status", (req, res) => {
+    const providers = getTranslationProviderStatus();
+    return res.json({
+      success: true,
+      configured: providers.deepl || providers.google,
+      providers,
+    });
   });
 
   app.post("/api/translate", async (req, res) => {
