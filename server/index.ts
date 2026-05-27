@@ -44,6 +44,7 @@ type SiteEventPayload = {
   message: string;
   url?: string;
 };
+type TranslationTarget = "en" | "fr";
 const siteEventClients = new Set<Response>();
 const mediaTypes: Record<string, { extension: string; kind: "image" | "video" }> = {
   "image/png": { extension: "png", kind: "image" },
@@ -102,6 +103,96 @@ function escapeHtml(value: unknown) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function normalizeTranslationTexts(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 120)
+    .map((item) => item.slice(0, 500));
+}
+
+async function translateWithDeepL(texts: string[], targetLanguage: TranslationTarget) {
+  const apiKey = process.env.DEEPL_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  const endpoint = process.env.DEEPL_API_URL || (apiKey.endsWith(":fx")
+    ? "https://api-free.deepl.com/v2/translate"
+    : "https://api.deepl.com/v2/translate");
+  const body = new URLSearchParams();
+  texts.forEach((text) => body.append("text", text));
+  body.set("source_lang", "EN");
+  body.set("target_lang", targetLanguage.toUpperCase());
+  body.set("preserve_formatting", "1");
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      Authorization: `DeepL-Auth-Key ${apiKey}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body,
+  });
+
+  if (!response.ok) {
+    throw new Error(`DeepL translation failed with status ${response.status}`);
+  }
+
+  const payload = await response.json() as { translations?: Array<{ text?: string }> };
+  return payload.translations?.map((item) => item.text || "") || [];
+}
+
+async function translateWithGoogleCloud(texts: string[], targetLanguage: TranslationTarget) {
+  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY || process.env.GOOGLE_CLOUD_TRANSLATE_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  const response = await fetch(`https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(apiKey)}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      q: texts,
+      source: "en",
+      target: targetLanguage,
+      format: "text",
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Google translation failed with status ${response.status}`);
+  }
+
+  const payload = await response.json() as { data?: { translations?: Array<{ translatedText?: string }> } };
+  return payload.data?.translations?.map((item) => item.translatedText || "") || [];
+}
+
+async function translateTexts(texts: string[], targetLanguage: TranslationTarget) {
+  if (targetLanguage === "en") {
+    return { provider: "original", translations: texts };
+  }
+
+  const deepLTranslations = await translateWithDeepL(texts, targetLanguage);
+  if (deepLTranslations) {
+    return { provider: "deepl", translations: deepLTranslations };
+  }
+
+  const googleTranslations = await translateWithGoogleCloud(texts, targetLanguage);
+  if (googleTranslations) {
+    return { provider: "google", translations: googleTranslations };
+  }
+
+  return null;
 }
 
 function isInternationalBooking(booking: Booking) {
@@ -722,6 +813,14 @@ async function startServer() {
     legacyHeaders: false,
   });
 
+  const translationLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    message: "Too many translation requests, please try again shortly.",
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   app.use(limiter);
 
   // Compression
@@ -773,6 +872,7 @@ async function startServer() {
   }));
   app.use("/api/media", uploadLimiter);
   app.use("/api/admin/media", uploadLimiter);
+  app.use("/api/translate", translationLimiter);
 
   // Auth middleware
   function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -817,6 +917,40 @@ async function startServer() {
         checks: {
           database: "unavailable",
         },
+      });
+    }
+  });
+
+  app.post("/api/translate", async (req, res) => {
+    const targetLanguage = req.body?.targetLanguage;
+    if (targetLanguage !== "fr" && targetLanguage !== "en") {
+      return res.status(400).json({ success: false, error: "Unsupported target language" });
+    }
+
+    const texts = normalizeTranslationTexts(req.body?.texts);
+    if (texts.length === 0) {
+      return res.status(400).json({ success: false, error: "No text supplied for translation" });
+    }
+
+    try {
+      const result = await translateTexts(texts, targetLanguage);
+      if (!result) {
+        return res.status(503).json({
+          success: false,
+          error: "Translation API key is not configured on the server",
+        });
+      }
+
+      return res.json({
+        success: true,
+        provider: result.provider,
+        translations: result.translations.slice(0, texts.length),
+      });
+    } catch (error) {
+      console.error("Translation proxy error:", error);
+      return res.status(502).json({
+        success: false,
+        error: "Translation provider failed",
       });
     }
   });
