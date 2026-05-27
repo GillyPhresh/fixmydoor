@@ -30,7 +30,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/door-repair": {
     path: "/door-repair",
     eyebrow: "Door Repair",
-    title: "Door Repair Services | FixMyDoor Services Canada & International Requests",
+    title: "Door Repair Services in Montreal - Sticking, Sagging & Damaged Doors Fixed",
     description:
       "Book help for sticking doors, damaged frames, loose handles, hinge problems, poor sealing, and doors that no longer close properly.",
     keywords:
@@ -60,7 +60,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/furniture-repair": {
     path: "/furniture-repair",
     eyebrow: "Furniture Repair",
-    title: "Furniture Repair Services | Sofa, Cabinet, Drawer & Chair Fixes",
+    title: "Furniture Repair Services - Sofa Frames, Cabinets, Drawers & More",
     description:
       "Send photos for sofa frame repairs, loose joints, cabinet hinges, drawer slides, chair repairs, and furniture parts that need practical repair or replacement.",
     keywords:
@@ -90,7 +90,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/entry-door-installation": {
     path: "/entry-door-installation",
     eyebrow: "Entry Door Installation",
-    title: "Entry Door Installation | Front Door Replacement & Fitting",
+    title: "Entry Door Installation in Montreal - Front Door Replacement & Fitting",
     description:
       "Request help with front door replacement, entry door fitting, hardware matching, swing direction, measurements, delivery, and installation planning.",
     keywords:
@@ -165,7 +165,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/door-hardware": {
     path: "/door-hardware",
     eyebrow: "Hardware Sourcing",
-    title: "Door Equipment & Hardware Sourcing | FixMyDoor Services",
+    title: "Door & Furniture Hardware Sourcing - Locks, Hinges, Handles & Parts",
     description:
       "Send measurements, photos, quantity, finish, and budget so FixMyDoor Services can help source the right door equipment, furniture parts, locks, hinges, and hardware.",
     keywords:

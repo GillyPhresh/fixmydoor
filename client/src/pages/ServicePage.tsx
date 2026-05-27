@@ -172,8 +172,88 @@ const serviceDetails: Record<string, typeof defaultServiceDetail> = {
   },
 };
 
+type ServiceFaq = {
+  question: string;
+  answer: string;
+};
+
+const serviceFaqsByPath: Record<string, ServiceFaq[]> = {
+  "/door-repair": [
+    {
+      question: "How do I know if my door needs repair or replacement?",
+      answer: "If the frame is still solid and the door panel is not badly damaged, many sticking, sagging, rubbing, or latch problems can be repaired. FixMyDoor Services reviews the photos and recommends the practical option.",
+    },
+    {
+      question: "Do you repair both interior and exterior doors?",
+      answer: "Yes. FixMyDoor Services helps with interior doors, entry doors, exterior doors, frames, hinges, handles, latches, and alignment issues across Montreal and surrounding areas.",
+    },
+    {
+      question: "What should I send for a door repair request?",
+      answer: "Send photos of the full door, the damaged area, the hinges, the latch, and the frame. Add your location and a short note explaining what happens when you open, close, or lock the door.",
+    },
+    {
+      question: "Can a sagging or scraping door be fixed without replacing it?",
+      answer: "Often yes. Hinge adjustment, strike plate work, frame review, or minor fitting can make a door close properly again without a full replacement.",
+    },
+  ],
+  "/entry-door-installation": [
+    {
+      question: "What measurements are needed for entry door installation?",
+      answer: "Send the current door width, height, frame opening, swing direction, and photos from inside and outside. If you are unsure, FixMyDoor Services will explain what needs to be measured before ordering.",
+    },
+    {
+      question: "Can you help choose the right front door before buying?",
+      answer: "Yes. FixMyDoor Services can review the opening, preferred style, hardware needs, finish, and installation plan so the door choice makes sense before money is spent.",
+    },
+    {
+      question: "Do you handle hardware matching for a new entry door?",
+      answer: "Yes. Handles, locks, hinges, cylinders, door closers, and finish choices can be reviewed so the new entry door works properly with the frame and daily use.",
+    },
+    {
+      question: "Can an old front door be replaced with a different style?",
+      answer: "Usually yes, but the frame, swing direction, size, and hardware must be checked first. That helps avoid ordering a door that looks good but does not fit correctly.",
+    },
+  ],
+  "/furniture-repair": [
+    {
+      question: "What types of furniture can FixMyDoor Services repair?",
+      answer: "Common requests include sofa frames, chairs, cabinets, drawers, desks, shelves, loose joints, damaged supports, cabinet hinges, and drawer slides.",
+    },
+    {
+      question: "Should I repair furniture or replace it?",
+      answer: "If the main structure is still useful, repair or stronger replacement hardware may be more practical than buying new furniture. Photos help confirm the best route.",
+    },
+    {
+      question: "What should I send for a furniture repair request?",
+      answer: "Send photos of the full item, the damaged part, any missing hardware, and the area where the part connects. Include measurements if a replacement part may be needed.",
+    },
+    {
+      question: "Can you help with drawer slides and cabinet hinges?",
+      answer: "Yes. FixMyDoor Services can help repair, replace, or source drawer slides, cabinet hinges, soft-close runners, handles, brackets, and other furniture hardware.",
+    },
+  ],
+  "/door-hardware": [
+    {
+      question: "What hardware can FixMyDoor Services help source?",
+      answer: "Requests can include locks, hinges, handles, cylinders, door closers, latch parts, strike plates, cabinet hinges, drawer slides, brackets, and furniture repair parts.",
+    },
+    {
+      question: "How do I avoid buying the wrong lock, hinge, or handle?",
+      answer: "Send clear photos, measurements, finish preference, door thickness if available, and the problem you need to solve. FixMyDoor Services reviews compatibility before suggesting next steps.",
+    },
+    {
+      question: "Can you help with both door and furniture parts?",
+      answer: "Yes. The sourcing support covers door equipment, door hardware, furniture hardware, cabinet parts, drawer parts, and practical replacement fittings.",
+    },
+    {
+      question: "Do you support international hardware requests?",
+      answer: "Yes. Customers outside Canada can send photos, quantity, city, country, time zone, preferred currency, and delivery questions for review.",
+    },
+  ],
+};
+
 function buildServiceFaqs(page: (typeof serviceSeoPages)[string]) {
-  return [
+  return serviceFaqsByPath[page.path] || [
     {
       question: `What information should I send for ${page.eyebrow.toLowerCase()}?`,
       answer: "Send photos, measurements if available, your city or country, and a short note about what is not working. That helps us understand whether repair, installation, replacement, or sourcing is the right next step.",

@@ -9,12 +9,14 @@ import whiteGlassEntryDoorImage from "./Images/real/white-glass-entry-door.jpg";
 import whitePanelInteriorDoorImage from "./Images/real/white-panel-interior-door.jpg";
 import brownCustomInteriorDoorImage from "./Images/real/brown-custom-interior-door.jpg";
 import woodOfficeGlassDoorImage from "./Images/real/wood-office-glass-door.jpg";
+import woodHallwayInteriorDoorsImage from "./Images/real/wood-hallway-interior-doors.jpg";
 import commercialDoorCloserImage from "./Images/real/commercial-door-closer.jpg";
 import blackMatteModernInteriorDoorImage from "./Images/real/black-matte-modern-interior-door.jpg";
 import entryDoorSelectionShowroomImage from "./Images/real/entry-door-selection-showroom.jpg";
 import modernWoodMainEntranceDoorImage from "./Images/real/modern-wood-main-entrance-door.jpg";
 import modernEntryDoorIdeasGridImage from "./Images/real/modern-entry-door-ideas-grid.jpg";
 import classicPanelEntryDoorImage from "./Images/real/classic-panel-entry-door.jpg";
+import classicBrownEntryDoorImage from "./Images/real/classic-brown-entry-door.jpg";
 import forcedEntryBrokenWoodDoorImage from "./Images/real/forced-entry-broken-wood-door.jpg";
 import damagedDoorLockPrepImage from "./Images/real/damaged-door-lock-prep.jpg";
 import kickedDoorFrameRepairImage from "./Images/real/kicked-door-frame-repair.jpg";
@@ -51,18 +53,38 @@ export const featuredService = {
 export const featuredServiceCollage = [
   {
     src: modernWoodMainEntranceDoorImage,
+    title: "Exterior Door",
+    tag: "Exterior Door",
+  },
+  {
+    src: modernWoodMainEntranceDoorImage,
     title: "Entry Door",
     tag: "Exterior Door",
   },
   {
     src: commercialDoorCloserImage,
-    title: "Commercial Door Closer",
+    title: "Door Hardware",
     tag: "Door Hardware",
+  },
+  {
+    src: commercialDoorCloserImage,
+    title: "Commercial Door Closer",
+    tag: "Door Closer",
+  },
+  {
+    src: damagedDoorLockPrepImage,
+    title: "Repair Prep",
+    tag: "Repair Prep",
   },
   {
     src: damagedDoorLockPrepImage,
     title: "Door Work",
-    tag: "Repair Prep",
+    tag: "Door Work",
+  },
+  {
+    src: brownCustomInteriorDoorImage,
+    title: "Door Fitting",
+    tag: "Door Fitting",
   },
   {
     src: blackMatteModernInteriorDoorImage,
@@ -71,8 +93,18 @@ export const featuredServiceCollage = [
   },
   {
     src: greyCabinetInstallationImage,
-    title: "Furniture",
+    title: "Cabinet Work",
     tag: "Cabinet Work",
+  },
+  {
+    src: officeFurnitureSuiteImage,
+    title: "Furniture",
+    tag: "Furniture",
+  },
+  {
+    src: singleOfficeDeskImage,
+    title: "Furniture",
+    tag: "Furniture",
   },
   {
     src: blackOfficeCabinetsImage,
@@ -81,8 +113,18 @@ export const featuredServiceCollage = [
   },
   {
     src: builtInOfficeFurnitureImage,
-    title: "Office Furniture Setup",
+    title: "Setup",
     tag: "Setup",
+  },
+  {
+    src: builtInOfficeFurnitureImage,
+    title: "Office Furniture Setup",
+    tag: "Office Furniture Setup",
+  },
+  {
+    src: officeChairSupportImage,
+    title: "Office Care",
+    tag: "Office Care",
   },
   {
     src: officeChairSupportImage,
@@ -180,6 +222,8 @@ export const doorProducts = [
   { title: "White Interior Panel Door", image: whitePanelInteriorDoorImage, tag: "Interior Door" },
   { title: "Brown Custom Interior Door", image: brownCustomInteriorDoorImage, tag: "Wood Interior" },
   { title: "Office Glass & Wood Door", image: woodOfficeGlassDoorImage, tag: "Commercial Door" },
+  { title: "Classic Brown Entry Door", image: classicBrownEntryDoorImage, tag: "Entry Door" },
+  { title: "Wood Hallway Interior Doors", image: woodHallwayInteriorDoorsImage, tag: "Interior Set" },
 ];
 
 export const hardwareProducts = [

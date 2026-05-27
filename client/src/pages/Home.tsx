@@ -95,7 +95,6 @@ type ReviewFormData = z.infer<typeof reviewSchema>;
 type CookiePreference = "accepted" | "denied";
 
 const ADVERT_SLIDE_DURATION_MS = 7000;
-const FEATURED_COLLAGE_DURATION_MS = 3000;
 const SLIDE_HOLD_PAUSE_MS = 12000;
 const DOT_SELECTION_PAUSE_MS = 9000;
 const SITE_URL = "https://www.fixmydoor.ca";
@@ -292,7 +291,6 @@ export default function Home() {
   const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
   const [humanCheckConfirmed, setHumanCheckConfirmed] = useState(false);
   const [activeAdvertIndex, setActiveAdvertIndex] = useState(0);
-  const [activeFeaturedCollageGroup, setActiveFeaturedCollageGroup] = useState(0);
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [advertDismissed, setAdvertDismissed] = useState(false);
   const [lightboxAdvert, setLightboxAdvert] = useState<DisplayAdvert | null>(null);
@@ -775,10 +773,7 @@ export default function Home() {
   const displayedHardwareProducts = dynamicHardwareProducts.length > 0 ? dynamicHardwareProducts : hardwareProducts;
   const displayedProjectGallery = dynamicProjectGallery.length > 0 ? dynamicProjectGallery : projectGallery;
   const displayedAdverts = dynamicAdverts.length > 0 ? dynamicAdverts : defaultAdverts;
-  const featuredCollageGroups = Array.from(
-    { length: Math.max(1, Math.ceil(featuredServiceCollage.length / 4)) },
-    (_, index) => featuredServiceCollage.slice(index * 4, index * 4 + 4),
-  ).filter((group) => group.length > 0);
+  const desktopProjectGallery = displayedProjectGallery.slice(0, 6);
   const customerPathLoopItems = createMobileLoopItems(customerPaths, (item) => item.title);
   const coreServiceLoopItems = createMobileLoopItems(coreServiceDetails, (item) => item.title);
   const serviceShowcaseLoopItems = createMobileLoopItems(displayedServiceShowcase, (item) => item.title);
@@ -802,7 +797,9 @@ export default function Home() {
         url: `${SITE_URL}/`,
         logo: `${SITE_URL}/img5150-transparent.png`,
         image: `${SITE_URL}/og-fixmydoor-service.jpg`,
+        description: "Door repairs, door installations, furniture repairs, lock rekeying, and hardware sourcing in Montreal, Quebec, Canada.",
         telephone: "+1-438-347-1823",
+        email: "info.fixmydoor@gmail.com",
         address: {
           "@type": "PostalAddress",
           streetAddress: "10158 Rue Berri",
@@ -811,6 +808,9 @@ export default function Home() {
           addressCountry: "CA",
         },
         areaServed: ["Montreal", "Laval", "Longueuil", "Brossard", "Quebec", "Canada"],
+        openingHours: "Mo-Su 08:00-20:00",
+        priceRange: "$$",
+        sameAs: ["https://www.fixmydoor.ca"],
         ...(reviewSchemaItems.length > 0
           ? {
               aggregateRating: {
@@ -1049,24 +1049,6 @@ export default function Home() {
       window.clearInterval(timer);
     };
   }, [displayedAdverts.length]);
-
-  useEffect(() => {
-    if (featuredCollageGroups.length <= 1) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      if (document.visibilityState !== "visible" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        return;
-      }
-
-      setActiveFeaturedCollageGroup((currentGroup) => (currentGroup + 1) % featuredCollageGroups.length);
-    }, FEATURED_COLLAGE_DURATION_MS);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [featuredCollageGroups.length]);
 
   useEffect(() => {
     const pauseTrack = (event: Event) => {
@@ -1919,8 +1901,8 @@ export default function Home() {
 
           <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
             <article className="overflow-hidden rounded-[28px] bg-secondary p-5 text-white shadow-[0_22px_60px_rgba(66,40,18,0.2)] md:rounded-[32px] md:p-8">
-              <div className="grid gap-5 md:gap-8 xl:grid-cols-[0.88fr_1.12fr] xl:items-center">
-                <div className="max-w-lg">
+              <div className="grid gap-5 md:gap-8">
+                <div className="max-w-3xl">
                   <span className="inline-flex rounded-full bg-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-white/90">{featuredService.tag}</span>
                   <h3 className="mt-3 font-display text-2xl font-bold leading-tight md:mt-4 md:text-3xl">{featuredService.title}</h3>
                   <p className="mt-3 max-w-xl text-sm text-white/82 md:mt-4 md:text-base">{featuredService.desc}</p>
@@ -1932,45 +1914,23 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-                <div className="overflow-hidden">
-                  <div
-                    className="flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform"
-                    style={{ transform: `translateX(-${activeFeaturedCollageGroup * 100}%)` }}
-                  >
-                    {featuredCollageGroups.map((group, groupIndex) => (
-                      <div key={`featured-collage-group-${groupIndex}`} className="grid min-w-full grid-cols-2 gap-3 sm:gap-4">
-                        {group.map((item, index) => (
-                          <figure key={`${groupIndex}-${item.title}`} className="group relative min-h-[8.75rem] overflow-hidden rounded-[20px] border border-white/10 bg-white/5 shadow-[0_14px_34px_rgba(0,0,0,0.14)] sm:min-h-[10rem] md:rounded-[24px]">
-                            <img
-                              src={item.src}
-                              alt={item.title}
-                              loading={groupIndex === 0 ? "eager" : "lazy"}
-                              decoding="async"
-                              className="h-36 w-full object-cover transition duration-500 group-hover:scale-[1.03] sm:h-40 md:h-44"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-secondary/88 via-secondary/18 to-transparent" />
-                            <figcaption className="absolute inset-x-0 bottom-0 p-3 md:p-4">
-                              <span className="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-white/72 md:text-[0.7rem] md:tracking-[0.24em]">{item.tag}</span>
-                              <p className="mt-1 text-sm font-bold leading-tight text-white md:mt-2 md:text-lg">{item.title}</p>
-                            </figcaption>
-                          </figure>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                  {featuredCollageGroups.length > 1 && (
-                    <div className="mt-4 flex items-center justify-center gap-2">
-                      {featuredCollageGroups.map((_, index) => (
-                        <button
-                          key={index}
-                          type="button"
-                          onClick={() => setActiveFeaturedCollageGroup(index)}
-                          className={`h-2 rounded-full transition-all ${activeFeaturedCollageGroup === index ? "w-7 bg-primary" : "w-2 bg-white/35 hover:bg-white/55"}`}
-                          aria-label={`Show featured image group ${index + 1}`}
-                        />
-                      ))}
-                    </div>
-                  )}
+                <div className="grid grid-cols-2 gap-3 min-[481px]:grid-cols-3 md:gap-3 lg:grid-cols-4 lg:p-2">
+                  {featuredServiceCollage.map((item, index) => (
+                    <figure key={`${item.title}-${index}`} className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-white/5 shadow-[0_14px_34px_rgba(0,0,0,0.14)]">
+                      <img
+                        src={item.src}
+                        alt={item.title}
+                        loading={index < 4 ? "eager" : "lazy"}
+                        decoding="async"
+                        className="block h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-secondary/88 via-secondary/18 to-transparent" />
+                      <figcaption className="absolute inset-x-0 bottom-0 p-2 md:p-3">
+                        <span className="text-[0.58rem] font-bold uppercase tracking-[0.16em] text-white/72 md:text-[0.62rem]">{item.tag}</span>
+                        <p className="mt-1 text-xs font-bold leading-tight text-white md:text-sm">{item.title}</p>
+                      </figcaption>
+                    </figure>
+                  ))}
                 </div>
               </div>
             </article>
@@ -2136,7 +2096,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="overflow-hidden md:overflow-visible">
+          <div className="overflow-hidden md:hidden">
             <div id="project-gallery-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-6 xl:grid-cols-3`}>
             {projectGalleryLoopItems.map(({ item: project, loopKey, isClone, loopEdge }, index) => (
               <article key={loopKey} data-loop-clone={isClone || undefined} data-loop-edge={loopEdge} aria-hidden={isClone || undefined} className={`${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px]`}>
@@ -2150,6 +2110,19 @@ export default function Home() {
             ))}
             </div>
             {renderMobileCarouselControls("project-gallery-mobile-carousel", displayedProjectGallery.length)}
+          </div>
+
+          <div className="hidden md:grid md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-6">
+            {desktopProjectGallery.map((project) => (
+              <article key={project.title} className="overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px]">
+                <img src={project.src} alt={project.title} loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover" />
+                <div className="p-5 md:p-6">
+                  <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{project.category}</span>
+                  <h3 className="mt-3 text-xl font-bold text-secondary">{project.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-foreground/70">{project.desc}</p>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>

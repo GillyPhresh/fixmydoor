@@ -523,14 +523,14 @@ export default function Admin() {
 
   if (!authenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#f7efe5] via-white to-[#f3dfc7] px-4 py-8">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#f7efe5] via-white to-[#f3dfc7] px-5 py-10 text-center">
         <Card className="w-full max-w-md border-[#dec4a3] bg-white/95 shadow-[0_24px_70px_rgba(66,40,18,0.14)]">
           <CardHeader className="items-center text-center">
-            <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-[#f7efe5] shadow-inner ring-1 ring-[#ead8bf]">
+            <div className="mx-auto mb-2 inline-flex items-center justify-center rounded-[14px] border border-[#ead8bf] bg-[#FAF6F0] px-8 py-5 shadow-[0_16px_36px_rgba(66,40,18,0.12)]">
               <img
                 src="/img5150-transparent.png"
                 alt="FixMyDoor logo"
-                className="h-28 w-auto object-contain"
+                className="block h-auto w-[180px] object-contain"
               />
             </div>
             <CardTitle className="mt-3 text-2xl font-display text-secondary">Admin Login</CardTitle>
