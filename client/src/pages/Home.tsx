@@ -95,6 +95,7 @@ type ReviewFormData = z.infer<typeof reviewSchema>;
 type CookiePreference = "accepted" | "denied";
 
 const ADVERT_SLIDE_DURATION_MS = 7000;
+const FEATURED_COLLAGE_DURATION_MS = 3000;
 const SLIDE_HOLD_PAUSE_MS = 12000;
 const DOT_SELECTION_PAUSE_MS = 9000;
 const SITE_URL = "https://www.fixmydoor.ca";
@@ -291,6 +292,7 @@ export default function Home() {
   const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
   const [humanCheckConfirmed, setHumanCheckConfirmed] = useState(false);
   const [activeAdvertIndex, setActiveAdvertIndex] = useState(0);
+  const [activeFeaturedCollageGroup, setActiveFeaturedCollageGroup] = useState(0);
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [advertDismissed, setAdvertDismissed] = useState(false);
   const [lightboxAdvert, setLightboxAdvert] = useState<DisplayAdvert | null>(null);
@@ -773,6 +775,10 @@ export default function Home() {
   const displayedHardwareProducts = dynamicHardwareProducts.length > 0 ? dynamicHardwareProducts : hardwareProducts;
   const displayedProjectGallery = dynamicProjectGallery.length > 0 ? dynamicProjectGallery : projectGallery;
   const displayedAdverts = dynamicAdverts.length > 0 ? dynamicAdverts : defaultAdverts;
+  const featuredCollageGroups = Array.from(
+    { length: Math.max(1, Math.ceil(featuredServiceCollage.length / 4)) },
+    (_, index) => featuredServiceCollage.slice(index * 4, index * 4 + 4),
+  ).filter((group) => group.length > 0);
   const customerPathLoopItems = createMobileLoopItems(customerPaths, (item) => item.title);
   const coreServiceLoopItems = createMobileLoopItems(coreServiceDetails, (item) => item.title);
   const serviceShowcaseLoopItems = createMobileLoopItems(displayedServiceShowcase, (item) => item.title);
@@ -1030,6 +1036,24 @@ export default function Home() {
       window.clearInterval(timer);
     };
   }, [displayedAdverts.length]);
+
+  useEffect(() => {
+    if (featuredCollageGroups.length <= 1) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        return;
+      }
+
+      setActiveFeaturedCollageGroup((currentGroup) => (currentGroup + 1) % featuredCollageGroups.length);
+    }, FEATURED_COLLAGE_DURATION_MS);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [featuredCollageGroups.length]);
 
   useEffect(() => {
     const pauseTrack = (event: Event) => {
@@ -1895,23 +1919,45 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {featuredServiceCollage.map((item, index) => (
-                    <figure key={item.title} className={`group relative overflow-hidden rounded-[24px] border border-white/10 bg-white/5 ${item.featured ? "sm:col-span-2" : ""} ${index > 0 ? "hidden sm:block" : ""}`}>
-                      <img
-                        src={item.src}
-                        alt={item.title}
-                        loading="lazy"
-                        decoding="async"
-                        className={`w-full object-cover transition duration-500 group-hover:scale-[1.03] ${item.featured ? "h-48 md:h-52" : "h-40 md:h-44"}`}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-secondary/85 via-secondary/15 to-transparent" />
-                      <figcaption className="absolute inset-x-0 bottom-0 p-4">
-                        <span className="text-[0.7rem] font-bold uppercase tracking-[0.24em] text-white/75">{item.tag}</span>
-                        <p className="mt-2 text-lg font-bold text-white">{item.title}</p>
-                      </figcaption>
-                    </figure>
-                  ))}
+                <div className="overflow-hidden">
+                  <div
+                    className="flex transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform"
+                    style={{ transform: `translateX(-${activeFeaturedCollageGroup * 100}%)` }}
+                  >
+                    {featuredCollageGroups.map((group, groupIndex) => (
+                      <div key={`featured-collage-group-${groupIndex}`} className="grid min-w-full grid-cols-2 gap-3 sm:gap-4">
+                        {group.map((item, index) => (
+                          <figure key={`${groupIndex}-${item.title}`} className="group relative min-h-[8.75rem] overflow-hidden rounded-[20px] border border-white/10 bg-white/5 shadow-[0_14px_34px_rgba(0,0,0,0.14)] sm:min-h-[10rem] md:rounded-[24px]">
+                            <img
+                              src={item.src}
+                              alt={item.title}
+                              loading={groupIndex === 0 ? "eager" : "lazy"}
+                              decoding="async"
+                              className="h-36 w-full object-cover transition duration-500 group-hover:scale-[1.03] sm:h-40 md:h-44"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-secondary/88 via-secondary/18 to-transparent" />
+                            <figcaption className="absolute inset-x-0 bottom-0 p-3 md:p-4">
+                              <span className="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-white/72 md:text-[0.7rem] md:tracking-[0.24em]">{item.tag}</span>
+                              <p className="mt-1 text-sm font-bold leading-tight text-white md:mt-2 md:text-lg">{item.title}</p>
+                            </figcaption>
+                          </figure>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  {featuredCollageGroups.length > 1 && (
+                    <div className="mt-4 flex items-center justify-center gap-2">
+                      {featuredCollageGroups.map((_, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => setActiveFeaturedCollageGroup(index)}
+                          className={`h-2 rounded-full transition-all ${activeFeaturedCollageGroup === index ? "w-7 bg-primary" : "w-2 bg-white/35 hover:bg-white/55"}`}
+                          aria-label={`Show featured image group ${index + 1}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </article>

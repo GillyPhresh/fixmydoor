@@ -45,18 +45,32 @@ export const featuredService = {
 
 export const featuredServiceCollage = [
   {
+    src: entryDoorImage,
+    title: "Entry Door",
+    tag: "Exterior Door",
+  },
+  {
     src: commercialDoorCloserImage,
     title: "Commercial Door Closer",
-    tag: "Entry Door",
-    featured: true,
+    tag: "Door Hardware",
   },
   {
     src: brownCustomInteriorDoorImage,
+    title: "Door Work",
+    tag: "Interior Service",
+  },
+  {
+    src: woodHallwayInteriorDoorsImage,
     title: "Wood Interior Door Fitting",
-    tag: "Door Work",
+    tag: "Door Fitting",
   },
   {
     src: greyCabinetInstallationImage,
+    title: "Furniture",
+    tag: "Cabinet Work",
+  },
+  {
+    src: blackOfficeCabinetsImage,
     title: "Cabinet Hardware Setup",
     tag: "Furniture",
   },
@@ -64,7 +78,11 @@ export const featuredServiceCollage = [
     src: builtInOfficeFurnitureImage,
     title: "Office Furniture Setup",
     tag: "Setup",
-    featured: true,
+  },
+  {
+    src: officeChairSupportImage,
+    title: "Chair Hardware Support",
+    tag: "Office Care",
   },
 ];
 
