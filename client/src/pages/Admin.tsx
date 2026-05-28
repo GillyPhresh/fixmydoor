@@ -705,14 +705,15 @@ export default function Admin() {
 
   if (!authenticated) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#f7efe5] via-white to-[#f3dfc7] px-5 py-10 text-center">
-        <Card className="w-full max-w-md border-[#dec4a3] bg-white/95 shadow-[0_24px_70px_rgba(66,40,18,0.14)]">
-          <CardHeader className="items-center text-center">
-            <div className="mx-auto mb-2 inline-flex items-center justify-center rounded-[14px] border border-[#ead8bf] bg-[#FAF6F0] px-8 py-5 shadow-[0_16px_36px_rgba(66,40,18,0.12)]">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#f7efe5] via-white to-[#f3dfc7] px-4 py-8 text-center">
+        <Card className="w-full max-w-md overflow-hidden border-[#dec4a3] bg-white/95 shadow-[0_24px_70px_rgba(66,40,18,0.14)]">
+          <CardHeader className="items-center px-4 pb-4 pt-6 text-center sm:px-6">
+            <div className="relative mx-auto mb-2 inline-flex items-center justify-center overflow-hidden rounded-[22px] border border-[#d6b88c] bg-[#FAF6F0] px-4 py-3 shadow-[0_18px_42px_rgba(66,40,18,0.16)] ring-1 ring-white/80 sm:px-5 sm:py-4">
+              <div className="pointer-events-none absolute inset-x-4 top-2 h-1 rounded-full bg-gradient-to-r from-transparent via-[#D4A574] to-transparent" />
               <img
                 src="/img5150-transparent.png"
                 alt="FixMyDoor logo"
-                className="block h-auto w-[180px] object-contain"
+                className="relative block h-auto w-[230px] max-w-[78vw] object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.16)] sm:w-[260px]"
               />
             </div>
             <CardTitle className="mt-3 text-2xl font-display text-secondary">Admin Login</CardTitle>
@@ -720,7 +721,7 @@ export default function Admin() {
               FixMyDoor Services booking dashboard for customer requests, reviews, service content, and follow-up.
             </p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <Label htmlFor="username">Username</Label>
@@ -807,45 +808,46 @@ export default function Admin() {
 
   return (
     <div className="min-h-screen bg-[#f7efe4]">
-      <div className="container mx-auto max-w-[1320px] px-4 py-6 md:py-8">
-        <div className="relative mb-6 overflow-hidden rounded-3xl border border-[#ead8bf] bg-white/90 p-5 text-center shadow-[0_24px_70px_rgba(66,40,18,0.10)] md:p-6">
+      <div className="container mx-auto max-w-[1320px] px-3 py-4 sm:px-4 md:py-8">
+        <div className="relative mb-4 overflow-hidden rounded-[24px] border border-[#ead8bf] bg-white/90 p-4 text-center shadow-[0_24px_70px_rgba(66,40,18,0.10)] md:mb-6 md:rounded-3xl md:p-6">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#6B4423] via-[#D4A574] to-[#6B4423]" />
-          <div className="mx-auto flex max-w-xl flex-col items-center gap-3">
-            <div className="rounded-[18px] border border-[#ead8bf] bg-[#FAF6F0] px-7 py-4 shadow-[0_16px_36px_rgba(66,40,18,0.10)]">
+          <div className="mx-auto flex max-w-xl flex-col items-center gap-2.5 md:gap-3">
+            <div className="relative overflow-hidden rounded-[22px] border border-[#d6b88c] bg-[#FAF6F0] px-4 py-3 shadow-[0_18px_42px_rgba(66,40,18,0.14)] ring-1 ring-white/80 md:px-6 md:py-4">
+              <div className="pointer-events-none absolute inset-x-4 top-2 h-1 rounded-full bg-gradient-to-r from-transparent via-[#D4A574] to-transparent" />
               <img
                 src="/img5150-transparent.png"
                 alt="FixMyDoor logo"
-                className="h-20 w-auto object-contain md:h-24"
+                className="relative h-auto w-[230px] max-w-[76vw] object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.16)] md:w-[280px]"
               />
             </div>
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8a5a2d]">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a5a2d] md:text-sm md:tracking-[0.22em]">
                 FixMyDoor Services
               </p>
-              <h1 className="text-3xl font-display font-bold text-secondary md:text-4xl">
+              <h1 className="text-2xl font-display font-bold text-secondary md:text-4xl">
                 Admin Dashboard
               </h1>
-              <p className="text-sm text-foreground/70 md:text-base">
+              <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-foreground/70 md:text-base">
                 Manage bookings, customer requests, reviews, website content, and alerts.
               </p>
             </div>
           </div>
-          <div className="mt-5 grid gap-2 sm:grid-cols-3 md:absolute md:right-5 md:top-5 md:mt-0 md:flex md:max-w-[31rem] md:flex-wrap md:justify-end">
-            <Button type="button" onClick={installAdminApp} variant="outline" className="bg-white/90">
+          <div className="mt-4 grid grid-cols-2 gap-2 md:absolute md:right-5 md:top-5 md:mt-0 md:flex md:max-w-[31rem] md:flex-wrap md:justify-end">
+            <Button type="button" onClick={installAdminApp} variant="outline" className="h-10 bg-white/90 px-2 text-xs sm:text-sm">
               <Download className="w-4 h-4 mr-2" />
-              {adminStandalone ? "Admin App Open" : "Install Admin App"}
+              <span>{adminStandalone ? "App Open" : "Install App"}</span>
             </Button>
             <Button
               type="button"
               onClick={enableAdminNotifications}
               variant={adminNotificationsEnabled ? "default" : "outline"}
-              className={adminNotificationsEnabled ? "bg-[#6B4423] text-white hover:bg-[#543218]" : "bg-white/90"}
+              className={`h-10 px-2 text-xs sm:text-sm ${adminNotificationsEnabled ? "bg-[#6B4423] text-white hover:bg-[#543218]" : "bg-white/90"}`}
               disabled={adminNotificationLoading}
             >
               <Bell className="w-4 h-4 mr-2" />
-              {adminNotificationLoading ? "Enabling..." : adminNotificationsEnabled ? "Admin Alerts On" : "Enable Admin Alerts"}
+              {adminNotificationLoading ? "Enabling..." : adminNotificationsEnabled ? "Alerts On" : "Alerts"}
             </Button>
-            <Button onClick={handleLogout} variant="outline">
+            <Button onClick={handleLogout} variant="outline" className="col-span-2 h-10 bg-white/90 text-xs sm:text-sm md:col-span-1">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
@@ -854,152 +856,155 @@ export default function Admin() {
 
         {/* Stats Dashboard */}
         {stats && (
-          <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <div className="mb-4 grid grid-cols-2 gap-2.5 md:mb-6 md:grid-cols-3 md:gap-3 xl:grid-cols-6">
             <Card className="border-[#ead8bf] bg-white shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Bookings</CardTitle>
+              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">Total Bookings</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.totalBookings}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Pending</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{stats.pendingBookings}</div>
+              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
+                <div className="text-xl font-bold md:text-2xl">{stats.totalBookings}</div>
               </CardContent>
             </Card>
             <Card className="border-[#ead8bf] bg-white shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Urgent</CardTitle>
+              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">Pending</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">{stats.urgentBookings}</div>
+              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
+                <div className="text-xl font-bold text-yellow-600 md:text-2xl">{stats.pendingBookings}</div>
               </CardContent>
             </Card>
             <Card className="border-[#ead8bf] bg-white shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">This Week</CardTitle>
+              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">Urgent</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{stats.thisWeekBookings}</div>
+              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
+                <div className="text-xl font-bold text-red-600 md:text-2xl">{stats.urgentBookings}</div>
               </CardContent>
             </Card>
             <Card className="border-[#ead8bf] bg-white shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">International</CardTitle>
+              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">This Week</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-700">{stats.internationalBookings}</div>
+              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
+                <div className="text-xl font-bold text-blue-600 md:text-2xl">{stats.thisWeekBookings}</div>
               </CardContent>
             </Card>
             <Card className="border-[#ead8bf] bg-white shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
+              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">International</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{stats.completedBookings}</div>
+              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
+                <div className="text-xl font-bold text-purple-700 md:text-2xl">{stats.internationalBookings}</div>
+              </CardContent>
+            </Card>
+            <Card className="border-[#ead8bf] bg-white shadow-sm">
+              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">Completed</CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
+                <div className="text-xl font-bold text-green-600 md:text-2xl">{stats.completedBookings}</div>
               </CardContent>
             </Card>
           </div>
         )}
 
-        <Card className="mb-6 border-[#ead8bf] bg-[#fffaf2] shadow-sm">
-          <CardContent className="grid gap-4 p-4">
+        <Card className="mb-4 border-[#ead8bf] bg-[#fffaf2] shadow-sm md:mb-6">
+          <CardContent className="grid gap-4 p-3 md:p-4">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a5a2d]">Owner Controls</p>
-                <h2 className="mt-1 text-xl font-display font-bold text-secondary">Manage security, email, bookings, and website content</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <h2 className="mt-1 text-lg font-display font-bold leading-tight text-secondary md:text-xl">Manage security, email, bookings, and website content</h2>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">
                   Use these quick actions first, then review Recent Bookings and Booking Requests below.
                 </p>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
-              <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button type="button" className="bg-[#8a5a2d] text-white hover:bg-[#71451f]">
-                    <KeyRound className="mr-2 h-4 w-4" />
-                    Change Admin Password
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle>Change Admin Password</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={changePassword} className="space-y-4">
-                    <div>
-                      <Label htmlFor="current-admin-password">Current Password</Label>
-                      <Input
-                        id="current-admin-password"
-                        type="password"
-                        value={passwordDraft.currentPassword}
-                        onChange={(event) => setPasswordDraft((draft) => ({ ...draft, currentPassword: event.target.value }))}
-                        autoComplete="current-password"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="new-admin-password">New Password</Label>
-                      <Input
-                        id="new-admin-password"
-                        type="password"
-                        value={passwordDraft.newPassword}
-                        onChange={(event) => setPasswordDraft((draft) => ({ ...draft, newPassword: event.target.value }))}
-                        autoComplete="new-password"
-                        minLength={8}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="confirm-admin-password">Confirm New Password</Label>
-                      <Input
-                        id="confirm-admin-password"
-                        type="password"
-                        value={passwordDraft.confirmPassword}
-                        onChange={(event) => setPasswordDraft((draft) => ({ ...draft, confirmPassword: event.target.value }))}
-                        autoComplete="new-password"
-                        minLength={8}
-                        required
-                      />
-                    </div>
-                    <Button type="submit" disabled={passwordLoading} className="w-full">
-                      {passwordLoading ? "Saving..." : "Update Admin Password"}
+              <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:justify-end">
+                <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button type="button" className="h-10 bg-[#8a5a2d] px-2 text-xs text-white hover:bg-[#71451f] md:text-sm">
+                      <KeyRound className="mr-1.5 h-4 w-4" />
+                      <span className="sm:hidden">Password</span>
+                      <span className="hidden sm:inline">Change Password</span>
                     </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-              <Button type="button" variant="outline" onClick={sendTestEmail} disabled={emailTestLoading}>
-                <Mail className="mr-2 h-4 w-4" />
-                {emailTestLoading ? "Testing..." : "Test Email"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => document.getElementById("push-notification-manager")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              >
-                <Bell className="mr-2 h-4 w-4" />
-                Notifications
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => document.getElementById("website-content-manager")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Website Content
-              </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Change Admin Password</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={changePassword} className="space-y-4">
+                      <div>
+                        <Label htmlFor="current-admin-password">Current Password</Label>
+                        <Input
+                          id="current-admin-password"
+                          type="password"
+                          value={passwordDraft.currentPassword}
+                          onChange={(event) => setPasswordDraft((draft) => ({ ...draft, currentPassword: event.target.value }))}
+                          autoComplete="current-password"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="new-admin-password">New Password</Label>
+                        <Input
+                          id="new-admin-password"
+                          type="password"
+                          value={passwordDraft.newPassword}
+                          onChange={(event) => setPasswordDraft((draft) => ({ ...draft, newPassword: event.target.value }))}
+                          autoComplete="new-password"
+                          minLength={8}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="confirm-admin-password">Confirm New Password</Label>
+                        <Input
+                          id="confirm-admin-password"
+                          type="password"
+                          value={passwordDraft.confirmPassword}
+                          onChange={(event) => setPasswordDraft((draft) => ({ ...draft, confirmPassword: event.target.value }))}
+                          autoComplete="new-password"
+                          minLength={8}
+                          required
+                        />
+                      </div>
+                      <Button type="submit" disabled={passwordLoading} className="w-full">
+                        {passwordLoading ? "Saving..." : "Update Admin Password"}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+                <Button type="button" variant="outline" onClick={sendTestEmail} disabled={emailTestLoading} className="h-10 bg-white px-2 text-xs md:text-sm">
+                  <Mail className="mr-1.5 h-4 w-4" />
+                  {emailTestLoading ? "Testing..." : "Test Email"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 bg-white px-2 text-xs md:text-sm"
+                  onClick={() => document.getElementById("push-notification-manager")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                >
+                  <Bell className="mr-1.5 h-4 w-4" />
+                  Notifications
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 bg-white px-2 text-xs md:text-sm"
+                  onClick={() => document.getElementById("website-content-manager")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                >
+                  <Save className="mr-1.5 h-4 w-4" />
+                  Content
+                </Button>
               </div>
             </div>
             {emailStatus && (
-              <div className={`rounded-2xl border p-4 text-sm ${emailStatus.configured && emailStatus.verified ? "border-green-200 bg-green-50 text-green-900" : "border-amber-200 bg-amber-50 text-amber-950"}`}>
+              <div className={`overflow-hidden rounded-2xl border p-3 text-xs leading-relaxed md:p-4 md:text-sm ${emailStatus.configured && emailStatus.verified ? "border-green-200 bg-green-50 text-green-900" : "border-amber-200 bg-amber-50 text-amber-950"}`}>
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div>
+                  <div className="min-w-0">
                     <p className="font-bold">
                       Email status: {getEmailStatusLabel(emailStatus)}
                     </p>
-                    <p className="mt-1">
+                    <p className="mt-1 break-words">
                       Provider: {emailStatus.provider.toUpperCase()} | SMTP: {emailStatus.host || "missing"}{emailStatus.port ? `:${emailStatus.port}` : ""} | User: {emailStatus.smtpUser || "missing"} | Resend: {emailStatus.resendConfigured ? "configured" : "not set"} | Admin: {emailStatus.adminEmail}
                     </p>
                   </div>
@@ -1029,33 +1034,33 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        <Card id="push-notification-manager" className="mb-6 scroll-mt-8 border-[#ead8bf] bg-white shadow-sm">
-          <CardHeader>
+        <Card id="push-notification-manager" className="mb-4 scroll-mt-8 border-[#ead8bf] bg-white shadow-sm md:mb-6">
+          <CardHeader className="p-4 md:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a5a2d]">Push Notifications</p>
-                <CardTitle className="mt-1 text-2xl font-display text-secondary">Send update to subscribers</CardTitle>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <CardTitle className="mt-1 text-xl font-display text-secondary md:text-2xl">Send update to subscribers</CardTitle>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">
                   {pushSubscriberCount} total device{pushSubscriberCount === 1 ? "" : "s"} subscribed: {visitorSubscriberCount} visitor{visitorSubscriberCount === 1 ? "" : "s"} and {adminSubscriberCount} admin device{adminSubscriberCount === 1 ? "" : "s"}.
                 </p>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button type="button" onClick={enableAdminNotifications} disabled={adminNotificationLoading} className="bg-[#6B4423] text-white hover:bg-[#543218]">
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <Button type="button" onClick={enableAdminNotifications} disabled={adminNotificationLoading} className="h-10 bg-[#6B4423] px-2 text-xs text-white hover:bg-[#543218] md:text-sm">
                   <Bell className="mr-2 h-4 w-4" />
-                  {adminNotificationsEnabled ? "Admin Alerts Enabled" : "Enable Admin Alerts"}
+                  {adminNotificationsEnabled ? "Alerts On" : "Admin Alerts"}
                 </Button>
-                <Button type="button" variant="outline" onClick={fetchPushNotifications}>
+                <Button type="button" variant="outline" onClick={fetchPushNotifications} className="h-10 bg-white px-2 text-xs md:text-sm">
                   Refresh
                 </Button>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-5 lg:grid-cols-[0.7fr_1.3fr]">
-            <form onSubmit={sendPushNotification} className="space-y-4 rounded-2xl border border-primary/10 bg-[#fffaf2] p-4">
+          <CardContent className="grid gap-4 p-4 pt-0 md:p-6 md:pt-0 lg:grid-cols-[0.7fr_1.3fr]">
+            <form onSubmit={sendPushNotification} className="space-y-3 rounded-2xl border border-primary/10 bg-[#fffaf2] p-3 md:space-y-4 md:p-4">
               <div className="rounded-2xl bg-white p-3 text-xs leading-relaxed text-muted-foreground shadow-sm">
                 Use this sender for social media posts too. Website adverts, approved reviews, and new customer requests can also trigger alerts automatically.
               </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-3 gap-2">
                 {[
                   ["Website Update", "We added a new FixMyDoor Services update. Tap to view the latest."],
                   ["New Social Post", "FixMyDoor Services has a new post online. Visit the website for the latest update."],
@@ -1066,7 +1071,7 @@ export default function Admin() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="bg-white text-xs"
+                    className="h-auto min-h-9 whitespace-normal bg-white px-2 py-2 text-[0.68rem] leading-tight sm:text-xs"
                     onClick={() => {
                       setPushTitle(title);
                       setPushMessage(message);
@@ -1102,7 +1107,7 @@ export default function Admin() {
                 {pushLoading ? "Sending..." : "Send Notification"}
               </Button>
             </form>
-            <div className="rounded-2xl border border-primary/10 bg-background p-4">
+            <div className="rounded-2xl border border-primary/10 bg-background p-3 md:p-4">
               <h3 className="font-bold text-secondary">Recent notification log</h3>
               {pushNotifications.length === 0 ? (
                 <p className="mt-3 text-sm text-muted-foreground">No push notifications have been sent yet.</p>
@@ -1154,7 +1159,7 @@ export default function Admin() {
           </Card>
         )}
 
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row">
+        <div className="mb-4 grid gap-2 lg:mb-6 lg:grid-cols-[1fr_auto_auto_auto] lg:gap-4">
           <div className="flex-1">
             <div className="relative">
               <span className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-[0_8px_18px_rgba(66,40,18,0.12)] ring-1 ring-primary/18">
@@ -1169,7 +1174,7 @@ export default function Admin() {
             </div>
           </div>
           <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full bg-white lg:w-48">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
@@ -1183,7 +1188,7 @@ export default function Admin() {
             </SelectContent>
           </Select>
           <Select value={workflowFilter} onValueChange={(value) => { setWorkflowFilter(value); setCurrentPage(1); }}>
-            <SelectTrigger className="w-56">
+            <SelectTrigger className="w-full bg-white lg:w-56">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Workflow filter" />
             </SelectTrigger>
@@ -1197,26 +1202,217 @@ export default function Admin() {
               <SelectItem value="PAYMENT_PENDING">Payment Pending</SelectItem>
             </SelectContent>
           </Select>
-          <Button type="button" variant="outline" onClick={exportBookings} className="lg:w-auto">
+          <Button type="button" variant="outline" onClick={exportBookings} className="h-11 bg-white lg:w-auto">
             <Download className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
         </div>
 
-            <Card className="border-[#ead8bf] bg-white shadow-sm">
-          <CardHeader>
+        <Card className="border-[#ead8bf] bg-white shadow-sm">
+          <CardHeader className="p-4 md:p-6">
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
               Booking Requests ({bookings.length})
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
             {bookings.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 No bookings found.
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+                <div className="space-y-3 md:hidden">
+                {bookings.map((booking) => (
+                  <article key={`mobile-${booking.id}`} className="rounded-2xl border border-[#ead8bf] bg-[#fffaf2] p-3 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate font-bold text-secondary">{booking.name}</h3>
+                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{booking.repairType}</p>
+                      </div>
+                      <Badge className={`${statusColors[booking.status]} shrink-0 text-[0.65rem]`}>
+                        {booking.status.replace("_", " ")}
+                      </Badge>
+                    </div>
+                    <div className="mt-3 grid gap-2 text-xs text-foreground/75">
+                      <a href={`tel:${booking.phone}`} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 font-semibold text-secondary">
+                        <Phone className="h-3.5 w-3.5 text-primary" />
+                        {booking.phone}
+                      </a>
+                      <a href={`mailto:${booking.email}`} className="flex min-w-0 items-center gap-2 rounded-xl bg-white px-3 py-2 font-semibold text-secondary">
+                        <Mail className="h-3.5 w-3.5 shrink-0 text-primary" />
+                        <span className="truncate">{booking.email}</span>
+                      </a>
+                      <div className="flex items-start gap-2 rounded-xl bg-white px-3 py-2">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                        <span className="line-clamp-2">{booking.address}</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <Select
+                        value={booking.status}
+                        onValueChange={(value: BookingStatus) => updateBookingStatus(booking.id, value)}
+                        disabled={statusUpdateLoading === booking.id}
+                      >
+                        <SelectTrigger className="h-10 w-full bg-white text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PENDING">Pending</SelectItem>
+                          <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                          <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                          <SelectItem value="COMPLETED">Completed</SelectItem>
+                          <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {getAdminToClientWhatsAppUrl(booking) ? (
+                        <a
+                          href={getAdminToClientWhatsAppUrl(booking)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-green-600 px-2 text-xs font-bold text-white transition hover:bg-green-700"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          WhatsApp
+                        </a>
+                      ) : (
+                        <Button type="button" variant="outline" className="h-10 bg-white text-xs" disabled>
+                          No WhatsApp
+                        </Button>
+                      )}
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-10 bg-white text-xs" onClick={() => openBooking(booking)}>
+                            <Eye className="mr-1.5 h-4 w-4" />
+                            View
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-h-[88vh] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl p-4">
+                          <DialogHeader>
+                            <DialogTitle className="text-lg">Booking Details</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-3">
+                            <div className="rounded-2xl bg-[#fffaf2] p-3">
+                              <p className="font-bold text-secondary">{booking.name}</p>
+                              <p className="mt-1 text-xs text-muted-foreground">Submitted: {new Date(booking.createdAt).toLocaleString()}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div className="rounded-xl border bg-white p-3">
+                                <p className="text-xs font-semibold text-muted-foreground">Service</p>
+                                <p className="mt-1 font-semibold">{booking.repairType}</p>
+                              </div>
+                              <div className="rounded-xl border bg-white p-3">
+                                <p className="text-xs font-semibold text-muted-foreground">Date</p>
+                                <p className="mt-1 font-semibold">{formatPreferredDate(booking.preferredDate)}</p>
+                              </div>
+                              <div className="col-span-2 rounded-xl border bg-white p-3">
+                                <p className="text-xs font-semibold text-muted-foreground">Address</p>
+                                <p className="mt-1 font-semibold">{booking.address}</p>
+                              </div>
+                            </div>
+                            {booking.message && (
+                              <div className="rounded-xl border bg-white p-3">
+                                <p className="text-xs font-semibold text-muted-foreground">Message</p>
+                                <p className="mt-1 text-sm leading-relaxed">{booking.message}</p>
+                              </div>
+                            )}
+                            {(booking.dimensions || booking.quantity || booking.material || booking.color || booking.swingDirection || booking.deliveryNeeded || booking.installationNeeded || booking.budget) && (
+                              <div className="rounded-xl border bg-white p-3">
+                                <p className="text-xs font-semibold text-muted-foreground">Product / Job Details</p>
+                                <div className="mt-2 grid gap-2 text-sm">
+                                  {[
+                                    ["Measurements", booking.dimensions],
+                                    ["Quantity", booking.quantity],
+                                    ["Material", booking.material],
+                                    ["Color", booking.color],
+                                    ["Swing", booking.swingDirection],
+                                    ["Delivery", booking.deliveryNeeded],
+                                    ["Installation", booking.installationNeeded],
+                                    ["Budget", booking.budget],
+                                  ].filter(([, value]) => value).map(([label, value]) => (
+                                    <p key={label} className="flex justify-between gap-3 rounded-lg bg-muted/40 px-2 py-1.5">
+                                      <span className="text-muted-foreground">{label}</span>
+                                      <span className="font-semibold text-right">{value}</span>
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {booking.photos && booking.photos.length > 0 && (
+                              <div>
+                                <Label>Customer Photos</Label>
+                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                  {booking.photos.map((photo, index) => (
+                                    <img key={`${booking.id}-mobile-photo-${index}`} src={photo} alt={`Booking photo ${index + 1}`} className="h-28 w-full rounded-xl object-cover" />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            <div className="rounded-2xl border bg-[#fffaf2] p-3">
+                              <div className="mb-3 flex items-center justify-between gap-2">
+                                <Label>Admin Workflow</Label>
+                                <Button type="button" size="sm" onClick={saveBookingWorkflow}>
+                                  <Save className="mr-1.5 h-4 w-4" />
+                                  Save
+                                </Button>
+                              </div>
+                              <div className="grid gap-2">
+                                <Input
+                                  value={bookingDraft.appointmentTime || ""}
+                                  onChange={(event) => setBookingDraft((draft) => ({ ...draft, appointmentTime: event.target.value }))}
+                                  placeholder="Appointment time"
+                                />
+                                <Input
+                                  value={bookingDraft.quoteAmount || ""}
+                                  onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteAmount: event.target.value }))}
+                                  placeholder="Quote amount"
+                                />
+                                <Textarea
+                                  value={bookingDraft.adminNotes || ""}
+                                  onChange={(event) => setBookingDraft((draft) => ({ ...draft, adminNotes: event.target.value }))}
+                                  placeholder="Internal notes"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                      <Button variant="outline" size="sm" className="h-10 bg-white text-xs" onClick={() => openQuoteInvoice(booking.id)}>
+                        <FileText className="mr-1.5 h-4 w-4" />
+                        Quote
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-10 bg-white text-xs">
+                            <Trash2 className="mr-1.5 h-4 w-4 text-destructive" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Booking</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this booking? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteBooking(booking.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -1560,6 +1756,7 @@ export default function Admin() {
                 </TableBody>
               </Table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -1594,7 +1791,7 @@ export default function Admin() {
               Review Moderation ({reviews.length})
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
             {reviews.length === 0 ? (
               <p className="py-6 text-center text-muted-foreground">No reviews yet.</p>
             ) : (
