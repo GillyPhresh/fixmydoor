@@ -22,7 +22,7 @@
     <meta name="geo.region" content="CA-QC" />
     <meta name="geo.placename" content="Montreal, Quebec, Canada" />
     <meta name="theme-color" content="#6B4423" />
-    <link rel="manifest" href="/manifest.json" />
+    <link id="fixmydoor-manifest" rel="manifest" href="/manifest.json" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="FixMyDoor" />
@@ -41,6 +41,32 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/fixmydoor-favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    <script>
+      (function() {
+        var isAdminApp = window.location.pathname.indexOf("/admin") === 0;
+        var manifest = document.getElementById("fixmydoor-manifest");
+        var appName = document.querySelector('meta[name="application-name"]');
+        var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+        var themeColor = document.querySelector('meta[name="theme-color"]');
+        var robots = document.querySelector('meta[name="robots"]');
+
+        if (manifest) {
+          manifest.setAttribute("href", isAdminApp ? "/admin-manifest.json" : "/manifest.json");
+        }
+        if (appName) {
+          appName.setAttribute("content", isAdminApp ? "FixMyDoor Admin Dashboard" : "FixMyDoor Services");
+        }
+        if (appleTitle) {
+          appleTitle.setAttribute("content", isAdminApp ? "FixMyDoor Admin" : "FixMyDoor");
+        }
+        if (themeColor) {
+          themeColor.setAttribute("content", isAdminApp ? "#2F241C" : "#6B4423");
+        }
+        if (robots && isAdminApp) {
+          robots.setAttribute("content", "noindex, nofollow");
+        }
+      })();
+    </script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",

@@ -45,6 +45,7 @@ type SiteEventPayload = {
   url?: string;
 };
 const siteEventClients = new Set<Response>();
+type PushAudience = "visitor" | "admin";
 type StoredPushSubscription = {
   endpoint: string;
   expirationTime?: number | null;
@@ -52,6 +53,8 @@ type StoredPushSubscription = {
     p256dh: string;
     auth: string;
   };
+  audiences?: PushAudience[];
+  audience?: PushAudience;
   createdAt: string;
   updatedAt: string;
 };
@@ -59,6 +62,7 @@ type PushNotificationLogEntry = {
   id: string;
   title: string;
   message: string;
+  audience?: PushAudience | "all";
   sentAt: string;
   delivered: number;
   failed: number;
@@ -203,6 +207,19 @@ function isValidPushSubscription(value: any): value is Omit<StoredPushSubscripti
   );
 }
 
+function normalizePushAudience(value: unknown): PushAudience {
+  return value === "admin" ? "admin" : "visitor";
+}
+
+function matchesPushAudience(subscription: StoredPushSubscription, audience?: PushAudience | "all") {
+  if (!audience || audience === "all") {
+    return true;
+  }
+
+  const audiences = subscription.audiences?.length ? subscription.audiences : [subscription.audience || "visitor"];
+  return audiences.includes(audience);
+}
+
 function hkdfExpand(prk: Buffer, info: Buffer | string, length: number) {
   const buffers: Buffer[] = [];
   let previous = Buffer.alloc(0);
@@ -291,6 +308,67 @@ async function sendPushNotification(subscription: StoredPushSubscription, payloa
   });
 
   return response;
+}
+
+async function sendPushNotificationToSubscribers(
+  payload: { title: string; message: string; url?: string },
+  options: { audience?: PushAudience | "all"; log?: boolean } = {},
+) {
+  const subscriptions = loadPushSubscriptions();
+  const targetSubscriptions = subscriptions.filter((subscription) => matchesPushAudience(subscription, options.audience));
+  let delivered = 0;
+  let failed = 0;
+  const deadEndpoints = new Set<string>();
+
+  await Promise.all(targetSubscriptions.map(async (subscription) => {
+    try {
+      const response = await sendPushNotification(subscription, payload);
+      if (response.ok) {
+        delivered += 1;
+        return;
+      }
+
+      failed += 1;
+      if ([404, 410].includes(response.status)) {
+        deadEndpoints.add(subscription.endpoint);
+      }
+    } catch (error) {
+      failed += 1;
+      console.error("Push send error:", error);
+    }
+  }));
+
+  if (deadEndpoints.size > 0) {
+    savePushSubscriptions(subscriptions.filter((subscription) => !deadEndpoints.has(subscription.endpoint)));
+  }
+
+  const logEntry: PushNotificationLogEntry = {
+    id: randomUUID(),
+    title: payload.title,
+    message: payload.message,
+    audience: options.audience || "all",
+    sentAt: new Date().toISOString(),
+    delivered,
+    failed,
+  };
+
+  if (options.log) {
+    savePushNotificationLog([logEntry, ...loadPushNotificationLog()]);
+  }
+
+  return {
+    ...logEntry,
+    subscriberCount: loadPushSubscriptions().filter((subscription) => matchesPushAudience(subscription, options.audience)).length,
+  };
+}
+
+function queuePushNotification(
+  payload: { title: string; message: string; url?: string },
+  options: { audience?: PushAudience | "all"; log?: boolean } = {},
+) {
+  sendPushNotificationToSubscribers(payload, options).catch((error) => {
+    console.error("Queued push notification failed:", error);
+  });
 }
 
 function isInternationalBooking(booking: Booking) {
@@ -862,10 +940,20 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
   const publicBaseUrl = getPublicBaseUrl();
   const canonicalUrl = page.path === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${page.path}`;
   const structuredData = renderPageStructuredData(pagePath);
+  const isAdminPath = normalizeSeoPath(pagePath).startsWith("/admin");
 
   let html = replacePublicUrlTokens(template)
     .replace(/<title>.*?<\/title>/s, `<title>${escapeHtml(page.title)}</title>`)
     .replace(/<link rel="canonical" href="[^"]*" \/>/, `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`);
+
+  if (isAdminPath) {
+    html = html
+      .replace(/<link id="fixmydoor-manifest" rel="manifest" href="[^"]*" \/>/, '<link id="fixmydoor-manifest" rel="manifest" href="/admin-manifest.json" />')
+      .replace(/<meta name="application-name" content="[^"]*" \/>/, '<meta name="application-name" content="FixMyDoor Admin Dashboard" />')
+      .replace(/<meta name="apple-mobile-web-app-title" content="[^"]*" \/>/, '<meta name="apple-mobile-web-app-title" content="FixMyDoor Admin" />')
+      .replace(/<meta name="theme-color" content="[^"]*" \/>/, '<meta name="theme-color" content="#2F241C" />')
+      .replace(/<meta name="robots" content="[^"]*" \/>/, '<meta name="robots" content="noindex, nofollow" />');
+  }
 
   html = html
     .replace(/    <link rel="alternate" hreflang="en-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="fr-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="x-default" href="[^"]*" \/>/, renderAlternateLinks(canonicalUrl));
@@ -1392,10 +1480,19 @@ async function startServer() {
     const now = new Date().toISOString();
     const subscriptions = loadPushSubscriptions();
     const existingIndex = subscriptions.findIndex((subscription) => subscription.endpoint === req.body.endpoint);
+    const requestedAudience = normalizePushAudience(req.body.audience);
+    const existingAudiences = existingIndex >= 0
+      ? subscriptions[existingIndex].audiences?.length
+        ? subscriptions[existingIndex].audiences
+        : [subscriptions[existingIndex].audience || "visitor"]
+      : [];
+    const audiences = Array.from(new Set([...existingAudiences, requestedAudience]));
     const nextSubscription: StoredPushSubscription = {
       endpoint: req.body.endpoint,
       expirationTime: req.body.expirationTime ?? null,
       keys: req.body.keys,
+      audiences,
+      audience: requestedAudience,
       createdAt: existingIndex >= 0 ? subscriptions[existingIndex].createdAt : now,
       updatedAt: now,
     };
@@ -1407,12 +1504,20 @@ async function startServer() {
     }
 
     savePushSubscriptions(subscriptions);
-    return res.json({ success: true, subscriberCount: subscriptions.length });
+    return res.json({
+      success: true,
+      subscriberCount: subscriptions.length,
+      audience: requestedAudience,
+      audiences,
+    });
   });
 
   app.get("/api/admin/notifications", requireAuth, (_req, res) => {
+    const subscriptions = loadPushSubscriptions();
     return res.json({
-      subscriberCount: loadPushSubscriptions().length,
+      subscriberCount: subscriptions.length,
+      visitorSubscriberCount: subscriptions.filter((subscription) => matchesPushAudience(subscription, "visitor")).length,
+      adminSubscriberCount: subscriptions.filter((subscription) => matchesPushAudience(subscription, "admin")).length,
       notifications: loadPushNotificationLog(),
       publicKeyReady: Boolean(getVapidKeys().publicKey),
     });
@@ -1422,54 +1527,24 @@ async function startServer() {
     const title = String(req.body?.title || "").trim().slice(0, 90);
     const message = String(req.body?.message || "").trim().slice(0, 240);
     const url = String(req.body?.url || "/").trim() || "/";
+    const audience = req.body?.audience === "admin" || req.body?.audience === "visitor" ? req.body.audience : "all";
 
     if (!title || !message) {
       return res.status(400).json({ success: false, error: "Title and message are required" });
     }
 
-    const subscriptions = loadPushSubscriptions();
-    let delivered = 0;
-    let failed = 0;
-    const deadEndpoints = new Set<string>();
-
-    await Promise.all(subscriptions.map(async (subscription) => {
-      try {
-        const response = await sendPushNotification(subscription, { title, message, url });
-        if (response.ok) {
-          delivered += 1;
-          return;
-        }
-
-        failed += 1;
-        if ([404, 410].includes(response.status)) {
-          deadEndpoints.add(subscription.endpoint);
-        }
-      } catch (error) {
-        failed += 1;
-        console.error("Push send error:", error);
-      }
-    }));
-
-    if (deadEndpoints.size > 0) {
-      savePushSubscriptions(subscriptions.filter((subscription) => !deadEndpoints.has(subscription.endpoint)));
-    }
-
-    const logEntry: PushNotificationLogEntry = {
-      id: randomUUID(),
+    const logEntry = await sendPushNotificationToSubscribers({
       title,
       message,
-      sentAt: new Date().toISOString(),
-      delivered,
-      failed,
-    };
-    savePushNotificationLog([logEntry, ...loadPushNotificationLog()]);
+      url,
+    }, { audience, log: true });
     broadcastSiteEvent({ type: "notification", title, message, url });
 
     return res.json({
       success: true,
-      delivered,
-      failed,
-      subscriberCount: loadPushSubscriptions().length,
+      delivered: logEntry.delivered,
+      failed: logEntry.failed,
+      subscriberCount: logEntry.subscriberCount,
       notification: logEntry,
     });
   });
@@ -1509,13 +1584,17 @@ async function startServer() {
 
     try {
       const item = await createContentItem(req.body);
-      if (item.active && item.category === "advert") {
-        broadcastSiteEvent({
-          type: "advert",
-          title: "New FixMyDoor Services advert",
+      if (item.active) {
+        const payload: SiteEventPayload = {
+          type: item.category === "advert" ? "advert" : "notification",
+          title: item.category === "advert" ? "New FixMyDoor Services advert" : "New FixMyDoor Services website update",
           message: item.title,
-          url: "/#booking-form",
-        });
+          url: item.category === "advert" ? "/#booking-form" : "/",
+        };
+        queuePushNotification(payload, { audience: "visitor", log: true });
+        if (item.category === "advert") {
+          broadcastSiteEvent(payload);
+        }
       }
       return res.status(201).json({ success: true, item });
     } catch (error) {
@@ -1532,13 +1611,17 @@ async function startServer() {
 
     try {
       const item = await updateContentItem(id, req.body);
-      if (item.active && item.category === "advert") {
-        broadcastSiteEvent({
-          type: "advert",
-          title: "Updated FixMyDoor Services advert",
+      if (item.active) {
+        const payload: SiteEventPayload = {
+          type: item.category === "advert" ? "advert" : "notification",
+          title: item.category === "advert" ? "Updated FixMyDoor Services advert" : "Updated FixMyDoor Services website content",
           message: item.title,
-          url: "/#booking-form",
-        });
+          url: item.category === "advert" ? "/#booking-form" : "/",
+        };
+        queuePushNotification(payload, { audience: "visitor", log: true });
+        if (item.category === "advert") {
+          broadcastSiteEvent(payload);
+        }
       }
       return res.json({ success: true, item });
     } catch (error) {
@@ -1616,12 +1699,14 @@ async function startServer() {
         },
       });
       if (status === "APPROVED") {
-        broadcastSiteEvent({
+        const payload: SiteEventPayload = {
           type: "review",
           title: "New FixMyDoor Services review",
           message: `${review.rating}-star review from ${review.name}`,
           url: "/#testimonials",
-        });
+        };
+        queuePushNotification(payload, { audience: "visitor", log: true });
+        broadcastSiteEvent(payload);
       }
       return res.json({ success: true, review });
     } catch (error) {
@@ -1666,6 +1751,12 @@ async function startServer() {
           console.error("Queued booking email send failed:", error);
         });
       }
+
+      queuePushNotification({
+        title: "New customer request",
+        message: `${savedBooking.name} requested ${savedBooking.repairType}`,
+        url: "/admin",
+      }, { audience: "admin", log: false });
 
       return res.status(201).json({
         success: true,

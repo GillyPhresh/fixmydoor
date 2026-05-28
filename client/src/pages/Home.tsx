@@ -313,6 +313,7 @@ export default function Home() {
   const contentSignatureRef = useRef("");
   const contentFetchInFlightRef = useRef(false);
   const notificationRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
+  const logoPulseRef = useRef<HTMLSpanElement | null>(null);
   const advertNotificationKeysRef = useRef<Set<string> | null>(null);
   const reviewNotificationKeysRef = useRef<Set<string> | null>(null);
   const lightboxPointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -389,7 +390,7 @@ export default function Home() {
       applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
 
-    await axios.post("/api/push/subscribe", subscription.toJSON());
+    await axios.post("/api/push/subscribe", { ...subscription.toJSON(), audience: "visitor" });
     return subscription;
   }, []);
 
@@ -517,6 +518,31 @@ export default function Home() {
     updateHeader();
     window.addEventListener("scroll", updateHeader, { passive: true });
     return () => window.removeEventListener("scroll", updateHeader);
+  }, []);
+
+  useEffect(() => {
+    let frame = 0;
+    let active = true;
+    const startedAt = performance.now();
+
+    const animateLogoPulse = (now: number) => {
+      const indicator = logoPulseRef.current;
+      if (!active || !indicator) {
+        return;
+      }
+
+      const wave = (Math.sin((now - startedAt) / 420) + 1) / 2;
+      const scale = 1 + wave * 0.28;
+      indicator.style.transform = `scale(${scale})`;
+      indicator.style.opacity = String(0.82 + (scale - 1) * 0.55);
+      frame = window.requestAnimationFrame(animateLogoPulse);
+    };
+
+    frame = window.requestAnimationFrame(animateLogoPulse);
+    return () => {
+      active = false;
+      window.cancelAnimationFrame(frame);
+    };
   }, []);
 
   useEffect(() => {
@@ -1523,7 +1549,11 @@ export default function Home() {
             <a href="/" className="group flex shrink-0 items-center" aria-label="FixMyDoor Services homepage">
               <span className={`relative inline-flex items-center justify-center rounded-[1.35rem] border border-white/70 bg-white/88 px-2 shadow-[0_12px_26px_rgba(66,40,18,0.12)] ring-1 ring-primary/10 transition-all duration-300 ${headerCompact ? "h-11" : "h-12"} sm:h-16 md:h-20`}>
                 <img src="/img5150-transparent.png" alt="FixMyDoor logo" decoding="async" className={`w-auto object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.14)] transition-all duration-300 ${headerCompact ? "h-10" : "h-11"} sm:h-16 md:h-20`} />
-                <span className="absolute -right-1 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm" aria-hidden="true" />
+                <span
+                  ref={logoPulseRef}
+                  className="absolute -right-1 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-500 shadow-[0_0_0_5px_rgba(16,185,129,0.12),0_0_18px_rgba(16,185,129,0.65)]"
+                  aria-hidden="true"
+                />
               </span>
             </a>
             <div className="hidden min-w-0 max-w-[13.5rem] min-[430px]:block sm:max-w-[20rem] md:max-w-[28rem] lg:max-w-[23rem] xl:max-w-[30rem]">
@@ -1665,7 +1695,7 @@ export default function Home() {
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-primary">FixMyDoor updates</p>
                 <h2 className="mt-1 text-lg font-bold leading-tight">Stay updated with FixMyDoor Services.</h2>
                 <p className="mt-1 text-sm leading-relaxed text-white/75">
-                  Allow notifications to receive helpful tips, service updates, and new offers.
+                  No app install needed. Allow notifications to receive helpful tips, service updates, and new offers.
                 </p>
               </div>
             </div>

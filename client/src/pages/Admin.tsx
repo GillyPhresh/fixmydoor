@@ -14,6 +14,13 @@ import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Tr
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
 
+const ADMIN_NOTIFICATION_CHOICE_KEY = "fixmydoor-admin-push-choice-v1";
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
 const statusColors = {
   PENDING: "bg-yellow-100 text-yellow-800",
   CONFIRMED: "bg-blue-100 text-blue-800",
@@ -68,10 +75,18 @@ type PushNotificationLogEntry = {
   id: string;
   title: string;
   message: string;
+  audience?: "visitor" | "admin" | "all";
   sentAt: string;
   delivered: number;
   failed: number;
 };
+
+function urlBase64ToUint8Array(value: string) {
+  const padding = "=".repeat((4 - (value.length % 4)) % 4);
+  const base64 = `${value}${padding}`.replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
 
 function formatPreferredDate(dateString?: string | null) {
   if (!dateString) {
@@ -164,10 +179,41 @@ export default function Admin() {
   const [pushMessage, setPushMessage] = useState("");
   const [pushLoading, setPushLoading] = useState(false);
   const [pushSubscriberCount, setPushSubscriberCount] = useState(0);
+  const [visitorSubscriberCount, setVisitorSubscriberCount] = useState(0);
+  const [adminSubscriberCount, setAdminSubscriberCount] = useState(0);
   const [pushNotifications, setPushNotifications] = useState<PushNotificationLogEntry[]>([]);
+  const [adminNotificationSupported, setAdminNotificationSupported] = useState(false);
+  const [adminNotificationsEnabled, setAdminNotificationsEnabled] = useState(false);
+  const [adminNotificationLoading, setAdminNotificationLoading] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [adminStandalone, setAdminStandalone] = useState(false);
 
   useEffect(() => {
     checkAuthStatus();
+  }, []);
+
+  useEffect(() => {
+    const supported = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+    const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean };
+    setAdminNotificationSupported(supported);
+    setAdminNotificationsEnabled(
+      supported &&
+      Notification.permission === "granted" &&
+      window.localStorage.getItem(ADMIN_NOTIFICATION_CHOICE_KEY) === "allowed",
+    );
+    setAdminStandalone(window.matchMedia("(display-mode: standalone)").matches || Boolean(navigatorWithStandalone.standalone));
+
+    const handleBeforeInstallPrompt = (event: Event) => {
+      if (!window.location.pathname.startsWith("/admin")) {
+        return;
+      }
+
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
   }, []);
 
   useEffect(() => {
@@ -177,13 +223,18 @@ export default function Admin() {
       fetchContentItems();
       fetchEmailStatus();
       fetchPushNotifications();
+      if (adminNotificationSupported && Notification.permission === "granted" && window.localStorage.getItem(ADMIN_NOTIFICATION_CHOICE_KEY) === "allowed") {
+        subscribeAdminAlerts().catch((error) => {
+          console.error("Admin push re-subscribe error:", error);
+        });
+      }
       if (window.location.pathname === "/admin/notify") {
         window.setTimeout(() => {
           document.getElementById("push-notification-manager")?.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 250);
       }
     }
-  }, [authenticated]);
+  }, [authenticated, adminNotificationSupported]);
 
   // Debounced search
   useEffect(() => {
@@ -323,11 +374,87 @@ export default function Admin() {
 
   const fetchPushNotifications = async () => {
     try {
-      const response = await axios.get<{ subscriberCount: number; notifications: PushNotificationLogEntry[] }>("/api/admin/notifications");
+      const response = await axios.get<{
+        subscriberCount: number;
+        visitorSubscriberCount: number;
+        adminSubscriberCount: number;
+        notifications: PushNotificationLogEntry[];
+      }>("/api/admin/notifications");
       setPushSubscriberCount(response.data.subscriberCount || 0);
+      setVisitorSubscriberCount(response.data.visitorSubscriberCount || 0);
+      setAdminSubscriberCount(response.data.adminSubscriberCount || 0);
       setPushNotifications(response.data.notifications || []);
     } catch (err) {
       console.error("Failed to fetch push notifications:", err);
+    }
+  };
+
+  const subscribeAdminAlerts = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      throw new Error("Push notifications are not available on this device.");
+    }
+
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    const keyResponse = await axios.get<{ publicKey: string }>("/api/push/public-key");
+    const publicKey = keyResponse.data.publicKey;
+    if (!publicKey) {
+      throw new Error("Push notification key is not ready.");
+    }
+
+    const existingSubscription = await registration.pushManager.getSubscription();
+    const subscription = existingSubscription || await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+
+    await axios.post("/api/push/subscribe", { ...subscription.toJSON(), audience: "admin" });
+    setAdminNotificationsEnabled(true);
+    window.localStorage.setItem(ADMIN_NOTIFICATION_CHOICE_KEY, "allowed");
+    await fetchPushNotifications();
+  };
+
+  const enableAdminNotifications = async () => {
+    if (!adminNotificationSupported) {
+      toast.error("Admin alerts are not available on this browser.");
+      return;
+    }
+
+    setAdminNotificationLoading(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        window.localStorage.setItem(ADMIN_NOTIFICATION_CHOICE_KEY, "denied");
+        setAdminNotificationsEnabled(false);
+        toast.message("Admin alerts were not enabled.");
+        return;
+      }
+
+      await subscribeAdminAlerts();
+      toast.success("Admin alerts are enabled for this device.");
+    } catch (err) {
+      console.error("Admin alert setup error:", err);
+      toast.error("Unable to enable admin alerts right now.");
+    } finally {
+      setAdminNotificationLoading(false);
+    }
+  };
+
+  const installAdminApp = async () => {
+    if (adminStandalone) {
+      toast.message("The admin dashboard is already running as an app.");
+      return;
+    }
+
+    if (!installPrompt) {
+      toast.message("Use the browser menu and choose Install App or Add to Home Screen.");
+      return;
+    }
+
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    setInstallPrompt(null);
+    if (choice.outcome === "accepted") {
+      toast.success("FixMyDoor Admin app installation started.");
     }
   };
 
@@ -679,15 +806,18 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-8 px-4">
-        <div className="relative mb-8 rounded-3xl border border-[#ead8bf] bg-white/85 p-6 text-center shadow-sm">
+    <div className="min-h-screen bg-[#f7efe4]">
+      <div className="container mx-auto max-w-[1320px] px-4 py-6 md:py-8">
+        <div className="relative mb-6 overflow-hidden rounded-3xl border border-[#ead8bf] bg-white/90 p-5 text-center shadow-[0_24px_70px_rgba(66,40,18,0.10)] md:p-6">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#6B4423] via-[#D4A574] to-[#6B4423]" />
           <div className="mx-auto flex max-w-xl flex-col items-center gap-3">
-            <img
-              src="/img5150-transparent.png"
-              alt="FixMyDoor logo"
-              className="h-24 w-auto object-contain"
-            />
+            <div className="rounded-[18px] border border-[#ead8bf] bg-[#FAF6F0] px-7 py-4 shadow-[0_16px_36px_rgba(66,40,18,0.10)]">
+              <img
+                src="/img5150-transparent.png"
+                alt="FixMyDoor logo"
+                className="h-20 w-auto object-contain md:h-24"
+              />
+            </div>
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8a5a2d]">
                 FixMyDoor Services
@@ -695,12 +825,26 @@ export default function Admin() {
               <h1 className="text-3xl font-display font-bold text-secondary md:text-4xl">
                 Admin Dashboard
               </h1>
-              <p className="text-foreground/70">
-                View and manage customer booking requests
+              <p className="text-sm text-foreground/70 md:text-base">
+                Manage bookings, customer requests, reviews, website content, and alerts.
               </p>
             </div>
           </div>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-center md:absolute md:right-6 md:top-6 md:mt-0">
+          <div className="mt-5 grid gap-2 sm:grid-cols-3 md:absolute md:right-5 md:top-5 md:mt-0 md:flex md:max-w-[31rem] md:flex-wrap md:justify-end">
+            <Button type="button" onClick={installAdminApp} variant="outline" className="bg-white/90">
+              <Download className="w-4 h-4 mr-2" />
+              {adminStandalone ? "Admin App Open" : "Install Admin App"}
+            </Button>
+            <Button
+              type="button"
+              onClick={enableAdminNotifications}
+              variant={adminNotificationsEnabled ? "default" : "outline"}
+              className={adminNotificationsEnabled ? "bg-[#6B4423] text-white hover:bg-[#543218]" : "bg-white/90"}
+              disabled={adminNotificationLoading}
+            >
+              <Bell className="w-4 h-4 mr-2" />
+              {adminNotificationLoading ? "Enabling..." : adminNotificationsEnabled ? "Admin Alerts On" : "Enable Admin Alerts"}
+            </Button>
             <Button onClick={handleLogout} variant="outline">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -710,8 +854,8 @@ export default function Admin() {
 
         {/* Stats Dashboard */}
         {stats && (
-          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
-            <Card>
+          <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+            <Card className="border-[#ead8bf] bg-white shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total Bookings</CardTitle>
               </CardHeader>
@@ -727,7 +871,7 @@ export default function Admin() {
                 <div className="text-2xl font-bold text-yellow-600">{stats.pendingBookings}</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-[#ead8bf] bg-white shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Urgent</CardTitle>
               </CardHeader>
@@ -735,7 +879,7 @@ export default function Admin() {
                 <div className="text-2xl font-bold text-red-600">{stats.urgentBookings}</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-[#ead8bf] bg-white shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">This Week</CardTitle>
               </CardHeader>
@@ -743,7 +887,7 @@ export default function Admin() {
                 <div className="text-2xl font-bold text-blue-600">{stats.thisWeekBookings}</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-[#ead8bf] bg-white shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">International</CardTitle>
               </CardHeader>
@@ -751,7 +895,7 @@ export default function Admin() {
                 <div className="text-2xl font-bold text-purple-700">{stats.internationalBookings}</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border-[#ead8bf] bg-white shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
               </CardHeader>
@@ -892,16 +1036,46 @@ export default function Admin() {
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a5a2d]">Push Notifications</p>
                 <CardTitle className="mt-1 text-2xl font-display text-secondary">Send update to subscribers</CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {pushSubscriberCount} visitor{pushSubscriberCount === 1 ? "" : "s"} currently subscribed.
+                  {pushSubscriberCount} total device{pushSubscriberCount === 1 ? "" : "s"} subscribed: {visitorSubscriberCount} visitor{visitorSubscriberCount === 1 ? "" : "s"} and {adminSubscriberCount} admin device{adminSubscriberCount === 1 ? "" : "s"}.
                 </p>
               </div>
-              <Button type="button" variant="outline" onClick={fetchPushNotifications}>
-                Refresh
-              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button type="button" onClick={enableAdminNotifications} disabled={adminNotificationLoading} className="bg-[#6B4423] text-white hover:bg-[#543218]">
+                  <Bell className="mr-2 h-4 w-4" />
+                  {adminNotificationsEnabled ? "Admin Alerts Enabled" : "Enable Admin Alerts"}
+                </Button>
+                <Button type="button" variant="outline" onClick={fetchPushNotifications}>
+                  Refresh
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="grid gap-5 lg:grid-cols-[0.7fr_1.3fr]">
             <form onSubmit={sendPushNotification} className="space-y-4 rounded-2xl border border-primary/10 bg-[#fffaf2] p-4">
+              <div className="rounded-2xl bg-white p-3 text-xs leading-relaxed text-muted-foreground shadow-sm">
+                Use this sender for social media posts too. Website adverts, approved reviews, and new customer requests can also trigger alerts automatically.
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {[
+                  ["Website Update", "We added a new FixMyDoor Services update. Tap to view the latest."],
+                  ["New Social Post", "FixMyDoor Services has a new post online. Visit the website for the latest update."],
+                  ["New Offer", "A new FixMyDoor Services advert or service offer is available now."],
+                ].map(([title, message]) => (
+                  <Button
+                    key={title}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="bg-white text-xs"
+                    onClick={() => {
+                      setPushTitle(title);
+                      setPushMessage(message);
+                    }}
+                  >
+                    {title}
+                  </Button>
+                ))}
+              </div>
               <div>
                 <Label htmlFor="push-title">Title</Label>
                 <Input
@@ -946,7 +1120,7 @@ export default function Admin() {
                         </Badge>
                       </div>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        {new Date(notification.sentAt).toLocaleString()} | Failed: {notification.failed}
+                        {new Date(notification.sentAt).toLocaleString()} | Audience: {notification.audience || "all"} | Failed: {notification.failed}
                       </p>
                     </div>
                   ))}
@@ -1029,7 +1203,7 @@ export default function Admin() {
           </Button>
         </div>
 
-        <Card>
+            <Card className="border-[#ead8bf] bg-white shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
