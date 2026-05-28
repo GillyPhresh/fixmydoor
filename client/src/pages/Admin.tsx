@@ -175,6 +175,7 @@ export default function Admin() {
   const [emailTestLoading, setEmailTestLoading] = useState(false);
   const [emailStatusLoading, setEmailStatusLoading] = useState(false);
   const [emailStatus, setEmailStatus] = useState<EmailRuntimeStatus | null>(null);
+  const [contentUploadLoading, setContentUploadLoading] = useState(false);
   const [pushTitle, setPushTitle] = useState("");
   const [pushMessage, setPushMessage] = useState("");
   const [pushLoading, setPushLoading] = useState(false);
@@ -196,11 +197,12 @@ export default function Admin() {
     const supported = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
     const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean };
     setAdminNotificationSupported(supported);
-    setAdminNotificationsEnabled(
-      supported &&
-      Notification.permission === "granted" &&
-      window.localStorage.getItem(ADMIN_NOTIFICATION_CHOICE_KEY) === "allowed",
-    );
+    if (supported && Notification.permission === "granted") {
+      window.localStorage.setItem(ADMIN_NOTIFICATION_CHOICE_KEY, "allowed");
+      setAdminNotificationsEnabled(true);
+    } else {
+      setAdminNotificationsEnabled(false);
+    }
     setAdminStandalone(window.matchMedia("(display-mode: standalone)").matches || Boolean(navigatorWithStandalone.standalone));
 
     const handleBeforeInstallPrompt = (event: Event) => {
@@ -223,7 +225,7 @@ export default function Admin() {
       fetchContentItems();
       fetchEmailStatus();
       fetchPushNotifications();
-      if (adminNotificationSupported && Notification.permission === "granted" && window.localStorage.getItem(ADMIN_NOTIFICATION_CHOICE_KEY) === "allowed") {
+      if (adminNotificationSupported && Notification.permission === "granted") {
         subscribeAdminAlerts().catch((error) => {
           console.error("Admin push re-subscribe error:", error);
         });
@@ -621,13 +623,19 @@ export default function Admin() {
       return;
     }
 
-    if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-      toast.error("Please upload an image flyer, product photo, or short advert video.");
+    const isDocument = /(\.pdf|\.doc|\.docx)$/i.test(file.name) || [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ].includes(file.type);
+
+    if (!file.type.startsWith("image/") && !file.type.startsWith("video/") && !isDocument) {
+      toast.error("Please upload an image, video, PDF, Word document, or short advert file.");
       return;
     }
 
-    if (file.size > 5_500_000) {
-      toast.error("Please use a file under 5.5MB so the website stays fast.");
+    if (file.size > 20_000_000) {
+      toast.error("Please use a file under 20MB.");
       return;
     }
 
@@ -640,12 +648,20 @@ export default function Admin() {
       });
 
     try {
+      setContentUploadLoading(true);
       const dataUrl = await readFile(file);
-      const response = await axios.post<{ url: string }>("/api/admin/media", { dataUrl, fileName: file.name });
-      setContentDraft((draft) => ({ ...draft, image: response.data.url }));
-      toast.success("Advert media uploaded. Save the content item to publish it.");
+      const response = await axios.post<{ url: string; kind?: "image" | "video" | "document" }>("/api/admin/media", { dataUrl, fileName: file.name });
+      if (response.data.kind === "document") {
+        setContentDraft((draft) => ({ ...draft, items: response.data.url }));
+        toast.success("Document uploaded. The document link was saved in the details field.");
+      } else {
+        setContentDraft((draft) => ({ ...draft, image: response.data.url }));
+        toast.success("Media uploaded. Save the content item to publish it.");
+      }
     } catch (err) {
       toast.error("Unable to upload the selected media.");
+    } finally {
+      setContentUploadLoading(false);
     }
   };
 
@@ -1882,12 +1898,12 @@ export default function Admin() {
                   <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Upload className="h-5 w-5" />
                   </span>
-                  <span className="font-semibold text-foreground">Upload flyer, promotion photo, or short video</span>
+                  <span className="font-semibold text-foreground">{contentUploadLoading ? "Uploading..." : "Upload image, video, or document"}</span>
                   <span className="max-w-lg text-xs text-muted-foreground">
-                    Use this for advert flyers, product photos, service images, or short advert videos. Keep files under 5.5MB for faster loading.
+                    Use this for advert flyers, product photos, service images, short videos, PDFs, or Word documents. Videos can be up to 20MB.
                   </span>
                 </Label>
-                <Input id="content-flyer-upload" type="file" accept="image/*,video/*" className="sr-only" onChange={handleContentImageUpload} />
+                <Input id="content-flyer-upload" type="file" accept="image/*,video/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="sr-only" onChange={handleContentImageUpload} disabled={contentUploadLoading} />
                 {contentDraft.image && (
                   <div className="mt-4 overflow-hidden rounded-2xl border bg-muted/20">
                     {contentDraft.image.startsWith("data:video/") || /\.(mp4|webm|ogg)(\?.*)?$/i.test(contentDraft.image) ? (

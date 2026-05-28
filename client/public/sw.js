@@ -1,4 +1,4 @@
-const CACHE_NAME = "fixmydoor-v2";
+const CACHE_NAME = "fixmydoor-v3";
 const URLS_TO_CACHE = [
   "/",
   "/admin",
@@ -9,6 +9,11 @@ const URLS_TO_CACHE = [
   "/door-hardware",
   "/manifest.json",
   "/admin-manifest.json",
+  "/icons/main-icon-72x72.png",
+  "/icons/main-icon-96x96.png",
+  "/icons/main-icon-128x128.png",
+  "/icons/main-icon-192x192.png",
+  "/icons/main-icon-512x512.png",
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png"
 ];
@@ -41,26 +46,57 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+  const isNavigation = event.request.mode === "navigate";
+  const isStaticAsset = /\.(?:js|css|png|jpe?g|webp|gif|svg|ico|woff2?|json|xml|mp4|webm|ogg)$/i.test(requestUrl.pathname);
 
-      return fetch(event.request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== "basic") {
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+              cache.put("/", networkResponse.clone());
+            });
+          }
           return networkResponse;
-        }
+        })
+        .catch(async () => (
+          (await caches.match(event.request)) ||
+          (await caches.match("/")) ||
+          new Response("FixMyDoor Services is offline. Please reconnect and try again.", {
+            status: 503,
+            headers: { "Content-Type": "text/plain; charset=utf-8" }
+          })
+        ))
+    );
+    return;
+  }
 
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
+  if (isStaticAsset) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        const networkFetch = fetch(event.request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
         });
 
-        return networkResponse;
-      });
-    })
-  );
+        return cachedResponse || networkFetch;
+      })
+    );
+  }
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("notificationclick", (event) => {
@@ -106,9 +142,13 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title || "FixMyDoor Services", {
       body: payload.message || "You have a new FixMyDoor Services update.",
-      icon: "/icons/icon-192x192.png",
-      badge: "/icons/icon-96x96.png",
+      icon: payload.icon || "/icons/main-icon-192x192.png",
+      badge: payload.badge || "/icons/main-icon-96x96.png",
       tag: "fixmydoor-services-update",
+      renotify: true,
+      silent: false,
+      timestamp: Date.now(),
+      vibrate: [180, 80, 180],
       data: { url: payload.url || "/" }
     })
   );

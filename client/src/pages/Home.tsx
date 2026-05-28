@@ -411,13 +411,16 @@ export default function Home() {
       return;
     }
 
-    const notificationOptions: NotificationOptions = {
+    const notificationOptions = {
       body: event.message,
-      icon: "/favicon.svg",
-      badge: "/favicon.svg",
+      icon: "/icons/main-icon-192x192.png",
+      badge: "/icons/main-icon-96x96.png",
       tag: `fixmydoor-${event.type}`,
+      renotify: true,
+      silent: false,
+      vibrate: [180, 80, 180],
       data: { url: event.url || "/" },
-    };
+    } as NotificationOptions;
 
     const registration = notificationRegistrationRef.current;
     if (registration?.showNotification) {
@@ -491,7 +494,7 @@ export default function Home() {
       return;
     }
 
-    const enabled = window.localStorage.getItem("fixmydoor-notifications-enabled") === "true" && Notification.permission === "granted";
+    const enabled = Notification.permission === "granted";
     setNotificationsEnabled(enabled);
     const savedChoice = window.localStorage.getItem(NOTIFICATION_CHOICE_KEY);
     if (!enabled && !savedChoice && Notification.permission === "default") {
@@ -500,6 +503,8 @@ export default function Home() {
     }
 
     if (enabled) {
+      window.localStorage.setItem(NOTIFICATION_CHOICE_KEY, "allowed");
+      window.localStorage.setItem("fixmydoor-notifications-enabled", "true");
       registerNotificationWorker().then((registration) => {
         if (registration) {
           subscribeForPushNotifications(registration).catch((error) => {
@@ -702,17 +707,7 @@ export default function Home() {
       try {
         const payload = JSON.parse(event.data) as SiteUpdateEvent;
         if (payload.type === "notification") {
-          toast.message(payload.title, {
-            description: payload.message,
-            action: payload.url
-              ? {
-                  label: "View",
-                  onClick: () => {
-                    window.location.href = payload.url || "/";
-                  },
-                }
-              : undefined,
-          });
+          notifyVisitor(payload);
           return;
         }
 
@@ -854,26 +849,12 @@ export default function Home() {
     updatedAt: item.updatedAt || item.createdAt,
     alt: getAdvertAlt({ title: item.title, tag: item.tag || "Promotion" }),
   }));
-  const defaultAdverts: DisplayAdvert[] = [
-    {
-      id: "default-fixmydoor-services-ad",
-      title: "Door, lock, furniture or hardware problem?",
-      description: "FixMyDoor Services can help with repairs, installations, doors, furniture, and hardware sourcing. Call or message today.",
-      tag: "Fast Help",
-      image: heroImage,
-      isVideo: false,
-      cta: "Book Now",
-      bookingValue: "consultation",
-      updatedAt: "default",
-      alt: "Door lock furniture and hardware repair promotion from FixMyDoor Services",
-    },
-  ];
   const displayedServiceShowcase = dynamicServiceShowcase.length > 0 ? dynamicServiceShowcase : serviceShowcase;
   const displayedProductCategories = dynamicProductCategories.length > 0 ? dynamicProductCategories : productCategories;
   const displayedDoorProducts = dynamicDoorProducts.length > 0 ? dynamicDoorProducts : doorProducts;
   const displayedHardwareProducts = dynamicHardwareProducts.length > 0 ? dynamicHardwareProducts : hardwareProducts;
   const displayedProjectGallery = dynamicProjectGallery.length > 0 ? dynamicProjectGallery : projectGallery;
-  const displayedAdverts = dynamicAdverts.length > 0 ? dynamicAdverts : defaultAdverts;
+  const displayedAdverts = dynamicAdverts;
   const desktopProjectGallery = displayedProjectGallery.slice(0, 6);
   const customerPathLoopItems = createMobileLoopItems(customerPaths, (item) => item.title);
   const coreServiceLoopItems = createMobileLoopItems(coreServiceDetails, (item) => item.title);

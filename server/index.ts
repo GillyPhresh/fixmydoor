@@ -67,7 +67,7 @@ type PushNotificationLogEntry = {
   delivered: number;
   failed: number;
 };
-const mediaTypes: Record<string, { extension: string; kind: "image" | "video" }> = {
+const mediaTypes: Record<string, { extension: string; kind: "image" | "video" | "document" }> = {
   "image/png": { extension: "png", kind: "image" },
   "image/jpeg": { extension: "jpg", kind: "image" },
   "image/jpg": { extension: "jpg", kind: "image" },
@@ -75,6 +75,9 @@ const mediaTypes: Record<string, { extension: string; kind: "image" | "video" }>
   "video/mp4": { extension: "mp4", kind: "video" },
   "video/webm": { extension: "webm", kind: "video" },
   "video/ogg": { extension: "ogg", kind: "video" },
+  "application/pdf": { extension: "pdf", kind: "document" },
+  "application/msword": { extension: "doc", kind: "document" },
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": { extension: "docx", kind: "document" },
 };
 
 function broadcastSiteEvent(event: SiteEventPayload) {
@@ -89,7 +92,7 @@ function broadcastSiteEvent(event: SiteEventPayload) {
   });
 }
 
-function saveDataUrlMedia(dataUrl: unknown, options: { allowVideo: boolean; maxBytes: number }) {
+function saveDataUrlMedia(dataUrl: unknown, options: { allowVideo: boolean; allowDocument?: boolean; maxBytes: number }) {
   if (typeof dataUrl !== "string") {
     throw new Error("Missing media data");
   }
@@ -101,7 +104,11 @@ function saveDataUrlMedia(dataUrl: unknown, options: { allowVideo: boolean; maxB
 
   const mimeType = match[1].toLowerCase();
   const mediaType = mediaTypes[mimeType];
-  if (!mediaType || (!options.allowVideo && mediaType.kind === "video")) {
+  if (
+    !mediaType ||
+    (!options.allowVideo && mediaType.kind === "video") ||
+    (!options.allowDocument && mediaType.kind === "document")
+  ) {
     throw new Error("Unsupported media type");
   }
 
@@ -114,7 +121,11 @@ function saveDataUrlMedia(dataUrl: unknown, options: { allowVideo: boolean; maxB
   const fileName = `${Date.now()}-${randomUUID()}.${mediaType.extension}`;
   fs.writeFileSync(path.join(uploadDir, fileName), buffer, { flag: "wx" });
 
-  return `/uploads/${fileName}`;
+  return {
+    url: `/uploads/${fileName}`,
+    kind: mediaType.kind,
+    mimeType,
+  };
 }
 
 function escapeHtml(value: unknown) {
@@ -949,6 +960,7 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
   if (isAdminPath) {
     html = html
       .replace(/<link id="fixmydoor-manifest" rel="manifest" href="[^"]*" \/>/, '<link id="fixmydoor-manifest" rel="manifest" href="/admin-manifest.json" />')
+      .replace(/<link id="fixmydoor-apple-touch-icon" rel="apple-touch-icon" href="[^"]*" \/>/, '<link id="fixmydoor-apple-touch-icon" rel="apple-touch-icon" href="/icons/icon-192x192.png" />')
       .replace(/<meta name="application-name" content="[^"]*" \/>/, '<meta name="application-name" content="FixMyDoor Admin Dashboard" />')
       .replace(/<meta name="apple-mobile-web-app-title" content="[^"]*" \/>/, '<meta name="apple-mobile-web-app-title" content="FixMyDoor Admin" />')
       .replace(/<meta name="theme-color" content="[^"]*" \/>/, '<meta name="theme-color" content="#2F241C" />')
@@ -1264,7 +1276,7 @@ async function startServer() {
   }, 60 * 60 * 1000);
   sessionCleanupTimer.unref?.();
 
-  app.use(express.json({ limit: "8mb" })); // Limit request body size
+  app.use(express.json({ limit: "30mb" }));
   fs.mkdirSync(uploadDir, { recursive: true });
   app.use("/uploads", express.static(uploadDir, {
     maxAge: isProduction ? "30d" : 0,
@@ -1551,8 +1563,8 @@ async function startServer() {
 
   app.post("/api/media", async (req, res) => {
     try {
-      const url = saveDataUrlMedia(req.body?.dataUrl, { allowVideo: false, maxBytes: 1_800_000 });
-      return res.status(201).json({ success: true, url });
+      const media = saveDataUrlMedia(req.body?.dataUrl, { allowVideo: false, maxBytes: 1_800_000 });
+      return res.status(201).json({ success: true, ...media });
     } catch (error: any) {
       return res.status(400).json({ success: false, error: error?.message || "Invalid media upload" });
     }
@@ -1560,8 +1572,8 @@ async function startServer() {
 
   app.post("/api/admin/media", requireAuth, async (req, res) => {
     try {
-      const url = saveDataUrlMedia(req.body?.dataUrl, { allowVideo: true, maxBytes: 5_500_000 });
-      return res.status(201).json({ success: true, url });
+      const media = saveDataUrlMedia(req.body?.dataUrl, { allowVideo: true, allowDocument: true, maxBytes: 20_000_000 });
+      return res.status(201).json({ success: true, ...media });
     } catch (error: any) {
       return res.status(400).json({ success: false, error: error?.message || "Invalid media upload" });
     }
