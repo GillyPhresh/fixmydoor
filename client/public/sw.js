@@ -1,4 +1,4 @@
-const CACHE_NAME = "fixmydoor-v3";
+const CACHE_NAME = "fixmydoor-v4";
 const URLS_TO_CACHE = [
   "/",
   "/admin",
@@ -9,13 +9,18 @@ const URLS_TO_CACHE = [
   "/door-hardware",
   "/manifest.json",
   "/admin-manifest.json",
+  "/fixmydoor-favicon.png",
+  "/favicon-512.png",
   "/icons/main-icon-72x72.png",
   "/icons/main-icon-96x96.png",
   "/icons/main-icon-128x128.png",
   "/icons/main-icon-192x192.png",
   "/icons/main-icon-512x512.png",
-  "/icons/icon-192x192.png",
-  "/icons/icon-512x512.png"
+  "/icons/admin-icon-72x72.png",
+  "/icons/admin-icon-96x96.png",
+  "/icons/admin-icon-128x128.png",
+  "/icons/admin-icon-192x192.png",
+  "/icons/admin-icon-512x512.png"
 ];
 
 self.addEventListener("install", (event) => {

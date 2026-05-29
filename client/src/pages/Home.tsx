@@ -461,6 +461,15 @@ export default function Home() {
       }
 
       await subscribeForPushNotifications(registration);
+      await registration.showNotification("FixMyDoor notifications are on", {
+        body: "Service updates, adverts, and review alerts can now appear on this device.",
+        icon: "/icons/main-icon-192x192.png",
+        badge: "/icons/main-icon-96x96.png",
+        tag: "fixmydoor-alerts-enabled",
+        renotify: true,
+        silent: false,
+        data: { url: "/" },
+      } as NotificationOptions);
       setNotificationsEnabled(true);
       setNotificationPromptOpen(false);
       window.localStorage.setItem(NOTIFICATION_CHOICE_KEY, "allowed");
@@ -1670,7 +1679,7 @@ export default function Home() {
           <div className="overflow-hidden rounded-[24px] border border-primary/18 bg-white shadow-[0_24px_70px_rgba(47,36,28,0.22)]">
             <div className="flex gap-3 bg-[#2f241c] p-4 text-white">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FAF6F0]">
-                <img src="/icons/icon-96x96.png" alt="" className="h-9 w-9 object-contain" />
+                <img src="/icons/main-icon-96x96.png" alt="" className="h-9 w-9 object-contain" />
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-primary">FixMyDoor updates</p>

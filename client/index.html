@@ -38,8 +38,8 @@
     <meta name="twitter:image" content="__PUBLIC_IMAGE_URL__" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="icon" href="/fixmydoor-favicon.png" type="image/png" />
+    <link rel="icon" href="/fixmydoor-favicon.png" type="image/png" sizes="192x192" />
+    <link rel="icon" href="/favicon-512.png" type="image/png" sizes="512x512" />
     <link id="fixmydoor-apple-touch-icon" rel="apple-touch-icon" href="/icons/main-icon-192x192.png" />
     <script>
       (function() {
@@ -61,7 +61,7 @@
           appleTitle.setAttribute("content", isAdminApp ? "FixMyDoor Admin" : "FixMyDoor");
         }
         if (appleIcon) {
-          appleIcon.setAttribute("href", isAdminApp ? "/icons/icon-192x192.png" : "/icons/main-icon-192x192.png");
+          appleIcon.setAttribute("href", isAdminApp ? "/icons/admin-icon-192x192.png" : "/icons/main-icon-192x192.png");
         }
         if (themeColor) {
           themeColor.setAttribute("content", isAdminApp ? "#2F241C" : "#6B4423");

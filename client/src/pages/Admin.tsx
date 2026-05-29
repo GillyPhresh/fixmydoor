@@ -413,6 +413,7 @@ export default function Admin() {
     setAdminNotificationsEnabled(true);
     window.localStorage.setItem(ADMIN_NOTIFICATION_CHOICE_KEY, "allowed");
     await fetchPushNotifications();
+    return registration;
   };
 
   const enableAdminNotifications = async () => {
@@ -431,7 +432,16 @@ export default function Admin() {
         return;
       }
 
-      await subscribeAdminAlerts();
+      const registration = await subscribeAdminAlerts();
+      await registration.showNotification("FixMyDoor admin alerts are on", {
+        body: "New customer messages and admin updates can now appear on this device.",
+        icon: "/icons/admin-icon-192x192.png",
+        badge: "/icons/admin-icon-96x96.png",
+        tag: "fixmydoor-admin-alerts-enabled",
+        renotify: true,
+        silent: false,
+        data: { url: "/admin" },
+      } as NotificationOptions);
       toast.success("Admin alerts are enabled for this device.");
     } catch (err) {
       console.error("Admin alert setup error:", err);
@@ -1885,13 +1895,12 @@ export default function Admin() {
                 <Label>{contentDraft.category === "advert" ? "Button Text / Details" : "Items / Details"}</Label>
                 <Input value={contentDraft.items || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, items: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Book This Offer" : "Handles, cylinders, hinges, lock bodies..."} />
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <Label>Main Media</Label>
                 <Input value={contentDraft.image || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="Image/video URL or uploaded media" />
-              </div>
-              <div>
-                <Label>Accent Image</Label>
-                <Input value={contentDraft.accentImage || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, accentImage: event.target.value }))} placeholder="Optional second image" />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Upload or paste the main image, video, or document for this content item.
+                </p>
               </div>
               <div className="rounded-2xl border border-dashed border-primary/25 bg-white p-4 md:col-span-2">
                 <Label htmlFor="content-flyer-upload" className="flex cursor-pointer flex-col items-center justify-center gap-2 text-center">

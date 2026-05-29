@@ -44,6 +44,13 @@ type SiteEventPayload = {
   message: string;
   url?: string;
 };
+type PushPayload = {
+  title: string;
+  message: string;
+  url?: string;
+  icon?: string;
+  badge?: string;
+};
 const siteEventClients = new Set<Response>();
 type PushAudience = "visitor" | "admin";
 type StoredPushSubscription = {
@@ -303,7 +310,7 @@ function encryptPushPayload(subscription: StoredPushSubscription, payload: strin
   return Buffer.concat([header, encrypted]);
 }
 
-async function sendPushNotification(subscription: StoredPushSubscription, payload: { title: string; message: string; url?: string }) {
+async function sendPushNotification(subscription: StoredPushSubscription, payload: PushPayload) {
   const vapid = createVapidJwt(subscription.endpoint);
   const body = encryptPushPayload(subscription, JSON.stringify(payload));
   const response = await fetch(subscription.endpoint, {
@@ -322,7 +329,7 @@ async function sendPushNotification(subscription: StoredPushSubscription, payloa
 }
 
 async function sendPushNotificationToSubscribers(
-  payload: { title: string; message: string; url?: string },
+  payload: PushPayload,
   options: { audience?: PushAudience | "all"; log?: boolean } = {},
 ) {
   const subscriptions = loadPushSubscriptions();
@@ -374,7 +381,7 @@ async function sendPushNotificationToSubscribers(
 }
 
 function queuePushNotification(
-  payload: { title: string; message: string; url?: string },
+  payload: PushPayload,
   options: { audience?: PushAudience | "all"; log?: boolean } = {},
 ) {
   sendPushNotificationToSubscribers(payload, options).catch((error) => {
@@ -960,7 +967,7 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
   if (isAdminPath) {
     html = html
       .replace(/<link id="fixmydoor-manifest" rel="manifest" href="[^"]*" \/>/, '<link id="fixmydoor-manifest" rel="manifest" href="/admin-manifest.json" />')
-      .replace(/<link id="fixmydoor-apple-touch-icon" rel="apple-touch-icon" href="[^"]*" \/>/, '<link id="fixmydoor-apple-touch-icon" rel="apple-touch-icon" href="/icons/icon-192x192.png" />')
+      .replace(/<link id="fixmydoor-apple-touch-icon" rel="apple-touch-icon" href="[^"]*" \/>/, '<link id="fixmydoor-apple-touch-icon" rel="apple-touch-icon" href="/icons/admin-icon-192x192.png" />')
       .replace(/<meta name="application-name" content="[^"]*" \/>/, '<meta name="application-name" content="FixMyDoor Admin Dashboard" />')
       .replace(/<meta name="apple-mobile-web-app-title" content="[^"]*" \/>/, '<meta name="apple-mobile-web-app-title" content="FixMyDoor Admin" />')
       .replace(/<meta name="theme-color" content="[^"]*" \/>/, '<meta name="theme-color" content="#2F241C" />')
@@ -1549,6 +1556,8 @@ async function startServer() {
       title,
       message,
       url,
+      icon: audience === "admin" ? "/icons/admin-icon-192x192.png" : "/icons/main-icon-192x192.png",
+      badge: audience === "admin" ? "/icons/admin-icon-96x96.png" : "/icons/main-icon-96x96.png",
     }, { audience, log: true });
     broadcastSiteEvent({ type: "notification", title, message, url });
 
@@ -1768,6 +1777,8 @@ async function startServer() {
         title: "New customer request",
         message: `${savedBooking.name} requested ${savedBooking.repairType}`,
         url: "/admin",
+        icon: "/icons/admin-icon-192x192.png",
+        badge: "/icons/admin-icon-96x96.png",
       }, { audience: "admin", log: false });
 
       return res.status(201).json({
@@ -2188,6 +2199,15 @@ async function startServer() {
     );
   };
 
+  app.use((req, res, next) => {
+    if ((req.method === "GET" || req.method === "HEAD") && req.path.length > 1 && req.path.endsWith("/")) {
+      const query = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+      return res.redirect(301, `${req.path.replace(/\/+$/, "")}${query}`);
+    }
+
+    return next();
+  });
+
   app.get("/robots.txt", (_req, res) => {
     res.setHeader("Cache-Control", isProduction ? "public, max-age=300" : "no-cache");
     res.type("text/plain").send(renderRobotsTxt());
@@ -2208,9 +2228,9 @@ async function startServer() {
     return res.redirect(301, `${canonicalPath}${query}`);
   });
 
-  app.get("/index.html", (_req, res) => {
-    res.setHeader("Cache-Control", isProduction ? "no-store" : "no-cache");
-    sendIndexHtml(res);
+  app.get("/index.html", (req, res) => {
+    const query = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+    return res.redirect(301, `/${query}`);
   });
 
   app.use(express.static(staticPath, {
