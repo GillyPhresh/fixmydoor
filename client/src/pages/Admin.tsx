@@ -397,6 +397,7 @@ export default function Admin() {
     }
 
     const registration = await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.ready;
     const keyResponse = await axios.get<{ publicKey: string }>("/api/push/public-key");
     const publicKey = keyResponse.data.publicKey;
     if (!publicKey) {
@@ -433,7 +434,7 @@ export default function Admin() {
       }
 
       const registration = await subscribeAdminAlerts();
-      await registration.showNotification("FixMyDoor admin alerts are on", {
+      registration.showNotification("FixMyDoor admin alerts are on", {
         body: "New customer messages and admin updates can now appear on this device.",
         icon: "/icons/admin-icon-192x192.png",
         badge: "/icons/admin-icon-96x96.png",
@@ -441,7 +442,9 @@ export default function Admin() {
         renotify: true,
         silent: false,
         data: { url: "/admin" },
-      } as NotificationOptions);
+      } as NotificationOptions).catch((error) => {
+        console.error("Admin notification confirmation display error:", error);
+      });
       toast.success("Admin alerts are enabled for this device.");
     } catch (err) {
       console.error("Admin alert setup error:", err);

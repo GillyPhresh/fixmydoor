@@ -365,6 +365,7 @@ export default function Home() {
 
     try {
       const registration = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
       notificationRegistrationRef.current = registration;
       return registration;
     } catch (error) {
@@ -461,7 +462,7 @@ export default function Home() {
       }
 
       await subscribeForPushNotifications(registration);
-      await registration.showNotification("FixMyDoor notifications are on", {
+      registration.showNotification("FixMyDoor notifications are on", {
         body: "Service updates, adverts, and review alerts can now appear on this device.",
         icon: "/icons/main-icon-192x192.png",
         badge: "/icons/main-icon-96x96.png",
@@ -469,7 +470,9 @@ export default function Home() {
         renotify: true,
         silent: false,
         data: { url: "/" },
-      } as NotificationOptions);
+      } as NotificationOptions).catch((error) => {
+        console.error("Notification confirmation display error:", error);
+      });
       setNotificationsEnabled(true);
       setNotificationPromptOpen(false);
       window.localStorage.setItem(NOTIFICATION_CHOICE_KEY, "allowed");
