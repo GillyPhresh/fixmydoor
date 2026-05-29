@@ -461,7 +461,7 @@ export default function Admin() {
     }
 
     if (!installPrompt) {
-      toast.message("Use the browser menu and choose Install App or Add to Home Screen.");
+      toast.message("On Android Chrome, open the three-dot menu and choose Install app or Add to Home screen.");
       return;
     }
 
@@ -749,6 +749,15 @@ export default function Admin() {
             <p className="max-w-xs text-sm text-muted-foreground">
               FixMyDoor Services booking dashboard for customer requests, reviews, service content, and follow-up.
             </p>
+            <Button
+              type="button"
+              onClick={installAdminApp}
+              variant="outline"
+              className="mt-3 h-10 rounded-2xl border-[#d6b88c] bg-white px-4 text-xs font-black text-secondary shadow-sm hover:border-primary hover:text-primary"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {adminStandalone ? "Admin App Open" : "Install Admin App"}
+            </Button>
           </CardHeader>
           <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
             <form onSubmit={handleLogin} className="space-y-4">
