@@ -967,7 +967,7 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
   if (isAdminPath) {
     html = html
       .replace(/<link id="fixmydoor-manifest" rel="manifest" href="[^"]*" \/>/, '<link id="fixmydoor-manifest" rel="manifest" href="/admin-manifest.json" />')
-      .replace(/<link id="fixmydoor-apple-touch-icon" rel="apple-touch-icon" href="[^"]*" \/>/, '<link id="fixmydoor-apple-touch-icon" rel="apple-touch-icon" href="/icons/admin-icon-192x192.png" />')
+      .replace(/<link id="fixmydoor-apple-touch-icon" rel="apple-touch-icon" href="[^"]*" \/>/, '<link id="fixmydoor-apple-touch-icon" rel="apple-touch-icon" href="/icons/admin-icon-v2-192x192.png" />')
       .replace(/<meta name="application-name" content="[^"]*" \/>/, '<meta name="application-name" content="FixMyDoor Admin Dashboard" />')
       .replace(/<meta name="apple-mobile-web-app-title" content="[^"]*" \/>/, '<meta name="apple-mobile-web-app-title" content="FixMyDoor Admin" />')
       .replace(/<meta name="theme-color" content="[^"]*" \/>/, '<meta name="theme-color" content="#2F241C" />')
@@ -983,9 +983,13 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
   html = replaceMetaContent(html, "property", "og:description", page.description);
   html = replaceMetaContent(html, "property", "og:url", canonicalUrl);
   html = replaceMetaContent(html, "property", "og:image", getPublicImageUrl());
+  html = replaceMetaContent(html, "property", "og:image:width", "1200");
+  html = replaceMetaContent(html, "property", "og:image:height", "630");
+  html = replaceMetaContent(html, "property", "og:image:alt", "FixMyDoor Services door and furniture repair work");
   html = replaceMetaContent(html, "name", "twitter:title", page.title);
   html = replaceMetaContent(html, "name", "twitter:description", page.description);
   html = replaceMetaContent(html, "name", "twitter:image", getPublicImageUrl());
+  html = replaceMetaContent(html, "name", "twitter:image:alt", "FixMyDoor Services door and furniture repair work");
 
   const serviceRootFallback = renderServiceFallbackMain(pagePath);
   if (serviceRootFallback) {
@@ -1012,7 +1016,7 @@ function renderRobotsTxt() {
 
 function renderSitemapXml() {
   const publicBaseUrl = getPublicBaseUrl();
-  const lastModified = new Date().toISOString();
+  const lastModified = new Date().toISOString().slice(0, 10);
 
   const items = sitemapRoutes.map((route) => {
     const pageUrl = route === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${route}`;
@@ -1172,6 +1176,8 @@ async function startServer() {
         imgSrc: ["'self'", "data:", "https:", "http:"],
         mediaSrc: ["'self'", "data:", "https:", "http:"],
         scriptSrc: ["'self'", "https://www.googletagmanager.com"],
+        workerSrc: ["'self'"],
+        manifestSrc: ["'self'"],
         connectSrc: ["'self'", "https://www.google-analytics.com", "https://analytics.google.com", "https://region1.google-analytics.com"],
         frameSrc: ["'self'"],
         objectSrc: ["'none'"],
@@ -1556,8 +1562,8 @@ async function startServer() {
       title,
       message,
       url,
-      icon: audience === "admin" ? "/icons/admin-icon-192x192.png" : "/icons/main-icon-192x192.png",
-      badge: audience === "admin" ? "/icons/admin-icon-96x96.png" : "/icons/main-icon-96x96.png",
+      icon: audience === "admin" ? "/icons/admin-icon-v2-192x192.png" : "/icons/main-icon-v2-192x192.png",
+      badge: audience === "admin" ? "/icons/admin-icon-v2-96x96.png" : "/icons/main-icon-v2-96x96.png",
     }, { audience, log: true });
     broadcastSiteEvent({ type: "notification", title, message, url });
 
@@ -1777,8 +1783,8 @@ async function startServer() {
         title: "New customer request",
         message: `${savedBooking.name} requested ${savedBooking.repairType}`,
         url: "/admin",
-        icon: "/icons/admin-icon-192x192.png",
-        badge: "/icons/admin-icon-96x96.png",
+        icon: "/icons/admin-icon-v2-192x192.png",
+        badge: "/icons/admin-icon-v2-96x96.png",
       }, { audience: "admin", log: false });
 
       return res.status(201).json({
@@ -2241,7 +2247,7 @@ async function startServer() {
         return;
       }
 
-      if (filePath.endsWith("index.html") || filePath.endsWith("sw.js") || filePath.endsWith("manifest.json")) {
+      if (filePath.endsWith("index.html") || filePath.endsWith("sw.js") || filePath.endsWith("manifest.json") || filePath.endsWith("app-shell.js")) {
         res.setHeader("Cache-Control", "no-store");
       } else if (/\.(?:js|css|png|jpe?g|webp|gif|svg|ico|woff2?)$/i.test(filePath)) {
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");

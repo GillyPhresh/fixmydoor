@@ -436,8 +436,8 @@ export default function Admin() {
       const registration = await subscribeAdminAlerts();
       registration.showNotification("FixMyDoor admin alerts are on", {
         body: "New customer messages and admin updates can now appear on this device.",
-        icon: "/icons/admin-icon-192x192.png",
-        badge: "/icons/admin-icon-96x96.png",
+        icon: "/icons/admin-icon-v2-192x192.png",
+        badge: "/icons/admin-icon-v2-96x96.png",
         tag: "fixmydoor-admin-alerts-enabled",
         renotify: true,
         silent: false,

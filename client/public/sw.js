@@ -1,4 +1,4 @@
-const CACHE_NAME = "fixmydoor-v4";
+const CACHE_NAME = "fixmydoor-v6";
 const URLS_TO_CACHE = [
   "/",
   "/admin",
@@ -7,20 +7,21 @@ const URLS_TO_CACHE = [
   "/entry-door-installation",
   "/furniture-repair",
   "/door-hardware",
+  "/app-shell.js",
   "/manifest.json",
   "/admin-manifest.json",
-  "/fixmydoor-favicon.png",
-  "/favicon-512.png",
-  "/icons/main-icon-72x72.png",
-  "/icons/main-icon-96x96.png",
-  "/icons/main-icon-128x128.png",
-  "/icons/main-icon-192x192.png",
-  "/icons/main-icon-512x512.png",
-  "/icons/admin-icon-72x72.png",
-  "/icons/admin-icon-96x96.png",
-  "/icons/admin-icon-128x128.png",
-  "/icons/admin-icon-192x192.png",
-  "/icons/admin-icon-512x512.png"
+  "/fixmydoor-favicon-v2.png",
+  "/favicon-512-v2.png",
+  "/icons/main-icon-v2-72x72.png",
+  "/icons/main-icon-v2-96x96.png",
+  "/icons/main-icon-v2-128x128.png",
+  "/icons/main-icon-v2-192x192.png",
+  "/icons/main-icon-v2-512x512.png",
+  "/icons/admin-icon-v2-72x72.png",
+  "/icons/admin-icon-v2-96x96.png",
+  "/icons/admin-icon-v2-128x128.png",
+  "/icons/admin-icon-v2-192x192.png",
+  "/icons/admin-icon-v2-512x512.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -62,7 +63,9 @@ self.addEventListener("fetch", (event) => {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, responseToCache);
-              cache.put("/", networkResponse.clone());
+              if (requestUrl.pathname === "/") {
+                cache.put("/", networkResponse.clone());
+              }
             });
           }
           return networkResponse;
@@ -147,8 +150,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title || "FixMyDoor Services", {
       body: payload.message || "You have a new FixMyDoor Services update.",
-      icon: payload.icon || "/icons/main-icon-192x192.png",
-      badge: payload.badge || "/icons/main-icon-96x96.png",
+      icon: payload.icon || "/icons/main-icon-v2-192x192.png",
+      badge: payload.badge || "/icons/main-icon-v2-96x96.png",
       tag: "fixmydoor-services-update",
       renotify: true,
       silent: false,

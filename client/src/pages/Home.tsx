@@ -308,6 +308,7 @@ export default function Home() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationPromptOpen, setNotificationPromptOpen] = useState(false);
   const [notificationPromptLoading, setNotificationPromptLoading] = useState(false);
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const advertPauseUntilRef = useRef(0);
   const formReadyAtRef = useRef(Date.now());
   const contentSignatureRef = useRef("");
@@ -374,6 +375,20 @@ export default function Home() {
     }
   }, []);
 
+  const refreshInstalledApp = useCallback(async () => {
+    try {
+      const registration = "serviceWorker" in navigator ? await navigator.serviceWorker.getRegistration("/") : null;
+      await registration?.update();
+      if (registration?.waiting) {
+        registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      }
+    } catch (error) {
+      console.error("App refresh update check failed:", error);
+    } finally {
+      window.location.reload();
+    }
+  }, []);
+
   const subscribeForPushNotifications = useCallback(async (registration: ServiceWorkerRegistration) => {
     if (!registration.pushManager) {
       throw new Error("Push notifications are not available on this device.");
@@ -414,8 +429,8 @@ export default function Home() {
 
     const notificationOptions = {
       body: event.message,
-      icon: "/icons/main-icon-192x192.png",
-      badge: "/icons/main-icon-96x96.png",
+      icon: "/icons/main-icon-v2-192x192.png",
+      badge: "/icons/main-icon-v2-96x96.png",
       tag: `fixmydoor-${event.type}`,
       renotify: true,
       silent: false,
@@ -464,8 +479,8 @@ export default function Home() {
       await subscribeForPushNotifications(registration);
       registration.showNotification("FixMyDoor notifications are on", {
         body: "Service updates, adverts, and review alerts can now appear on this device.",
-        icon: "/icons/main-icon-192x192.png",
-        badge: "/icons/main-icon-96x96.png",
+        icon: "/icons/main-icon-v2-192x192.png",
+        badge: "/icons/main-icon-v2-96x96.png",
         tag: "fixmydoor-alerts-enabled",
         renotify: true,
         silent: false,
@@ -526,6 +541,18 @@ export default function Home() {
       });
     }
   }, [registerNotificationWorker, subscribeForPushNotifications]);
+
+  useEffect(() => {
+    const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean };
+    const standaloneQuery = window.matchMedia("(display-mode: standalone)");
+    const updateStandaloneState = () => {
+      setIsStandaloneApp(standaloneQuery.matches || Boolean(navigatorWithStandalone.standalone));
+    };
+
+    updateStandaloneState();
+    standaloneQuery.addEventListener?.("change", updateStandaloneState);
+    return () => standaloneQuery.removeEventListener?.("change", updateStandaloneState);
+  }, []);
 
   useEffect(() => {
     const updateHeader = () => {
@@ -1570,6 +1597,18 @@ export default function Home() {
               <span className="min-[380px]:hidden">Call</span>
             </a>
             <LanguageTranslator className="h-10 sm:h-11" />
+            {isStandaloneApp && (
+              <button
+                type="button"
+                onClick={refreshInstalledApp}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/15 bg-white text-secondary shadow-[0_10px_22px_rgba(47,36,28,0.10)] ring-1 ring-white/70 transition hover:bg-primary hover:text-white sm:h-11 sm:w-auto sm:px-3"
+                aria-label="Refresh FixMyDoor app"
+                title="Refresh app"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span className="ml-2 hidden text-xs font-extrabold sm:inline">Refresh</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setMobileMenuOpen((open) => !open)}
@@ -1682,7 +1721,7 @@ export default function Home() {
           <div className="overflow-hidden rounded-[24px] border border-primary/18 bg-white shadow-[0_24px_70px_rgba(47,36,28,0.22)]">
             <div className="flex gap-3 bg-[#2f241c] p-4 text-white">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#FAF6F0]">
-                <img src="/icons/main-icon-96x96.png" alt="" className="h-9 w-9 object-contain" />
+                <img src="/icons/main-icon-v2-96x96.png" alt="" className="h-9 w-9 object-contain" />
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-primary">FixMyDoor updates</p>
