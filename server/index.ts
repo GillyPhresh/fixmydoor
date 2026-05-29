@@ -1221,12 +1221,39 @@ async function startServer() {
   });
 
   // Rate limiting
+  const staticOrPublicFilePattern = /\.(?:js|css|png|jpe?g|webp|gif|svg|ico|woff2?|json|xml|txt|webmanifest|mp4|webm|ogg|pdf|docx?)$/i;
+  const shouldSkipPublicRateLimit = (req: express.Request) => {
+    if (req.method === "OPTIONS") {
+      return true;
+    }
+
+    if (staticOrPublicFilePattern.test(req.path)) {
+      return true;
+    }
+
+    return (
+      req.path.startsWith("/assets/") ||
+      req.path.startsWith("/icons/") ||
+      req.path.startsWith("/uploads/") ||
+      req.path.startsWith("/locales/") ||
+      req.path === "/favicon.ico" ||
+      req.path === "/fixmydoor-favicon-v2.png" ||
+      req.path === "/sw.js" ||
+      req.path === "/app-shell.js" ||
+      req.path === "/manifest.json" ||
+      req.path === "/admin-manifest.json" ||
+      req.path === "/robots.txt" ||
+      req.path === "/sitemap.xml"
+    );
+  };
+
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: 1200,
     message: "Too many requests from this IP, please try again later.",
     standardHeaders: true,
     legacyHeaders: false,
+    skip: shouldSkipPublicRateLimit,
   });
 
   const authLimiter = rateLimit({
