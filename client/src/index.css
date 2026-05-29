@@ -122,8 +122,37 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground font-sans;
+  }
+
+  @media (max-width: 640px) {
+    .admin-dashboard-shell,
+    .admin-dashboard-shell * {
+      box-sizing: border-box;
+    }
+
+    .admin-dashboard-shell {
+      width: 100%;
+      overflow-x: clip;
+    }
+
+    .admin-dashboard-shell :where(div, section, article, form, header, main, aside, nav, ul, li) {
+      min-width: 0;
+    }
+
+    .admin-dashboard-shell :where(input, textarea, select, button) {
+      max-width: 100%;
+    }
+
+    .admin-dashboard-shell :where(p, h1, h2, h3, a) {
+      overflow-wrap: anywhere;
+    }
   }
   body {
     top: 0 !important;

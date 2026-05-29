@@ -1795,8 +1795,8 @@ export default function Home() {
                         <Bell className="h-3 w-3" />
                         Ad
                       </span>
-                      <span className="absolute bottom-2 right-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/92 text-secondary shadow-lg transition group-hover:scale-105" aria-hidden="true">
-                        <Maximize2 className="h-4 w-4" />
+                      <span className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/88 text-secondary shadow-md transition group-hover:scale-105 sm:h-8 sm:w-8" aria-hidden="true">
+                        <Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       </span>
                     </button>
                     <div className="flex min-w-0 flex-col p-3.5 sm:p-4">
@@ -1922,16 +1922,16 @@ export default function Home() {
               onPointerUp={handleLightboxPointerEnd}
               onPointerCancel={handleLightboxPointerEnd}
             >
-              <div className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full border border-white/12 bg-black/44 p-1.5 backdrop-blur">
-                <button type="button" onClick={() => updateLightboxZoom((currentZoom) => currentZoom - 0.25)} className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-secondary transition hover:bg-primary hover:text-white" aria-label="Zoom out">
-                  <Minus className="h-4 w-4" />
+              <div className="absolute bottom-3 left-1/2 top-auto z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/12 bg-black/54 p-1 backdrop-blur sm:left-3 sm:top-3 sm:bottom-auto sm:translate-x-0 sm:gap-2 sm:p-1.5">
+                <button type="button" onClick={() => updateLightboxZoom((currentZoom) => currentZoom - 0.25)} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-secondary transition hover:bg-primary hover:text-white sm:h-9 sm:w-9" aria-label="Zoom out">
+                  <Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
-                <span className="min-w-12 text-center text-xs font-black">{Math.round(lightboxZoom * 100)}%</span>
-                <button type="button" onClick={() => updateLightboxZoom((currentZoom) => currentZoom + 0.25)} className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-secondary transition hover:bg-primary hover:text-white" aria-label="Zoom in">
-                  <Plus className="h-4 w-4" />
+                <span className="min-w-10 text-center text-[0.68rem] font-black sm:min-w-12 sm:text-xs">{Math.round(lightboxZoom * 100)}%</span>
+                <button type="button" onClick={() => updateLightboxZoom((currentZoom) => currentZoom + 0.25)} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-secondary transition hover:bg-primary hover:text-white sm:h-9 sm:w-9" aria-label="Zoom in">
+                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
-                <button type="button" onClick={() => { setLightboxZoom(1); setLightboxPan({ x: 0, y: 0 }); }} className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-secondary transition hover:bg-primary hover:text-white" aria-label="Reset zoom">
-                  <RotateCcw className="h-4 w-4" />
+                <button type="button" onClick={() => { setLightboxZoom(1); setLightboxPan({ x: 0, y: 0 }); }} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-secondary transition hover:bg-primary hover:text-white sm:h-9 sm:w-9" aria-label="Reset zoom">
+                  <RotateCcw className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
               </div>
 
@@ -2319,16 +2319,20 @@ export default function Home() {
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-foreground/75 md:mt-3 md:text-base">
               The business is based in Canada and can also help with international repair questions or product requests.
             </p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid gap-2 sm:mt-5 sm:grid-cols-3 sm:gap-3">
               {[
                 { icon: Globe2, title: quickHighlights[0].title, text: quickHighlights[0].text },
                 { icon: ShieldCheck, title: quickHighlights[1].title, text: quickHighlights[1].text },
                 { icon: Zap, title: quickHighlights[2].title, text: quickHighlights[2].text },
               ].map((highlight) => (
-                <div key={highlight.title} className="rounded-[20px] bg-background p-4 shadow-sm">
-                  <highlight.icon className="h-5 w-5 text-primary" />
-                  <h3 className="mt-2 text-sm font-bold text-secondary">{highlight.title}</h3>
-                  <p className="mt-1 text-xs leading-relaxed text-foreground/68">{highlight.text}</p>
+                <div key={highlight.title} className="flex items-center gap-2.5 rounded-2xl bg-background px-3 py-2.5 shadow-sm sm:block sm:rounded-[20px] sm:p-4">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm sm:h-auto sm:w-auto sm:bg-transparent sm:shadow-none">
+                    <highlight.icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-[0.8rem] font-bold leading-tight text-secondary sm:mt-2 sm:text-sm">{highlight.title}</h3>
+                    <p className="mt-0.5 hidden text-xs leading-relaxed text-foreground/68 sm:mt-1 sm:block">{highlight.text}</p>
+                  </div>
                 </div>
               ))}
             </div>

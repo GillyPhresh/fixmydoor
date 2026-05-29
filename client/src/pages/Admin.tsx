@@ -734,7 +734,7 @@ export default function Admin() {
 
   if (!authenticated) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#f7efe5] via-white to-[#f3dfc7] px-4 py-8 text-center">
+      <div className="flex min-h-screen max-w-full flex-col items-center justify-center overflow-x-hidden bg-gradient-to-br from-[#f7efe5] via-white to-[#f3dfc7] px-4 py-8 text-center">
         <Card className="w-full max-w-md overflow-hidden border-[#dec4a3] bg-white/95 shadow-[0_24px_70px_rgba(66,40,18,0.14)]">
           <CardHeader className="items-center px-4 pb-4 pt-6 text-center sm:px-6">
             <div className="relative mx-auto mb-2 inline-flex items-center justify-center overflow-hidden rounded-[22px] border border-[#d6b88c] bg-[#FAF6F0] px-4 py-3 shadow-[0_18px_42px_rgba(66,40,18,0.16)] ring-1 ring-white/80 sm:px-5 sm:py-4">
@@ -824,7 +824,7 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex min-h-screen max-w-full items-center justify-center overflow-x-hidden bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p>Loading bookings...</p>
@@ -835,7 +835,7 @@ export default function Admin() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex min-h-screen max-w-full items-center justify-center overflow-x-hidden bg-background">
         <div className="text-center">
           <p className="text-destructive mb-4">{error}</p>
           <Button onClick={fetchBookings}>Try Again</Button>
@@ -845,8 +845,8 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7efe4]">
-      <div className="container mx-auto max-w-[1320px] px-3 py-4 sm:px-4 md:py-8">
+    <div className="admin-dashboard-shell min-h-screen max-w-full overflow-x-hidden bg-[#f7efe4]">
+      <div className="container mx-auto w-full max-w-[1320px] min-w-0 overflow-x-hidden px-3 py-4 sm:px-4 md:py-8">
         <div className="relative mb-4 overflow-hidden rounded-[24px] border border-[#ead8bf] bg-white/90 p-4 text-center shadow-[0_24px_70px_rgba(66,40,18,0.10)] md:mb-6 md:rounded-3xl md:p-6">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#6B4423] via-[#D4A574] to-[#6B4423]" />
           <div className="mx-auto flex max-w-xl flex-col items-center gap-2.5 md:gap-3">
