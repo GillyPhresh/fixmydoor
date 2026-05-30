@@ -73,6 +73,96 @@ const contentCategories: { value: ContentItem["category"]; label: string }[] = [
   { value: "ownerProfile", label: "Owner Profile Photo" },
 ];
 
+const contentCategoryHelp: Record<ContentItem["category"], string> = {
+  advert: "Floating advert/promotion shown on the website when active.",
+  serviceShowcase: "Service card used for repairs, installations, and service highlights.",
+  productCategory: "Buying/sourcing category such as doors, hardware, or furniture parts.",
+  doorProduct: "Door buying gallery item.",
+  hardwareProduct: "Hardware and tools gallery item.",
+  projectGallery: "Recent work or project photo shown in gallery sections.",
+  ownerProfile: "Richard Ampofo owner photo shown in the homepage expert section.",
+};
+
+const contentAssistantTemplates: Record<ContentItem["category"], Array<Pick<ContentItemRequest, "title" | "description" | "tag" | "items" | "bookingValue">>> = {
+  advert: [
+    {
+      title: "Weekend Home Repair Support",
+      tag: "Weekend Offer",
+      description: "This weekend is a good time to fix loose doors, locks, cabinets, furniture, or source the right hardware.",
+      items: "Book This Offer",
+      bookingValue: "door-repair",
+    },
+    {
+      title: "Door & Hardware Check",
+      tag: "Service Update",
+      description: "Send a photo of the issue and FixMyDoor Services will guide you on repair, replacement, or the right part to buy.",
+      items: "Send Request",
+      bookingValue: "door-hardware-purchase",
+    },
+  ],
+  serviceShowcase: [
+    {
+      title: "Door Repair & Alignment",
+      tag: "Door Repair",
+      description: "Help for doors that rub, stick, sag, fail to latch, or need hinge and frame adjustment.",
+      items: "Hinges, latch, frame, handle, and alignment checks",
+      bookingValue: "door-repair",
+    },
+    {
+      title: "Furniture Installation",
+      tag: "Furniture Setup",
+      description: "Clean setup and adjustment for furniture, drawers, cabinets, desks, chairs, and home or office pieces.",
+      items: "Assembly, alignment, hardware fitting, and support",
+      bookingValue: "furniture-installation",
+    },
+  ],
+  productCategory: [
+    {
+      title: "Doors & Entry Systems",
+      tag: "Buy & Source",
+      description: "Entry, interior, glass-panel, steel, wood-look, and heavy-duty door sourcing support.",
+      items: "Entry doors, interior doors, heavy-duty doors, hardware matching",
+      bookingValue: "door-purchase",
+    },
+  ],
+  doorProduct: [
+    {
+      title: "Modern Entry Door",
+      tag: "Entry Door",
+      description: "A clean entry door option for better curb appeal, secure closing, and daily use.",
+      items: "Confirm size, swing direction, finish, and hardware before purchase",
+      bookingValue: "door-purchase",
+    },
+  ],
+  hardwareProduct: [
+    {
+      title: "Lock, Handle & Hinge Kit",
+      tag: "Door Hardware",
+      description: "Hardware support for replacing worn handles, locks, cylinders, hinges, and backplates.",
+      items: "Handles, locks, hinges, cylinders, backplates, and door kits",
+      bookingValue: "door-hardware-purchase",
+    },
+  ],
+  projectGallery: [
+    {
+      title: "Door Repair Example",
+      tag: "Recent Work",
+      description: "A practical repair example showing the type of door, lock, furniture, or hardware issue customers ask us to review.",
+      items: "Repair review, clean fitting, stronger hardware, and follow-up guidance",
+      bookingValue: "door-repair",
+    },
+  ],
+  ownerProfile: [
+    {
+      title: "Richard Ampofo",
+      tag: "Owner",
+      description: "Owner profile photo for FixMyDoor Services.",
+      items: "",
+      bookingValue: "",
+    },
+  ],
+};
+
 const quickMessageTemplates = [
   {
     label: "Received",
@@ -951,6 +1041,18 @@ export default function Admin() {
       ...draft,
       sortOrder: Math.max(0, (Number(draft.sortOrder) || 0) + amount),
     }));
+  };
+
+  const applyContentAssistantTemplate = (template: Pick<ContentItemRequest, "title" | "description" | "tag" | "items" | "bookingValue">) => {
+    setContentDraft((draft) => ({
+      ...draft,
+      title: template.title,
+      description: template.description,
+      tag: template.tag,
+      items: template.items,
+      bookingValue: template.bookingValue,
+    }));
+    toast.success("Content helper text added");
   };
 
   const insertQuoteTemplate = () => {
@@ -2960,73 +3062,93 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        <Card id="website-content-manager" className="mt-8 scroll-mt-20 md:scroll-mt-6">
-          <CardHeader>
+        <Card id="website-content-manager" className="mt-6 scroll-mt-20 border-[#ead8bf] bg-white shadow-sm md:scroll-mt-6">
+          <CardHeader className="p-4 md:p-6">
             <CardTitle>Website Content Manager</CardTitle>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs leading-relaxed text-muted-foreground md:text-sm">
               Add adverts, service cards, product cards, project photos, videos, and documents from here. Active adverts notify app subscribers and email previous customers who agreed to be contacted.
             </p>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 rounded-xl border bg-muted/20 p-4 md:grid-cols-2">
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="grid gap-3 rounded-2xl border border-[#ead8bf] bg-[#fffaf2] p-3 md:grid-cols-2 md:p-4">
               <div>
-                <Label>Where should this appear?</Label>
+                <Label>Website Section / Placement</Label>
                 <Select value={contentDraft.category} onValueChange={(value: ContentItem["category"]) => setContentDraft((draft) => ({ ...draft, category: value }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {contentCategories.map((category) => (
                       <SelectItem key={category.value} value={category.value}>{category.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="mt-1 text-[0.7rem] leading-relaxed text-muted-foreground">{contentCategoryHelp[contentDraft.category]}</p>
+              </div>
+              <details className="rounded-xl border border-[#ead8bf] bg-white px-3 py-2 text-xs leading-relaxed text-muted-foreground md:col-span-1">
+                <summary className="cursor-pointer font-black text-[#6B4423]">Content writing helper</summary>
+                <p className="mt-2">Choose a starter example, then edit it to match the real advert, service, or product.</p>
+                <div className="mt-2 grid gap-2">
+                  {contentAssistantTemplates[contentDraft.category].map((template) => (
+                    <button
+                      key={`${template.title}-${template.bookingValue}`}
+                      type="button"
+                      onClick={() => applyContentAssistantTemplate(template)}
+                      className="rounded-xl border border-[#ead8bf] bg-[#fffaf2] px-3 py-2 text-left font-bold text-secondary transition hover:border-primary hover:text-primary"
+                    >
+                      {template.title}
+                    </button>
+                  ))}
+                </div>
+              </details>
+              <div>
+                <Label>Public Title</Label>
+                <Input className="mt-1 bg-white" value={contentDraft.title} onChange={(event) => setContentDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Weekend home repair support" : "Card title customers will see"} />
               </div>
               <div>
-                <Label>Title</Label>
-                <Input value={contentDraft.title} onChange={(event) => setContentDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Holiday repair discount" : "Card title"} />
+                <Label>Small Label Above Title</Label>
+                <Input className="mt-1 bg-white" value={contentDraft.tag || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, tag: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Weekend Offer, New Arrival, Discount..." : "Security, Door Kit, Recent Work..."} />
               </div>
               <div>
-                <Label>Small Label</Label>
-                <Input value={contentDraft.tag || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, tag: event.target.value }))} placeholder={contentDraft.category === "advert" ? "New Arrival, Discount, Holiday Offer..." : "Security, Door Kit, Before / After..."} />
-              </div>
-              <div>
-                <Label>Booking Service</Label>
-                <Input value={contentDraft.bookingValue || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, bookingValue: event.target.value }))} placeholder="door-purchase" />
+                <Label>Booking Form Service</Label>
+                <Input className="mt-1 bg-white" value={contentDraft.bookingValue || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, bookingValue: event.target.value }))} placeholder="door-repair, furniture-installation, door-purchase..." />
+                <p className="mt-1 text-[0.7rem] leading-relaxed text-muted-foreground">This preselects the service when a customer clicks this content.</p>
               </div>
               <div className="md:col-span-2">
-                <Label>Description</Label>
-                <Textarea value={contentDraft.description || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, description: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Tell customers what is new, discounted, or available for booking." : "Short customer-facing description"} />
+                <Label>Short Public Description</Label>
+                <Textarea className="mt-1 min-h-24 resize-y bg-white md:min-h-28" value={contentDraft.description || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, description: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Tell customers what is new, discounted, or available for booking." : "Short customer-facing description"} />
               </div>
               <div className="md:col-span-2">
-                <Label>{contentDraft.category === "advert" ? "Button Text / Details" : "Items / Details"}</Label>
-                <Input value={contentDraft.items || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, items: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Book This Offer" : "Handles, cylinders, hinges, lock bodies..."} />
+                <Label>{contentDraft.category === "advert" ? "Advert Button Text / Document Link" : "Items, Details, or Document Link"}</Label>
+                <Input className="mt-1 bg-white" value={contentDraft.items || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, items: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Book This Offer" : "Handles, cylinders, hinges, lock bodies..."} />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  For normal content, write the details customers should see. If you upload a PDF or Word document, the document link is saved here and appears publicly as a clickable document link.
+                  Write button text, product details, or the document link. PDF/Word uploads are saved here and appear publicly as a clickable document link.
                 </p>
               </div>
               <div className="md:col-span-2">
                 <Label>Main Media</Label>
-                <Input value={contentDraft.image || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="Image/video URL or uploaded media" />
+                <Input className="mt-1 bg-white" value={contentDraft.image || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="Image/video URL or uploaded media" />
                 <p className="mt-1 text-xs text-muted-foreground">
                   Upload or paste the main image or video. The website will crop and size it automatically so it fits the selected section.
                 </p>
               </div>
-              <div className="rounded-2xl border border-dashed border-primary/25 bg-white p-4 md:col-span-2">
-                <Label htmlFor="content-flyer-upload" className="flex cursor-pointer flex-col items-center justify-center gap-2 text-center">
-                  <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <div className="rounded-2xl border border-dashed border-primary/25 bg-white p-3 md:col-span-2">
+                <Label htmlFor="content-flyer-upload" className="flex cursor-pointer items-center gap-3 text-left">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
                     <Upload className="h-5 w-5" />
                   </span>
-                  <span className="font-semibold text-foreground">{contentUploadLoading ? "Uploading..." : "Upload image, video, or document"}</span>
-                  <span className="max-w-lg text-xs text-muted-foreground">
-                    Use this for advert flyers, product photos, service images, short videos, PDFs, or Word documents. Files can be up to 20MB.
+                  <span className="grid gap-0.5">
+                    <span className="font-semibold text-foreground">{contentUploadLoading ? "Uploading..." : "Upload image, video, or document"}</span>
+                    <span className="text-xs text-muted-foreground">
+                      Flyers, product photos, service images, short videos, PDFs, or Word documents up to 20MB.
+                    </span>
                   </span>
                 </Label>
                 <Input id="content-flyer-upload" type="file" accept="image/*,video/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="sr-only" onChange={handleContentImageUpload} disabled={contentUploadLoading} />
                 {contentDraft.image && (
                   <div className="mt-4 overflow-hidden rounded-2xl border bg-muted/20">
                     {contentDraft.image.startsWith("data:video/") || /\.(mp4|webm|ogg)(\?.*)?$/i.test(contentDraft.image) ? (
-                      <video src={contentDraft.image} className="max-h-56 w-full object-contain" controls muted />
+                      <video src={contentDraft.image} className="max-h-44 w-full object-contain md:max-h-56" controls muted />
                     ) : (
-                      <img src={contentDraft.image} alt="Selected content preview" className="max-h-56 w-full object-contain" />
+                      <img src={contentDraft.image} alt="Selected content preview" className="max-h-44 w-full object-contain md:max-h-56" />
                     )}
                   </div>
                 )}
@@ -3068,7 +3190,7 @@ export default function Admin() {
               <div>
                 <Label>Visibility</Label>
                 <Select value={contentDraft.active ? "true" : "false"} onValueChange={(value) => setContentDraft((draft) => ({ ...draft, active: value === "true" }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="true">Visible</SelectItem>
                     <SelectItem value="false">Hidden</SelectItem>
@@ -3089,20 +3211,20 @@ export default function Admin() {
               </div>
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="mt-4 grid gap-2 md:grid-cols-2">
               {contentItems.map((item) => (
-                <div key={item.id} className="min-w-0 rounded-xl border p-4">
+                <div key={item.id} className="min-w-0 rounded-xl border border-[#ead8bf] bg-white p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <Badge variant="secondary">{contentCategories.find((category) => category.value === item.category)?.label || item.category}</Badge>
-                      <h3 className="mt-2 break-words text-lg font-semibold">{item.title}</h3>
-                      <p className="mt-1 break-words text-sm text-muted-foreground">{item.description || "No description"}</p>
+                      <Badge variant="secondary" className="text-[0.65rem]">{contentCategories.find((category) => category.value === item.category)?.label || item.category}</Badge>
+                      <h3 className="mt-1 break-words text-sm font-black text-secondary md:text-base">{item.title}</h3>
+                      <p className="mt-1 line-clamp-2 break-words text-xs leading-relaxed text-muted-foreground">{item.description || "No description"}</p>
                     </div>
-                    <Badge variant={item.active ? "default" : "outline"}>{item.active ? "Visible" : "Hidden"}</Badge>
+                    <Badge variant={item.active ? "default" : "outline"} className="shrink-0 text-[0.65rem]">{item.active ? "Visible" : "Hidden"}</Badge>
                   </div>
-                  <div className="mt-4 flex gap-2">
-                    <Button type="button" variant="outline" onClick={() => editContentItem(item)}>Edit</Button>
-                    <Button type="button" variant="outline" onClick={() => deleteContentItem(item.id)}>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => editContentItem(item)}>Edit</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => deleteContentItem(item.id)}>
                       <Trash2 className="mr-2 h-4 w-4 text-destructive" />
                       Delete
                     </Button>
