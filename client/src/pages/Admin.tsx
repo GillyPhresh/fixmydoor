@@ -144,6 +144,39 @@ function getEmailStatusLabel(status: EmailRuntimeStatus) {
   return status.verified ? "Ready with SMTP" : "SMTP verification pending/failed";
 }
 
+function toDateTimeLocalInputValue(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  const offsetDate = new Date(parsedDate.getTime() - parsedDate.getTimezoneOffset() * 60_000);
+  return offsetDate.toISOString().slice(0, 16);
+}
+
+function formatDateTimeLocalInput(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return parsedDate.toLocaleString([], {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
   const [loginData, setLoginData] = useState({ username: "", password: "" });
@@ -892,6 +925,24 @@ export default function Admin() {
           </div>
         </div>
 
+        <div className="sticky top-2 z-20 mb-4 grid grid-cols-4 gap-1.5 rounded-2xl border border-[#ead8bf] bg-white/95 p-1.5 shadow-[0_14px_35px_rgba(66,40,18,0.12)] backdrop-blur md:hidden">
+          {[
+            ["Jobs", "booking-requests"],
+            ["Alerts", "push-notification-manager"],
+            ["Content", "website-content-manager"],
+            ["Reviews", "review-moderation"],
+          ].map(([label, target]) => (
+            <button
+              key={target}
+              type="button"
+              onClick={() => document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="rounded-xl bg-[#fff6ea] px-2 py-2 text-[0.68rem] font-black text-[#6B4423]"
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Stats Dashboard */}
         {stats && (
           <div className="mb-4 grid grid-cols-2 gap-2.5 md:mb-6 md:grid-cols-3 md:gap-3 xl:grid-cols-6">
@@ -1246,7 +1297,7 @@ export default function Admin() {
           </Button>
         </div>
 
-        <Card className="border-[#ead8bf] bg-white shadow-sm">
+        <Card id="booking-requests" className="scroll-mt-20 border-[#ead8bf] bg-white shadow-sm md:scroll-mt-8">
           <CardHeader className="p-4 md:p-6">
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
@@ -1285,6 +1336,21 @@ export default function Admin() {
                         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
                         <span className="line-clamp-2">{booking.address}</span>
                       </div>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      {[
+                        ["Requested", formatPreferredDate(booking.preferredDate)],
+                        ["Appointment", booking.appointmentTime || "Not set"],
+                        ["Quote", booking.quoteAmount || "Not quoted"],
+                        ["Payment", booking.paymentStatus || "Not paid"],
+                        ["Urgency", booking.urgency || "Standard"],
+                        ["Country", booking.country || "Canada"],
+                      ].map(([label, value]) => (
+                        <div key={`${booking.id}-${label}`} className="min-w-0 rounded-xl bg-white px-3 py-2">
+                          <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+                          <p className="mt-0.5 truncate font-semibold text-secondary">{value}</p>
+                        </div>
+                      ))}
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       <Select
@@ -1389,31 +1455,113 @@ export default function Admin() {
                               </div>
                             )}
                             <div className="rounded-2xl border bg-[#fffaf2] p-3">
-                              <div className="mb-3 flex items-center justify-between gap-2">
-                                <Label>Admin Workflow</Label>
-                                <Button type="button" size="sm" onClick={saveBookingWorkflow}>
+                              <div className="mb-3 flex flex-col gap-2">
+                                <div>
+                                  <Label>Admin Workflow</Label>
+                                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                    Set the appointment, quote, invoice status, payment status, assigned staff, and private notes from your phone.
+                                  </p>
+                                </div>
+                                <Button type="button" size="sm" onClick={saveBookingWorkflow} className="w-full">
                                   <Save className="mr-1.5 h-4 w-4" />
-                                  Save
+                                  Save Details
                                 </Button>
                               </div>
                               <div className="grid gap-2">
-                                <Input
-                                  value={bookingDraft.appointmentTime || ""}
-                                  onChange={(event) => setBookingDraft((draft) => ({ ...draft, appointmentTime: event.target.value }))}
-                                  placeholder="Appointment time"
-                                />
-                                <Input
-                                  value={bookingDraft.quoteAmount || ""}
-                                  onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteAmount: event.target.value }))}
-                                  placeholder="Quote amount"
-                                />
-                                <Textarea
-                                  value={bookingDraft.adminNotes || ""}
-                                  onChange={(event) => setBookingDraft((draft) => ({ ...draft, adminNotes: event.target.value }))}
-                                  placeholder="Internal notes"
-                                />
+                                <div>
+                                  <Label htmlFor={`appointment-${booking.id}`}>Appointment Date & Time</Label>
+                                  <Input
+                                    id={`appointment-${booking.id}`}
+                                    type="datetime-local"
+                                    value={toDateTimeLocalInputValue(bookingDraft.appointmentTime)}
+                                    onChange={(event) => setBookingDraft((draft) => ({ ...draft, appointmentTime: formatDateTimeLocalInput(event.target.value) }))}
+                                    className="bg-white"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <Label>Quote Amount</Label>
+                                    <Input
+                                      value={bookingDraft.quoteAmount || ""}
+                                      onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteAmount: event.target.value }))}
+                                      placeholder="C$250"
+                                      className="bg-white"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label>Staff</Label>
+                                    <Input
+                                      value={bookingDraft.staffAssigned || ""}
+                                      onChange={(event) => setBookingDraft((draft) => ({ ...draft, staffAssigned: event.target.value }))}
+                                      placeholder="Richard"
+                                      className="bg-white"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <Label>Invoice Status</Label>
+                                    <Select value={bookingDraft.invoiceStatus || "Not issued"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, invoiceStatus: value }))}>
+                                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Not issued">Not issued</SelectItem>
+                                        <SelectItem value="Quote sent">Quote sent</SelectItem>
+                                        <SelectItem value="Invoice sent">Invoice sent</SelectItem>
+                                        <SelectItem value="Revised">Revised</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div>
+                                    <Label>Payment</Label>
+                                    <Select value={bookingDraft.paymentStatus || "Not paid"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, paymentStatus: value }))}>
+                                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Not paid">Not paid</SelectItem>
+                                        <SelectItem value="Deposit requested">Deposit requested</SelectItem>
+                                        <SelectItem value="Partially paid">Partially paid</SelectItem>
+                                        <SelectItem value="Paid">Paid</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                                <div>
+                                  <Label>Quote / Invoice Notes</Label>
+                                  <Textarea
+                                    value={bookingDraft.quoteNotes || ""}
+                                    onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteNotes: event.target.value }))}
+                                    placeholder="Labour, material, delivery, payment terms, or quote details."
+                                    className="bg-white"
+                                  />
+                                </div>
+                                <div>
+                                  <Label>Private Admin Notes</Label>
+                                  <Textarea
+                                    value={bookingDraft.adminNotes || ""}
+                                    onChange={(event) => setBookingDraft((draft) => ({ ...draft, adminNotes: event.target.value }))}
+                                    placeholder="Internal follow-up notes. Customers do not see this."
+                                    className="bg-white"
+                                  />
+                                </div>
+                                <Button type="button" variant="outline" className="bg-white" onClick={() => openQuoteInvoice(booking.id)}>
+                                  <FileText className="mr-1.5 h-4 w-4" />
+                                  Open Quote / Invoice
+                                </Button>
                               </div>
                             </div>
+                            {booking.statusHistory && booking.statusHistory.length > 0 && (
+                              <div className="rounded-xl border bg-white p-3">
+                                <Label>Status History</Label>
+                                <div className="mt-2 grid gap-2">
+                                  {booking.statusHistory.map((entry, index) => (
+                                    <div key={`${entry.status}-${entry.changedAt}-${index}`} className="rounded-lg bg-muted/50 p-2">
+                                      <p className="text-sm font-semibold">{entry.status.replace("_", " ")}</p>
+                                      <p className="text-xs text-muted-foreground">{new Date(entry.changedAt).toLocaleString()}</p>
+                                      {entry.note && <p className="mt-1 text-xs leading-relaxed">{entry.note}</p>}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </DialogContent>
                       </Dialog>
@@ -1676,11 +1824,11 @@ export default function Admin() {
                                     </div>
                                     <div className="grid gap-3 sm:grid-cols-3">
                                       <div>
-                                        <Label>Appointment Time</Label>
+                                        <Label>Appointment Date & Time</Label>
                                         <Input
-                                          value={bookingDraft.appointmentTime || ""}
-                                          onChange={(event) => setBookingDraft((draft) => ({ ...draft, appointmentTime: event.target.value }))}
-                                          placeholder="May 10, 2:00 PM"
+                                          type="datetime-local"
+                                          value={toDateTimeLocalInputValue(bookingDraft.appointmentTime)}
+                                          onChange={(event) => setBookingDraft((draft) => ({ ...draft, appointmentTime: formatDateTimeLocalInput(event.target.value) }))}
                                         />
                                       </div>
                                       <div>
@@ -1822,7 +1970,7 @@ export default function Admin() {
           </div>
         )}
 
-        <Card id="website-content-manager" className="mt-8 scroll-mt-6">
+        <Card id="review-moderation" className="mt-8 scroll-mt-20 md:scroll-mt-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Star className="h-5 w-5" />
@@ -1835,9 +1983,9 @@ export default function Admin() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {reviews.map((review) => (
-                  <div key={review.id} className="rounded-xl border p-4">
+                  <div key={review.id} className="min-w-0 rounded-xl border p-4">
                     <div className="mb-3 flex items-start justify-between gap-3">
-                      <div>
+                      <div className="min-w-0">
                         <p className="font-semibold">{review.name}</p>
                         <p className="text-sm text-muted-foreground">{review.location || "No location"} · {review.rating} stars</p>
                       </div>
@@ -1867,17 +2015,17 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        <Card className="mt-8">
+        <Card id="website-content-manager" className="mt-8 scroll-mt-20 md:scroll-mt-6">
           <CardHeader>
             <CardTitle>Website Content Manager</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Add adverts, flyers, videos, product cards, project cards, and service cards without editing code. Uploaded advert media appears in the homepage carousel.
+              Add adverts, service cards, product cards, project photos, videos, and documents from here. Saved items use the website's existing layout, spacing, and styling so new content blends naturally with the site.
             </p>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 rounded-xl border bg-muted/20 p-4 md:grid-cols-2">
               <div>
-                <Label>Category</Label>
+                <Label>Where should this appear?</Label>
                 <Select value={contentDraft.category} onValueChange={(value: ContentItem["category"]) => setContentDraft((draft) => ({ ...draft, category: value }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -1892,11 +2040,11 @@ export default function Admin() {
                 <Input value={contentDraft.title} onChange={(event) => setContentDraft((draft) => ({ ...draft, title: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Holiday repair discount" : "Card title"} />
               </div>
               <div>
-                <Label>Tag / Category Label</Label>
+                <Label>Small Label</Label>
                 <Input value={contentDraft.tag || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, tag: event.target.value }))} placeholder={contentDraft.category === "advert" ? "New Arrival, Discount, Holiday Offer..." : "Security, Door Kit, Before / After..."} />
               </div>
               <div>
-                <Label>Booking Value</Label>
+                <Label>Booking Service</Label>
                 <Input value={contentDraft.bookingValue || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, bookingValue: event.target.value }))} placeholder="door-purchase" />
               </div>
               <div className="md:col-span-2">
@@ -1911,7 +2059,7 @@ export default function Admin() {
                 <Label>Main Media</Label>
                 <Input value={contentDraft.image || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, image: event.target.value }))} placeholder="Image/video URL or uploaded media" />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Upload or paste the main image, video, or document for this content item.
+                  Upload or paste the main image or video. The website will crop and size it automatically so it fits the selected section.
                 </p>
               </div>
               <div className="rounded-2xl border border-dashed border-primary/25 bg-white p-4 md:col-span-2">
@@ -1921,7 +2069,7 @@ export default function Admin() {
                   </span>
                   <span className="font-semibold text-foreground">{contentUploadLoading ? "Uploading..." : "Upload image, video, or document"}</span>
                   <span className="max-w-lg text-xs text-muted-foreground">
-                    Use this for advert flyers, product photos, service images, short videos, PDFs, or Word documents. Videos can be up to 20MB.
+                    Use this for advert flyers, product photos, service images, short videos, PDFs, or Word documents. Files can be up to 20MB.
                   </span>
                 </Label>
                 <Input id="content-flyer-upload" type="file" accept="image/*,video/*,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="sr-only" onChange={handleContentImageUpload} disabled={contentUploadLoading} />
@@ -1948,6 +2096,7 @@ export default function Admin() {
                     <SelectItem value="false">Hidden</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="mt-1 text-xs text-muted-foreground">Hidden items stay saved in admin but do not appear on the website.</p>
               </div>
               <div className="flex flex-col gap-2 md:col-span-2 sm:flex-row">
                 <Button type="button" onClick={saveContentItem}>
@@ -1964,12 +2113,12 @@ export default function Admin() {
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               {contentItems.map((item) => (
-                <div key={item.id} className="rounded-xl border p-4">
+                <div key={item.id} className="min-w-0 rounded-xl border p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <Badge variant="secondary">{contentCategories.find((category) => category.value === item.category)?.label || item.category}</Badge>
-                      <h3 className="mt-2 text-lg font-semibold">{item.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{item.description || "No description"}</p>
+                      <h3 className="mt-2 break-words text-lg font-semibold">{item.title}</h3>
+                      <p className="mt-1 break-words text-sm text-muted-foreground">{item.description || "No description"}</p>
                     </div>
                     <Badge variant={item.active ? "default" : "outline"}>{item.active ? "Visible" : "Hidden"}</Badge>
                   </div>

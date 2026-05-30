@@ -153,6 +153,14 @@
     .admin-dashboard-shell :where(p, h1, h2, h3, a) {
       overflow-wrap: anywhere;
     }
+
+    [data-radix-popper-content-wrapper] {
+      max-width: calc(100vw - 0.5rem) !important;
+    }
+
+    [role="dialog"] {
+      max-width: calc(100vw - 1rem);
+    }
   }
   body {
     top: 0 !important;
