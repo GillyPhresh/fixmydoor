@@ -1304,15 +1304,24 @@ export default function Admin() {
     { label: "Completed", value: stats.completedBookings, color: "text-green-700", action: { status: "COMPLETED", workflow: "ALL" } },
   ] : [];
 
-  const quickBookingFilters = [
-    { label: "All", action: { status: "ALL", workflow: "ALL" } },
-    { label: "Today", action: { status: "ALL", workflow: "TODAY" } },
-    { label: "Week", action: { status: "ALL", workflow: "THIS_WEEK" } },
-    { label: "Urgent", action: { status: "ALL", workflow: "URGENT" } },
-    { label: "Reminders", action: { status: "ALL", workflow: "REMINDERS" } },
-    { label: "Pending", action: { status: "PENDING", workflow: "ALL" } },
-    { label: "Needs Quote", action: { status: "ALL", workflow: "NEEDS_QUOTE" } },
+  const bookingFilterOptions = [
+    { label: "All Status", status: "ALL", workflow: "ALL" },
+    { label: "Today", status: "ALL", workflow: "TODAY" },
+    { label: "This Week", status: "ALL", workflow: "THIS_WEEK" },
+    { label: "Urgent", status: "ALL", workflow: "URGENT" },
+    { label: "Reminders", status: "ALL", workflow: "REMINDERS" },
+    { label: "Pending", status: "PENDING", workflow: "ALL" },
+    { label: "Needs Quote", status: "ALL", workflow: "NEEDS_QUOTE" },
+    { label: "Confirmed", status: "CONFIRMED", workflow: "ALL" },
+    { label: "In Progress", status: "IN_PROGRESS", workflow: "ALL" },
+    { label: "Completed", status: "COMPLETED", workflow: "ALL" },
+    { label: "Cancelled", status: "CANCELLED", workflow: "ALL" },
+    { label: "Quoted", status: "ALL", workflow: "QUOTED" },
+    { label: "Scheduled", status: "ALL", workflow: "SCHEDULED" },
+    { label: "Payment Pending", status: "ALL", workflow: "PAYMENT_PENDING" },
+    { label: "International Requests", status: "ALL", workflow: "INTERNATIONAL" },
   ];
+  const selectedBookingFilterValue = `${statusFilter}::${workflowFilter}`;
   const reminderWatchBookings: Booking[] = Array.isArray(stats?.recentReminderBookings)
     ? stats.recentReminderBookings.slice(0, 3)
     : [];
@@ -1909,23 +1918,7 @@ export default function Admin() {
           </Card>
         )}
 
-        <div className="mb-3 grid grid-cols-3 gap-1.5 rounded-2xl border border-[#ead8bf] bg-white p-1.5 shadow-sm sm:grid-cols-6 lg:mb-4">
-          {quickBookingFilters.map((filter) => {
-            const isActive = statusFilter === filter.action.status && workflowFilter === filter.action.workflow;
-            return (
-              <button
-                key={filter.label}
-                type="button"
-                onClick={() => applyQuickBookingFilter(filter.action)}
-                className={`rounded-xl px-2 py-2 text-[0.68rem] font-black transition sm:text-xs ${isActive ? "bg-[#6B4423] text-white shadow-sm" : "bg-[#fff6ea] text-[#6B4423]"}`}
-              >
-                {filter.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mb-4 grid gap-2 lg:mb-6 lg:grid-cols-[1fr_auto_auto_auto] lg:gap-4">
+        <div className="mb-4 grid gap-2 lg:mb-6 lg:grid-cols-[1fr_16rem_auto] lg:gap-4">
           <div className="flex-1">
             <div className="relative">
               <span className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-[0_8px_18px_rgba(66,40,18,0.12)] ring-1 ring-primary/18">
@@ -1939,36 +1932,23 @@ export default function Admin() {
               />
             </div>
           </div>
-          <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}>
-            <SelectTrigger className="w-full bg-white lg:w-48">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Filter by status" />
+          <Select
+            value={selectedBookingFilterValue}
+            onValueChange={(value) => {
+              const [status, workflow] = value.split("::");
+              applyQuickBookingFilter({ status, workflow });
+            }}
+          >
+            <SelectTrigger className="h-12 w-full rounded-full bg-white shadow-sm">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Status</SelectItem>
-              <SelectItem value="PENDING">Pending</SelectItem>
-              <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-              <SelectItem value="COMPLETED">Completed</SelectItem>
-              <SelectItem value="CANCELLED">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={workflowFilter} onValueChange={(value) => { setWorkflowFilter(value); setCurrentPage(1); }}>
-            <SelectTrigger className="w-full bg-white lg:w-56">
-              <Filter className="w-4 h-4 mr-2" />
-              <SelectValue placeholder="Workflow filter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Workflows</SelectItem>
-              <SelectItem value="TODAY">Today</SelectItem>
-              <SelectItem value="THIS_WEEK">This Week</SelectItem>
-              <SelectItem value="INTERNATIONAL">International Requests</SelectItem>
-              <SelectItem value="URGENT">Urgent / Emergency</SelectItem>
-              <SelectItem value="REMINDERS">Due Reminders</SelectItem>
-              <SelectItem value="NEEDS_QUOTE">Needs Quote</SelectItem>
-              <SelectItem value="QUOTED">Quoted</SelectItem>
-              <SelectItem value="SCHEDULED">Scheduled</SelectItem>
-              <SelectItem value="PAYMENT_PENDING">Payment Pending</SelectItem>
+              {bookingFilterOptions.map((option) => (
+                <SelectItem key={`${option.status}-${option.workflow}`} value={`${option.status}::${option.workflow}`}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Button type="button" variant="outline" onClick={exportBookings} className="h-11 bg-white lg:w-auto">
