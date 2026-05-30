@@ -468,12 +468,7 @@ export default function Home() {
 
     try {
       setNotificationPromptLoading(true);
-      const registration = await registerNotificationWorker();
-      if (!registration) {
-        throw new Error("Service worker registration failed.");
-      }
-
-      const permission = await Notification.requestPermission();
+      const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
       if (permission !== "granted") {
         setNotificationsEnabled(false);
         setNotificationPromptOpen(false);
@@ -481,6 +476,11 @@ export default function Home() {
         window.localStorage.removeItem("fixmydoor-notifications-enabled");
         toast.message("Notifications were not enabled.");
         return;
+      }
+
+      const registration = await registerNotificationWorker();
+      if (!registration) {
+        throw new Error("Service worker registration failed.");
       }
 
       await subscribeForPushNotifications(registration);
@@ -1527,6 +1527,33 @@ export default function Home() {
     window.localStorage.setItem("fixmydoor-human-check-v2", "verified");
     setCookieBannerOpen(false);
     toast.success(preference === "accepted" ? "Cookie preference saved." : "Optional cookies declined.");
+  };
+
+  const requestNotificationsFromHumanConfirmation = () => {
+    const canRequestNotifications = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+    if (
+      canRequestNotifications &&
+      !notificationsEnabled &&
+      !notificationPromptLoading &&
+      Notification.permission === "default"
+    ) {
+      window.localStorage.removeItem(NOTIFICATION_CHOICE_KEY);
+      setNotificationPromptOpen(false);
+      void enableNotifications();
+    }
+  };
+
+  const handleHumanCheckChange = (checked: boolean | "indeterminate") => {
+    const confirmed = checked === true;
+    setHumanCheckConfirmed(confirmed);
+
+    if (!confirmed) {
+      window.localStorage.removeItem("fixmydoor-human-check-v2");
+      return;
+    }
+
+    window.localStorage.setItem("fixmydoor-human-check-v2", "verified");
+    requestNotificationsFromHumanConfirmation();
   };
 
   const scrollMobileCarousel = (trackId: string, direction: -1 | 1) => {
@@ -2958,7 +2985,15 @@ export default function Home() {
                       <FormControl>
                         <Checkbox
                           checked={field.value === "verified-customer"}
-                          onCheckedChange={(checked) => field.onChange(checked === true ? "verified-customer" : "")}
+                          onCheckedChange={(checked) => {
+                            const verified = checked === true;
+                            field.onChange(verified ? "verified-customer" : "");
+                            if (verified) {
+                              setHumanCheckConfirmed(true);
+                              window.localStorage.setItem("fixmydoor-human-check-v2", "verified");
+                              requestNotificationsFromHumanConfirmation();
+                            }
+                          }}
                         />
                       </FormControl>
                       <div>
@@ -3154,13 +3189,13 @@ export default function Home() {
             <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-[20px] border border-primary/12 bg-[#fffaf2] p-4">
               <Checkbox
                 checked={humanCheckConfirmed}
-                onCheckedChange={(checked) => setHumanCheckConfirmed(checked === true)}
+                onCheckedChange={handleHumanCheckChange}
                 className="mt-0.5"
               />
               <span>
                 <span className="block font-bold text-secondary">I am a real visitor, not an automated bot.</span>
                 <span className="mt-1 block text-xs leading-relaxed text-foreground/65">
-                  You only need to confirm this once on this device unless your browser storage is cleared.
+                  You only need to confirm this once. Your browser may also ask to allow FixMyDoor service updates on this device.
                 </span>
               </span>
             </label>
