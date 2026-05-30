@@ -436,6 +436,56 @@ function queuePushNotification(
   });
 }
 
+const CUSTOMER_EMAIL_BROADCAST_LIMIT = Math.max(1, Math.min(500, Number(process.env.CUSTOMER_EMAIL_BROADCAST_LIMIT || 120)));
+
+function queueCustomerEmailBroadcast(
+  payload: Pick<PushPayload, "title" | "message" | "url">,
+  type: "advert" | "notification" = "notification",
+) {
+  setTimeout(() => {
+    sendCustomerEmailBroadcast(payload, type).catch((error) => {
+      console.error("Queued customer email broadcast failed:", error);
+    });
+  }, 0);
+}
+
+async function sendCustomerEmailBroadcast(
+  payload: Pick<PushPayload, "title" | "message" | "url">,
+  type: "advert" | "notification",
+) {
+  const bookings = await prisma.booking.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      email: true,
+      customerConsent: true,
+    },
+    take: 1000,
+  });
+  const uniqueEmails = Array.from(new Set(
+    bookings
+      .filter((booking) => booking.customerConsent && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(booking.email || ""))
+      .map((booking) => booking.email.trim().toLowerCase()),
+  )).slice(0, CUSTOMER_EMAIL_BROADCAST_LIMIT);
+
+  let sent = 0;
+  let failed = 0;
+  for (const email of uniqueEmails) {
+    const ok = await emailService.sendCustomerBroadcastEmail(email, {
+      title: payload.title,
+      message: payload.message,
+      url: payload.url,
+      type,
+    });
+    if (ok) {
+      sent += 1;
+    } else {
+      failed += 1;
+    }
+  }
+
+  console.log("Customer email broadcast finished", { type, sent, failed, total: uniqueEmails.length });
+}
+
 function isInternationalBooking(booking: Booking) {
   const country = (booking.country || "").trim().toLowerCase();
   const scope = (booking.requestScope || "").trim().toLowerCase();
@@ -826,7 +876,7 @@ function renderPageStructuredData(pagePath: string) {
           "postalCode": "H3L 2G6",
           "addressCountry": "CA",
         },
-        "areaServed": ["Montreal", "Laval", "Longueuil", "Brossard", "Quebec", "Canada"],
+        "areaServed": ["Montreal", "Laval", "Longueuil", "Brossard", "West Island", "Quebec", "Canada"],
         "openingHours": "Mo-Su 08:00-20:00",
         "priceRange": "$$",
         "sameAs": ["https://www.fixmydoor.ca"],
@@ -840,6 +890,11 @@ function renderPageStructuredData(pagePath: string) {
           "@id": `${publicBaseUrl}/#business`,
         },
         "areaServed": [
+          { "@type": "City", "name": "Montreal" },
+          { "@type": "AdministrativeArea", "name": "Quebec" },
+          { "@type": "City", "name": "Laval" },
+          { "@type": "City", "name": "Longueuil" },
+          { "@type": "City", "name": "Brossard" },
           { "@type": "Country", "name": "Canada" },
           { "@type": "Place", "name": "International requests" },
         ],
@@ -1668,6 +1723,9 @@ async function startServer() {
       badge: audience === "admin" ? "/icons/admin-icon-v2-96x96.png" : "/icons/main-icon-v2-96x96.png",
     }, { audience, log: true });
     broadcastSiteEvent({ type: "notification", title, message, url });
+    if (audience !== "admin") {
+      queueCustomerEmailBroadcast({ title, message, url }, "notification");
+    }
 
     return res.json({
       success: true,
@@ -1723,6 +1781,7 @@ async function startServer() {
         queuePushNotification(payload, { audience: "visitor", log: true });
         if (item.category === "advert") {
           broadcastSiteEvent(payload);
+          queueCustomerEmailBroadcast(payload, "advert");
         }
       }
       return res.status(201).json({ success: true, item });
@@ -1750,6 +1809,7 @@ async function startServer() {
         queuePushNotification(payload, { audience: "visitor", log: true });
         if (item.category === "advert") {
           broadcastSiteEvent(payload);
+          queueCustomerEmailBroadcast(payload, "advert");
         }
       }
       return res.json({ success: true, item });

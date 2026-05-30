@@ -19,9 +19,9 @@ export const homeSeoPage: SeoPage = {
   path: "/",
   title: "FixMyDoor Services | Door Repair, Furniture Repair & Hardware Sourcing",
   description:
-    "FixMyDoor Services helps with door repairs, lock rekeying, entry door installation, furniture repairs, buying doors, furniture parts, and hardware sourcing across Canada and international requests.",
+    "FixMyDoor Services helps Montreal and Quebec customers with door repair, lock rekeying, entry door installation, furniture repair, furniture installation, and hardware sourcing.",
   keywords:
-    "FixMyDoor Services, door repair, door repairs near me, door installation, entry door installation, lock rekeying, buy doors, buy door hardware, door equipment, furniture repair, furniture hardware, hardware sourcing, Canada door repair",
+    "FixMyDoor Services, Montreal door repair, door repair Montreal, door repairs near me Montreal, Quebec door installation, entry door installation Montreal, lock rekeying Montreal, furniture repair Montreal, furniture installation Montreal, door hardware Montreal, Laval door repair, Longueuil door repair, Brossard door repair, Canada door repair",
   sitemapPriority: "1.0",
   changeFrequency: "weekly",
 };
@@ -34,7 +34,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
     description:
       "Book help for sticking doors, damaged frames, loose handles, hinge problems, poor sealing, and doors that no longer close properly.",
     keywords:
-      "door repair, fixing doors, sticking door repair, damaged door frame, door hinge repair, door handle repair, door repairs Canada, door repair near me",
+      "door repair Montreal, Montreal door repair, fixing doors Montreal, sticking door repair, damaged door frame Montreal, door hinge repair, door handle repair, door repairs Quebec, door repair near me",
     bullets: ["Sticking, dragging, sagging, or scraping doors", "Frame, latch, hinge, and handle repairs", "Photo-based review before follow-up"],
     cta: "Book Door Repair",
     bookingValue: "door-repair",
@@ -49,7 +49,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
     description:
       "Request lock rekeying, lock replacement, handle changes, cylinder support, and safer entry hardware for homes, rentals, offices, and business spaces.",
     keywords:
-      "lock rekeying, door lock replacement, rekey front door, lock repair, door cylinder replacement, handle replacement, safer door lock, Canada locksmith support",
+      "lock rekeying Montreal, door lock replacement Montreal, rekey front door, lock repair, door cylinder replacement, handle replacement Montreal, safer door lock, Quebec door hardware",
     bullets: ["Rekeying after missing keys or tenant changes", "Cylinder, latch, handle, and hinge support", "Security-focused recommendations"],
     cta: "Request Lock Help",
     bookingValue: "lock-rekeying",
@@ -64,7 +64,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
     description:
       "Send photos for sofa frame repairs, loose joints, cabinet hinges, drawer slides, chair repairs, and furniture parts that need practical repair or replacement.",
     keywords:
-      "furniture repair, sofa repair, cabinet repair, drawer slide repair, chair repair, furniture restoration, furniture parts, furniture repair Canada",
+      "furniture repair Montreal, sofa repair Montreal, cabinet repair, drawer slide repair, chair repair Montreal, furniture restoration, furniture parts, furniture repair Quebec",
     bullets: ["Sofa, cabinet, drawer, chair, and table support", "Loose joints, broken parts, and hardware replacement", "Clear next steps from photos and measurements"],
     cta: "Book Furniture Help",
     bookingValue: "furniture-repair",
@@ -79,7 +79,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
     description:
       "Request help with furniture installation, setup, fitting, alignment, cabinet hardware, drawer slides, shelves, desks, and practical furniture assembly support.",
     keywords:
-      "furniture installation, furniture setup, cabinet installation, drawer slide installation, furniture assembly, cabinet hardware installation, furniture fitting Canada",
+      "furniture installation Montreal, furniture setup Montreal, cabinet installation, drawer slide installation, furniture assembly Montreal, cabinet hardware installation, furniture fitting Quebec",
     bullets: ["Furniture setup, fitting, and alignment", "Cabinet, drawer, desk, shelf, and hardware installation", "Photos and measurements reviewed before follow-up"],
     cta: "Book Furniture Installation",
     bookingValue: "furniture-installation",
@@ -94,7 +94,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
     description:
       "Request help with front door replacement, entry door fitting, hardware matching, swing direction, measurements, delivery, and installation planning.",
     keywords:
-      "entry door installation, front door replacement, install exterior door, door fitting, front door installation Canada, replacement doors, door measurement",
+      "entry door installation Montreal, front door replacement Montreal, install exterior door, door fitting Montreal, front door installation Quebec, replacement doors, door measurement",
     bullets: ["Front, entry, interior, steel, wood-look, and glass-panel doors", "Measurements, swing direction, hardware, and finish guidance", "Delivery and installation planning when needed"],
     cta: "Ask About Door Installation",
     bookingValue: "entry-door-installation",

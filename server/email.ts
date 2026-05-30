@@ -178,6 +178,14 @@ function cleanSubjectValue(value: string) {
   return value.replace(/[\r\n]+/g, " ").trim();
 }
 
+function sanitizeSingleLine(value: string, maxLength = 120) {
+  return cleanSubjectValue(String(value || "")).slice(0, maxLength);
+}
+
+function cleanBodyText(value: string, maxLength = 1000) {
+  return String(value || "").replace(/\r/g, "").trim().slice(0, maxLength);
+}
+
 function displayValue(value?: string | null, fallback = "Not specified") {
   return value ? escapeHtml(value) : fallback;
 }
@@ -770,6 +778,62 @@ class EmailService {
       return true;
     } catch (error) {
       console.error("Failed to send status update email:", error);
+      return false;
+    }
+  }
+
+  async sendCustomerBroadcastEmail(to: string, payload: { title: string; message: string; url?: string; type?: "advert" | "notification" }) {
+    if (!this.canSendEmail()) {
+      console.warn("Email service not initialized");
+      return false;
+    }
+
+    const businessEmail = getBusinessEmail();
+    const useResend = this.getProviderName() === "resend";
+    const logoAttachment = useResend ? undefined : getLogoAttachment();
+    const title = sanitizeSingleLine(payload.title, 90) || "FixMyDoor Services update";
+    const message = cleanBodyText(payload.message, 600) || "A new FixMyDoor Services update is available.";
+    const url = payload.url ? normalizePublicUrl(payload.url) || `${getPublicBaseUrl()}${payload.url.startsWith("/") ? payload.url : `/${payload.url}`}` : getPublicBaseUrl();
+    const subjectPrefix = payload.type === "advert" ? "New FixMyDoor Services offer" : "FixMyDoor Services update";
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;background:#fffaf2;border:1px solid #ead8bf;border-radius:20px;overflow:hidden;">
+        <div style="background:#2f241c;padding:22px;text-align:center;">
+          ${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px", hosted: useResend })}
+        </div>
+        <div style="padding:26px;color:#3a281f;">
+          <p style="margin:0 0 10px;color:#b46532;font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">${escapeHtml(subjectPrefix)}</p>
+          <h1 style="color:#6B4423;margin:0 0 14px;">${escapeHtml(title)}</h1>
+          <p style="font-size:16px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(message)}</p>
+          <p><a href="${escapeHtml(url)}" style="display:inline-block;background:#b46532;color:#ffffff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:800;">View Update</a></p>
+          <p style="font-size:13px;line-height:1.5;color:#6f6258;">You are receiving this because you previously contacted FixMyDoor Services. To stop receiving service updates, reply STOP to this email.</p>
+          <p style="font-size:14px;color:#3a281f;">FixMyDoor Services<br><a href="mailto:${escapeHtml(businessEmail)}" style="color:#b46532;">${escapeHtml(businessEmail)}</a><br>+1 (438) 347-1823</p>
+        </div>
+      </div>
+    `;
+
+    try {
+      return await this.sendEmail({
+        from: this.config?.from,
+        to,
+        replyTo: businessEmail,
+        subject: `${subjectPrefix}: ${title}`,
+        text: [
+          title,
+          "",
+          message,
+          "",
+          `View update: ${url}`,
+          "",
+          "You are receiving this because you previously contacted FixMyDoor Services. To stop receiving service updates, reply STOP to this email.",
+          `Contact: ${businessEmail} | +1 (438) 347-1823`,
+        ].join("\n"),
+        html,
+        attachments: logoAttachment ? [logoAttachment] : undefined,
+      }, "Customer update broadcast", (error) => {
+        this.lastSendError = summarizeEmailError(error);
+      });
+    } catch (error) {
+      console.error("Failed to send customer update email:", error);
       return false;
     }
   }

@@ -14,6 +14,7 @@ import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Tr
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
 import { formatBookingDisplayId } from "@shared/booking-code";
+import { getSmsUrl, getWhatsAppUrl, normalizePhoneForMessaging } from "@shared/phone";
 
 const ADMIN_NOTIFICATION_CHOICE_KEY = "fixmydoor-admin-push-choice-v1";
 
@@ -140,35 +141,25 @@ function formatPreferredDate(dateString?: string | null) {
   return new Date(year, month - 1, day).toLocaleDateString();
 }
 
-function normalizeWhatsAppPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length === 10) {
-    return `1${digits}`;
-  }
-  if (digits.startsWith("00") && digits.length > 10) {
-    return digits.slice(2);
-  }
-  return digits.length >= 8 ? digits : "";
-}
-
 function isDocumentMedia(value?: string | null) {
   return Boolean(value && /\.(pdf|docx?)(\?.*)?$/i.test(value));
 }
 
-function getAdminToClientWhatsAppUrl(booking: Booking, customMessage?: string) {
-  const normalizedPhone = normalizeWhatsAppPhone(booking.phone);
-  if (!normalizedPhone) {
-    return "";
-  }
-
-  const message = customMessage || [
+function getDefaultClientMessage(booking: Booking) {
+  return [
     `Hello ${booking.name}, this is FixMyDoor Services.`,
     `We received your request for ${booking.repairType}.`,
     "Our staff will contact you to confirm the appointment details.",
     `Booking ID: ${formatBookingDisplayId(booking)}`,
   ].join("\n");
+}
 
-  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
+function getAdminToClientWhatsAppUrl(booking: Booking, customMessage?: string) {
+  return getWhatsAppUrl(booking.phone, booking.country || booking.address, customMessage || getDefaultClientMessage(booking));
+}
+
+function getAdminToClientSmsUrl(booking: Booking, customMessage?: string) {
+  return getSmsUrl(booking.phone, booking.country || booking.address, customMessage || getDefaultClientMessage(booking));
 }
 
 function getEmailStatusLabel(status: EmailRuntimeStatus) {
@@ -1227,7 +1218,7 @@ export default function Admin() {
           <CardContent className="grid gap-4 p-4 pt-0 md:p-6 md:pt-0 lg:grid-cols-[0.7fr_1.3fr]">
             <form onSubmit={sendPushNotification} className="space-y-3 rounded-2xl border border-primary/10 bg-[#fffaf2] p-3 md:space-y-4 md:p-4">
               <div className="rounded-2xl bg-white p-3 text-xs leading-relaxed text-muted-foreground shadow-sm">
-                Use this sender for social media posts too. Website adverts, approved reviews, and new customer requests can also trigger alerts automatically.
+                Use this sender for social media posts too. Visitor notifications also email previous customers who agreed to be contacted. Admin-only alerts stay inside the admin side.
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -1430,9 +1421,9 @@ export default function Admin() {
                       </Badge>
                     </div>
                     <div className="mt-3 grid gap-2 text-xs text-foreground/75">
-                      <a href={`tel:${booking.phone}`} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 font-semibold text-secondary">
+                      <a href={`tel:${normalizePhoneForMessaging(booking.phone, booking.country || booking.address) || booking.phone}`} className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 font-semibold text-secondary">
                         <Phone className="h-3.5 w-3.5 text-primary" />
-                        {booking.phone}
+                        {normalizePhoneForMessaging(booking.phone, booking.country || booking.address) || booking.phone}
                       </a>
                       <a href={`mailto:${booking.email}`} className="flex min-w-0 items-center gap-2 rounded-xl bg-white px-3 py-2 font-semibold text-secondary">
                         <Mail className="h-3.5 w-3.5 shrink-0 text-primary" />
@@ -1458,7 +1449,7 @@ export default function Admin() {
                         </div>
                       ))}
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
+                    <div className="mt-3 grid grid-cols-3 gap-2">
                       <Select
                         value={booking.status}
                         onValueChange={(value: BookingStatus) => updateBookingStatus(booking.id, value)}
@@ -1488,6 +1479,19 @@ export default function Admin() {
                       ) : (
                         <Button type="button" variant="outline" className="h-10 bg-white text-xs" disabled>
                           No WhatsApp
+                        </Button>
+                      )}
+                      {getAdminToClientSmsUrl(booking) ? (
+                        <a
+                          href={getAdminToClientSmsUrl(booking)}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[#6B4423] px-2 text-xs font-bold text-white transition hover:bg-[#543218]"
+                        >
+                          <Phone className="h-4 w-4" />
+                          SMS
+                        </a>
+                      ) : (
+                        <Button type="button" variant="outline" className="h-10 bg-white text-xs" disabled>
+                          No SMS
                         </Button>
                       )}
                     </div>
@@ -1553,19 +1557,28 @@ export default function Admin() {
                             )}
                             <div className="rounded-xl border bg-white p-3">
                               <p className="text-xs font-semibold text-muted-foreground">Quick Client Messages</p>
-                              <div className="mt-2 grid grid-cols-2 gap-2">
+                              <div className="mt-2 grid gap-2 sm:grid-cols-2">
                                 {quickMessageTemplates.map((template) => {
-                                  const messageUrl = getAdminToClientWhatsAppUrl(booking, template.message(booking));
+                                  const messageText = template.message(booking);
+                                  const messageUrl = getAdminToClientWhatsAppUrl(booking, messageText);
+                                  const smsUrl = getAdminToClientSmsUrl(booking, messageText);
                                   return (
-                                    <a
-                                      key={`${booking.id}-${template.label}`}
-                                      href={messageUrl || undefined}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className={`inline-flex h-9 items-center justify-center rounded-lg px-2 text-xs font-bold ${messageUrl ? "bg-green-600 text-white" : "pointer-events-none bg-muted text-muted-foreground"}`}
-                                    >
-                                      {template.label}
-                                    </a>
+                                    <div key={`${booking.id}-${template.label}`} className="grid grid-cols-2 gap-1">
+                                      <a
+                                        href={messageUrl || undefined}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className={`inline-flex h-9 items-center justify-center rounded-lg px-2 text-[0.68rem] font-bold ${messageUrl ? "bg-green-600 text-white" : "pointer-events-none bg-muted text-muted-foreground"}`}
+                                      >
+                                        WA {template.label}
+                                      </a>
+                                      <a
+                                        href={smsUrl || undefined}
+                                        className={`inline-flex h-9 items-center justify-center rounded-lg px-2 text-[0.68rem] font-bold ${smsUrl ? "bg-[#6B4423] text-white" : "pointer-events-none bg-muted text-muted-foreground"}`}
+                                      >
+                                        SMS
+                                      </a>
+                                    </div>
                                   );
                                 })}
                               </div>
@@ -1761,7 +1774,7 @@ export default function Admin() {
                         <div className="space-y-1">
                           <div className="flex items-center gap-1 text-sm">
                             <Phone className="w-3 h-3 text-muted-foreground" />
-                            {booking.phone}
+                            {normalizePhoneForMessaging(booking.phone, booking.country || booking.address) || booking.phone}
                           </div>
                           {getAdminToClientWhatsAppUrl(booking) && (
                             <a
@@ -1772,6 +1785,15 @@ export default function Admin() {
                             >
                               <MessageCircle className="h-3 w-3" />
                               WhatsApp client
+                            </a>
+                          )}
+                          {getAdminToClientSmsUrl(booking) && (
+                            <a
+                              href={getAdminToClientSmsUrl(booking)}
+                              className="inline-flex items-center gap-1 text-sm font-semibold text-[#6B4423] hover:underline"
+                            >
+                              <Phone className="h-3 w-3" />
+                              SMS client
                             </a>
                           )}
                           <div className="flex items-center gap-1 text-sm">
@@ -1854,18 +1876,29 @@ export default function Admin() {
                                     </div>
                                     <div>
                                       <Label>Phone</Label>
-                                      <p className="font-medium">{selectedBooking.phone}</p>
-                                      {getAdminToClientWhatsAppUrl(selectedBooking) && (
-                                        <a
-                                          href={getAdminToClientWhatsAppUrl(selectedBooking)}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="mt-2 inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-green-700"
-                                        >
-                                          <MessageCircle className="h-4 w-4" />
-                                          Message on WhatsApp
-                                        </a>
-                                      )}
+                                      <p className="font-medium">{normalizePhoneForMessaging(selectedBooking.phone, selectedBooking.country || selectedBooking.address) || selectedBooking.phone}</p>
+                                      <div className="mt-2 flex flex-wrap gap-2">
+                                        {getAdminToClientWhatsAppUrl(selectedBooking) && (
+                                          <a
+                                            href={getAdminToClientWhatsAppUrl(selectedBooking)}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-bold text-white transition hover:bg-green-700"
+                                          >
+                                            <MessageCircle className="h-4 w-4" />
+                                            WhatsApp
+                                          </a>
+                                        )}
+                                        {getAdminToClientSmsUrl(selectedBooking) && (
+                                          <a
+                                            href={getAdminToClientSmsUrl(selectedBooking)}
+                                            className="inline-flex items-center gap-2 rounded-lg bg-[#6B4423] px-3 py-2 text-sm font-bold text-white transition hover:bg-[#543218]"
+                                          >
+                                            <Phone className="h-4 w-4" />
+                                            SMS
+                                          </a>
+                                        )}
+                                      </div>
                                     </div>
                                     <div>
                                       <Label>Email</Label>
@@ -1921,19 +1954,28 @@ export default function Admin() {
                                   )}
                                   <div className="rounded-xl border bg-muted/30 p-4">
                                     <Label>Quick Client Messages</Label>
-                                    <div className="mt-3 grid gap-2 sm:grid-cols-4">
+                                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
                                       {quickMessageTemplates.map((template) => {
-                                        const messageUrl = getAdminToClientWhatsAppUrl(selectedBooking, template.message(selectedBooking));
+                                        const messageText = template.message(selectedBooking);
+                                        const messageUrl = getAdminToClientWhatsAppUrl(selectedBooking, messageText);
+                                        const smsUrl = getAdminToClientSmsUrl(selectedBooking, messageText);
                                         return (
-                                          <a
-                                            key={`${selectedBooking.id}-${template.label}`}
-                                            href={messageUrl || undefined}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className={`inline-flex h-10 items-center justify-center rounded-lg px-3 text-sm font-bold ${messageUrl ? "bg-green-600 text-white hover:bg-green-700" : "pointer-events-none bg-muted text-muted-foreground"}`}
-                                          >
-                                            {template.label}
-                                          </a>
+                                          <div key={`${selectedBooking.id}-${template.label}`} className="grid grid-cols-2 gap-2">
+                                            <a
+                                              href={messageUrl || undefined}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className={`inline-flex h-10 items-center justify-center rounded-lg px-3 text-sm font-bold ${messageUrl ? "bg-green-600 text-white hover:bg-green-700" : "pointer-events-none bg-muted text-muted-foreground"}`}
+                                            >
+                                              WA {template.label}
+                                            </a>
+                                            <a
+                                              href={smsUrl || undefined}
+                                              className={`inline-flex h-10 items-center justify-center rounded-lg px-3 text-sm font-bold ${smsUrl ? "bg-[#6B4423] text-white hover:bg-[#543218]" : "pointer-events-none bg-muted text-muted-foreground"}`}
+                                            >
+                                              SMS
+                                            </a>
+                                          </div>
                                         );
                                       })}
                                     </div>
@@ -2194,7 +2236,7 @@ export default function Admin() {
           <CardHeader>
             <CardTitle>Website Content Manager</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Add adverts, service cards, product cards, project photos, videos, and documents from here. Saved items use the website's existing layout, spacing, and styling so new content blends naturally with the site.
+              Add adverts, service cards, product cards, project photos, videos, and documents from here. Active adverts notify app subscribers and email previous customers who agreed to be contacted.
             </p>
           </CardHeader>
           <CardContent>

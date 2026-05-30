@@ -40,6 +40,7 @@ import { toast } from "sonner";
 import LanguageTranslator from "@/components/LanguageTranslator";
 import type { BookingRequest, ContentItem, Review, ReviewRequest } from "@shared/types";
 import { serviceCatalog as defaultServiceCatalog, type ServiceCatalogItem } from "@shared/services";
+import { formatPhoneForCountry, getPhoneCountryMeta, getPhonePlaceholder } from "@shared/phone";
 import {
   customerPaths,
   customerReviews,
@@ -935,7 +936,7 @@ export default function Home() {
           addressRegion: "QC",
           addressCountry: "CA",
         },
-        areaServed: ["Montreal", "Laval", "Longueuil", "Brossard", "Quebec", "Canada"],
+        areaServed: ["Montreal", "Laval", "Longueuil", "Brossard", "West Island", "Quebec", "Canada"],
         openingHours: "Mo-Su 08:00-20:00",
         priceRange: "$$",
         sameAs: ["https://www.fixmydoor.ca"],
@@ -1001,6 +1002,7 @@ export default function Home() {
   const watchedAddress = form.watch("address");
   const watchedCountry = form.watch("country");
   const showInternationalRequestDetails = !isCanadaLocation(watchedCountry) || NON_CANADIAN_LOCATION_PATTERN.test(watchedAddress || "");
+  const phoneCountryMeta = getPhoneCountryMeta(watchedCountry || watchedAddress);
 
   const pauseAdvertSlider = (duration = SLIDE_HOLD_PAUSE_MS) => {
     advertPauseUntilRef.current = Date.now() + duration;
@@ -2743,7 +2745,29 @@ export default function Home() {
                   className="hidden"
                 />
                 <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Name *</FormLabel><FormControl><Input placeholder="Your full name" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Phone *</FormLabel><FormControl><Input type="tel" placeholder="+1 (438) 000-0000" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="phone" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold text-foreground">Phone *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="tel"
+                        placeholder={getPhonePlaceholder(watchedCountry || watchedAddress)}
+                        {...field}
+                        onBlur={(event) => {
+                          field.onBlur();
+                          const formattedPhone = formatPhoneForCountry(event.target.value, watchedCountry || watchedAddress);
+                          if (formattedPhone && formattedPhone !== event.target.value) {
+                            form.setValue("phone", formattedPhone, { shouldValidate: true });
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <p className="text-xs text-foreground/60">
+                      Country code detected as {phoneCountryMeta.label} ({phoneCountryMeta.placeholder.split(" ")[0]}). Change the country if this is wrong.
+                    </p>
+                    <FormMessage />
+                  </FormItem>
+                )} />
                 <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Email *</FormLabel><FormControl><Input type="email" placeholder="your.email@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Address *</FormLabel><FormControl><Input placeholder="Where is the job located?" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">City / Province</FormLabel><FormControl><Input placeholder="Montreal, Quebec" {...field} /></FormControl><FormMessage /></FormItem>)} />
