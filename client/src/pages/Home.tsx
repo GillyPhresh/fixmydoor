@@ -120,6 +120,8 @@ const SOCIAL_LINKS = [
   },
 ] as const;
 const NOTIFICATION_CHOICE_KEY = "fixmydoor-push-choice-v1";
+const NOTIFICATION_REMINDER_KEY = "fixmydoor-push-reminder-v1";
+const NOTIFICATION_REMINDER_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const mobileScrollTrackClass = "fixmydoor-mobile-carousel flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:pb-0";
 const mobileScrollItemClass = "fixmydoor-flip-card w-[84%] max-w-[23rem] flex-none snap-center md:w-auto md:max-w-none md:flex-auto";
 
@@ -494,6 +496,7 @@ export default function Home() {
         setNotificationsEnabled(false);
         setNotificationPromptOpen(false);
         window.localStorage.setItem(NOTIFICATION_CHOICE_KEY, "denied");
+        window.localStorage.setItem(NOTIFICATION_REMINDER_KEY, String(Date.now()));
         window.localStorage.removeItem("fixmydoor-notifications-enabled");
         toast.message("Notifications were not enabled.");
         return;
@@ -520,6 +523,7 @@ export default function Home() {
       setNotificationPromptOpen(false);
       window.localStorage.setItem(NOTIFICATION_CHOICE_KEY, "allowed");
       window.localStorage.setItem("fixmydoor-notifications-enabled", "true");
+      window.localStorage.removeItem(NOTIFICATION_REMINDER_KEY);
       toast.success("FixMyDoor Services updates are enabled.");
     } catch (error) {
       console.error("Push notification setup error:", error);
@@ -552,14 +556,22 @@ export default function Home() {
     const enabled = Notification.permission === "granted";
     setNotificationsEnabled(enabled);
     const savedChoice = window.localStorage.getItem(NOTIFICATION_CHOICE_KEY);
-    if (!enabled && !savedChoice && Notification.permission === "default") {
-      const timer = window.setTimeout(() => setNotificationPromptOpen(true), 2200);
-      return () => window.clearTimeout(timer);
+    if (!enabled && Notification.permission === "default") {
+      const lastReminderAt = Number(window.localStorage.getItem(NOTIFICATION_REMINDER_KEY) || "0");
+      const shouldShowPrompt = !savedChoice || savedChoice === "dismissed" || Date.now() - lastReminderAt > NOTIFICATION_REMINDER_INTERVAL_MS;
+      if (shouldShowPrompt) {
+        const timer = window.setTimeout(() => {
+          setNotificationPromptOpen(true);
+          window.localStorage.setItem(NOTIFICATION_REMINDER_KEY, String(Date.now()));
+        }, 2200);
+        return () => window.clearTimeout(timer);
+      }
     }
 
     if (enabled) {
       window.localStorage.setItem(NOTIFICATION_CHOICE_KEY, "allowed");
       window.localStorage.setItem("fixmydoor-notifications-enabled", "true");
+      window.localStorage.removeItem(NOTIFICATION_REMINDER_KEY);
       registerNotificationWorker().then((registration) => {
         if (registration) {
           subscribeForPushNotifications(registration).catch((error) => {
@@ -1604,6 +1616,7 @@ export default function Home() {
     window.localStorage.setItem("fixmydoor-human-check-v2", "verified");
     setCookieBannerOpen(false);
     toast.success(preference === "accepted" ? "Cookie preference saved." : "Optional cookies declined.");
+    window.setTimeout(requestNotificationsFromHumanConfirmation, 150);
   };
 
   const requestNotificationsFromHumanConfirmation = () => {
@@ -1615,6 +1628,7 @@ export default function Home() {
       Notification.permission === "default"
     ) {
       window.localStorage.removeItem(NOTIFICATION_CHOICE_KEY);
+      window.localStorage.removeItem(NOTIFICATION_REMINDER_KEY);
       setNotificationPromptOpen(false);
       void enableNotifications();
     }
@@ -1896,6 +1910,7 @@ export default function Home() {
                 type="button"
                 onClick={() => {
                   window.localStorage.setItem(NOTIFICATION_CHOICE_KEY, "dismissed");
+                  window.localStorage.setItem(NOTIFICATION_REMINDER_KEY, String(Date.now()));
                   setNotificationPromptOpen(false);
                 }}
                 className="inline-flex flex-1 items-center justify-center rounded-2xl border border-primary/18 bg-white px-4 py-2.5 text-sm font-black text-secondary transition hover:border-primary hover:text-primary"
