@@ -443,6 +443,56 @@ function queuePushNotification(
   });
 }
 
+let bookingReminderSweepRunning = false;
+
+async function sendDueBookingReminders() {
+  if (bookingReminderSweepRunning) {
+    return;
+  }
+
+  bookingReminderSweepRunning = true;
+  try {
+    const reminderCandidates = (await prisma.booking.findMany({
+      where: {
+        reminderAt: { not: null },
+        reminderSentAt: null,
+        status: { notIn: ["COMPLETED", "CANCELLED"] },
+      },
+      orderBy: { reminderAt: "asc" },
+      take: 25,
+    } as any)).map(toBooking).filter((booking) => isReminderDue(booking));
+
+    for (const booking of reminderCandidates) {
+      const displayId = formatBookingDisplayId(booking);
+      const reminderText = booking.reminderNote?.trim() || "Follow up with this customer request.";
+      queuePushNotification({
+        title: `Reminder: ${booking.name}`,
+        message: `${displayId} - ${reminderText}`,
+        url: "/admin",
+        icon: "/icons/admin-icon-v2-192x192.png",
+        badge: "/icons/admin-icon-v2-96x96.png",
+      }, { audience: "admin", log: true });
+
+      await prisma.booking.update({
+        where: { id: booking.id },
+        data: { reminderSentAt: new Date().toISOString() } as any,
+      });
+    }
+  } catch (error) {
+    console.error("Booking reminder sweep failed:", error);
+  } finally {
+    bookingReminderSweepRunning = false;
+  }
+}
+
+function startBookingReminderSweep() {
+  void sendDueBookingReminders();
+  const reminderTimer = setInterval(() => {
+    void sendDueBookingReminders();
+  }, 60 * 1000);
+  reminderTimer.unref?.();
+}
+
 const CUSTOMER_EMAIL_BROADCAST_LIMIT = Math.max(1, Math.min(500, Number(process.env.CUSTOMER_EMAIL_BROADCAST_LIMIT || 120)));
 
 function queueCustomerEmailBroadcast(
@@ -525,6 +575,25 @@ function isBookingInDateRange(booking: Booking, days: number) {
   );
 }
 
+function getBookingReminderTime(booking: Pick<Booking, "reminderAt">) {
+  const reminderAt = booking.reminderAt?.trim();
+  if (!reminderAt) {
+    return Number.NaN;
+  }
+
+  const reminderTime = Date.parse(reminderAt);
+  return Number.isFinite(reminderTime) ? reminderTime : Number.NaN;
+}
+
+function isReminderActive(booking: Pick<Booking, "reminderAt" | "status">) {
+  return Boolean(booking.reminderAt) && !["COMPLETED", "CANCELLED"].includes(booking.status);
+}
+
+function isReminderDue(booking: Pick<Booking, "reminderAt" | "status">, now = Date.now()) {
+  const reminderTime = getBookingReminderTime(booking);
+  return isReminderActive(booking) && Number.isFinite(reminderTime) && reminderTime <= now;
+}
+
 function matchesWorkflowFilter(booking: Booking, workflow: string) {
   switch (workflow) {
     case "TODAY":
@@ -541,6 +610,8 @@ function matchesWorkflowFilter(booking: Booking, workflow: string) {
       return Boolean(booking.quoteAmount);
     case "SCHEDULED":
       return Boolean(booking.appointmentTime);
+    case "REMINDERS":
+      return isReminderDue(booking);
     case "PAYMENT_PENDING":
       return Boolean(booking.quoteAmount) && !/^\s*paid\s*$/i.test(booking.paymentStatus || "");
     default:
@@ -626,6 +697,10 @@ async function ensureDatabaseCompatibility() {
       "paymentStatus" TEXT,
       "staffAssigned" TEXT,
       "adminNotes" TEXT,
+      "reminderAt" TEXT,
+      "reminderWindow" TEXT,
+      "reminderNote" TEXT,
+      "reminderSentAt" TEXT,
       "statusHistory" TEXT,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -651,6 +726,10 @@ async function ensureDatabaseCompatibility() {
     `ALTER TABLE "Booking" ADD COLUMN "paymentStatus" TEXT`,
     `ALTER TABLE "Booking" ADD COLUMN "staffAssigned" TEXT`,
     `ALTER TABLE "Booking" ADD COLUMN "adminNotes" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "reminderAt" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "reminderWindow" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "reminderNote" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "reminderSentAt" TEXT`,
     `ALTER TABLE "Booking" ADD COLUMN "statusHistory" TEXT`,
     `ALTER TABLE "Booking" ADD COLUMN "city" TEXT`,
     `ALTER TABLE "Booking" ADD COLUMN "country" TEXT`,
@@ -710,6 +789,7 @@ async function ensureDatabaseCompatibility() {
     `CREATE INDEX IF NOT EXISTS "Booking_email_idx" ON "Booking"("email")`,
     `CREATE INDEX IF NOT EXISTS "Booking_phone_idx" ON "Booking"("phone")`,
     `CREATE INDEX IF NOT EXISTS "Booking_customerToken_idx" ON "Booking"("customerToken")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_reminderAt_idx" ON "Booking"("reminderAt")`,
     `CREATE INDEX IF NOT EXISTS "Booking_country_idx" ON "Booking"("country")`,
     `CREATE INDEX IF NOT EXISTS "Booking_urgency_idx" ON "Booking"("urgency")`,
     `CREATE INDEX IF NOT EXISTS "Booking_invoiceStatus_idx" ON "Booking"("invoiceStatus")`,
@@ -1213,10 +1293,13 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
     .total { margin: 20px 0; padding: 20px; border-radius: 18px; background: #2f241c; color: white; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
     .total strong { font-size: 28px; }
     ul { margin: 12px 0 0; padding-left: 20px; line-height: 1.7; }
+    .signature-card { margin-top: 14px; display: flex; justify-content: space-between; gap: 20px; align-items: center; background: #fff; border: 1px solid #ead8bf; border-radius: 18px; padding: 16px; }
+    .signature-card p { margin: 6px 0 0; color: #7b6758; font-size: 13px; line-height: 1.5; }
+    .signature-card img { width: 230px; max-width: 44%; height: auto; object-fit: contain; border-radius: 12px; background: #fff; }
     .actions { margin-top: 24px; display: flex; gap: 10px; }
     button { border: 0; border-radius: 12px; background: #b46532; color: white; padding: 12px 16px; font-weight: 800; cursor: pointer; }
-    @media print { body { background: white; } .page { margin: 0; box-shadow: none; border: 0; } .actions { display: none; } }
-    @media (max-width: 640px) { header, .grid { grid-template-columns: 1fr; display: grid; } }
+    @media print { body { background: white; } .page { margin: 0; box-shadow: none; border: 0; } .signature-card { break-inside: avoid; } .actions { display: none; } }
+    @media (max-width: 640px) { header, .grid, .signature-card { grid-template-columns: 1fr; display: grid; } .signature-card img { width: 230px; max-width: 100%; } }
   </style>
 </head>
 <body>
@@ -1250,6 +1333,14 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
         <h3>Notes</h3>
         <p>This quote/invoice is prepared from the booking details. Final cost may change if measurements, parts, delivery, or installation requirements change.</p>
         <p><strong>FixMyDoor Services</strong><br>info.fixmydoor@gmail.com<br>+1 (438) 347-1823</p>
+      </div>
+      <div class="signature-card">
+        <div>
+          <div class="label">Authorized Approval</div>
+          <h3>Richard Ampofo</h3>
+          <p>Official FixMyDoor Services signature for quotes, invoices, and customer documents.</p>
+        </div>
+        <img src="/fixmydoor-richard-ampofo-signature.jpg" alt="Official signature of Richard Ampofo for FixMyDoor Services" />
       </div>
       <div class="actions"><button id="print-quote" type="button">Print / Save PDF</button></div>
     </main>
@@ -1308,6 +1399,7 @@ async function startServer() {
 
   // Initialize admin user
   await initializeAdminUser();
+  startBookingReminderSweep();
 
   // Initialize email service
   emailService.initialize();
@@ -2137,6 +2229,10 @@ async function startServer() {
         "Invoice Status",
         "Payment Status",
         "Staff Assigned",
+        "Reminder At",
+        "Reminder Window",
+        "Reminder Note",
+        "Reminder Sent At",
         "Currency",
         "Budget",
         "Dimensions",
@@ -2167,6 +2263,10 @@ async function startServer() {
         booking.invoiceStatus,
         booking.paymentStatus,
         booking.staffAssigned,
+        booking.reminderAt,
+        booking.reminderWindow,
+        booking.reminderNote,
+        booking.reminderSentAt,
         booking.currency,
         booking.budget,
         booking.dimensions,
@@ -2260,10 +2360,19 @@ async function startServer() {
       if ("paymentStatus" in update) updateData.paymentStatus = cleanOptionalText(update.paymentStatus, 80);
       if ("staffAssigned" in update) updateData.staffAssigned = cleanOptionalText(update.staffAssigned, 120);
       if ("adminNotes" in update) updateData.adminNotes = cleanOptionalText(update.adminNotes, 1000);
+      if ("reminderAt" in update) {
+        const reminderAt = cleanOptionalText(update.reminderAt, 160);
+        updateData.reminderAt = reminderAt;
+        if (reminderAt !== (existingBooking as any).reminderAt) {
+          updateData.reminderSentAt = null;
+        }
+      }
+      if ("reminderWindow" in update) updateData.reminderWindow = cleanOptionalText(update.reminderWindow, 80);
+      if ("reminderNote" in update) updateData.reminderNote = cleanOptionalText(update.reminderNote, 400);
 
       const booking = await prisma.booking.update({
         where: { id },
-        data: updateData,
+        data: updateData as any,
       });
       const normalizedBooking = toBooking(booking);
 
@@ -2310,6 +2419,7 @@ async function startServer() {
         todayBookings,
         thisWeekBookings,
         thisMonthBookings,
+        dueReminderBookings,
       ] = await Promise.all([
         prisma.booking.count(),
         prisma.booking.count({ where: { status: "PENDING" } }),
@@ -2353,6 +2463,12 @@ async function startServer() {
             },
           },
         }),
+        prisma.booking.count({
+          where: {
+            reminderAt: { lte: new Date().toISOString() },
+            status: { notIn: ["COMPLETED", "CANCELLED"] },
+          },
+        } as any),
       ]);
 
       // Get recent bookings
@@ -2367,6 +2483,14 @@ async function startServer() {
           repairType: true,
         },
       });
+      const recentReminderBookings = (await prisma.booking.findMany({
+        where: {
+          reminderAt: { not: null },
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+        },
+        take: 5,
+        orderBy: { reminderAt: "asc" },
+      } as any)).map(toBooking);
 
       res.json({
         totalBookings,
@@ -2378,7 +2502,9 @@ async function startServer() {
         todayBookings,
         thisWeekBookings,
         thisMonthBookings,
+        dueReminderBookings,
         recentBookings,
+        recentReminderBookings,
       });
     } catch (error) {
       console.error("Stats fetch error:", error);

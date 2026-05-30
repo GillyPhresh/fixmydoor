@@ -39,6 +39,10 @@ export interface Booking extends BookingRequest {
   paymentStatus?: string;
   staffAssigned?: string;
   adminNotes?: string;
+  reminderAt?: string;
+  reminderWindow?: string;
+  reminderNote?: string;
+  reminderSentAt?: string;
   statusHistory?: BookingStatusHistoryEntry[];
   createdAt: string;
   updatedAt?: string;
@@ -61,6 +65,9 @@ export interface BookingUpdateRequest {
   paymentStatus?: string;
   staffAssigned?: string;
   adminNotes?: string;
+  reminderAt?: string;
+  reminderWindow?: string;
+  reminderNote?: string;
 }
 
 export interface ReviewRequest {

@@ -42,12 +42,17 @@ model Booking {
   paymentStatus      String?
   staffAssigned      String?
   adminNotes         String?
+  reminderAt         String?
+  reminderWindow     String?
+  reminderNote       String?
+  reminderSentAt     String?
   statusHistory      String?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
   @@index([status])
   @@index([createdAt])
+  @@index([reminderAt])
   @@index([name])
   @@index([email])
   @@index([phone])

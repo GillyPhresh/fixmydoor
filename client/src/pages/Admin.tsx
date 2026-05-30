@@ -83,12 +83,21 @@ const quoteTemplateText = [
 
 const workflowExamples = [
   ["Appointment Date & Time", "Pick the visit time from the calendar, for example May 30, 2026 at 2:30 PM."],
+  ["Reminder", "Pick the follow-up time. The dashboard will alert admin at that time so the customer is not forgotten."],
   ["Quote Amount", "Use a clear amount such as C$250, or a range such as C$180-C$320 when the final parts are not confirmed."],
   ["Staff", "Write who will handle the job, for example Richard, Team A, or Supplier follow-up."],
   ["Invoice Status", "Use Quote sent after pricing is shared, Invoice sent when the final invoice is ready, and Revised if you update the price."],
   ["Payment", "Use Deposit requested, Partially paid, Paid, or Not paid so the job status is easy to track."],
   ["Quote / Invoice Notes", "Write customer-facing line items such as labour, hinges, delivery, installation, warranty, and payment terms."],
   ["Private Admin Notes", "Write internal reminders only, such as confirm hinge size, call after 6 PM, or customer prefers WhatsApp."],
+] as const;
+
+const reminderWindowOptions = [
+  "At selected time",
+  "Within 15 minutes",
+  "Within 30 minutes",
+  "Within 1 hour",
+  "Same day follow-up",
 ] as const;
 
 type EmailRuntimeStatus = {
@@ -209,6 +218,43 @@ function formatDateTimeLocalInput(value: string) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function toIsoDateTimeInputValue(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  const parsedDate = new Date(value);
+  return Number.isNaN(parsedDate.getTime()) ? "" : parsedDate.toISOString();
+}
+
+function formatReminderDisplay(value?: string | null) {
+  if (!value) {
+    return "No reminder set";
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return parsedDate.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function isReminderDueForAdmin(booking: Pick<Booking, "reminderAt" | "status">) {
+  if (!booking.reminderAt || ["COMPLETED", "CANCELLED"].includes(booking.status)) {
+    return false;
+  }
+
+  const reminderTime = new Date(booking.reminderAt).getTime();
+  return Number.isFinite(reminderTime) && reminderTime <= Date.now();
 }
 
 export default function Admin() {
@@ -612,6 +658,9 @@ export default function Admin() {
       paymentStatus: booking.paymentStatus || "Not paid",
       staffAssigned: booking.staffAssigned || "",
       adminNotes: booking.adminNotes || "",
+      reminderAt: booking.reminderAt || "",
+      reminderWindow: booking.reminderWindow || "At selected time",
+      reminderNote: booking.reminderNote || "",
     });
   };
 
@@ -625,6 +674,19 @@ export default function Admin() {
         currentBookings.map((booking) => (booking.id === updatedBooking.id ? updatedBooking : booking)),
       );
       setSelectedBooking(updatedBooking);
+      setBookingDraft({
+        appointmentTime: updatedBooking.appointmentTime || "",
+        quoteAmount: updatedBooking.quoteAmount || "",
+        quoteNotes: updatedBooking.quoteNotes || "",
+        invoiceStatus: updatedBooking.invoiceStatus || "Not issued",
+        paymentStatus: updatedBooking.paymentStatus || "Not paid",
+        staffAssigned: updatedBooking.staffAssigned || "",
+        adminNotes: updatedBooking.adminNotes || "",
+        reminderAt: updatedBooking.reminderAt || "",
+        reminderWindow: updatedBooking.reminderWindow || "At selected time",
+        reminderNote: updatedBooking.reminderNote || "",
+      });
+      await fetchStats();
       toast.success("Booking details saved");
     } catch (err) {
       toast.error("Failed to save booking details");
@@ -965,9 +1027,9 @@ export default function Admin() {
   const statsCards = stats ? [
     { label: "Total", value: stats.totalBookings, color: "text-secondary", action: { status: "ALL", workflow: "ALL" } },
     { label: "Pending", value: stats.pendingBookings, color: "text-yellow-700", action: { status: "PENDING", workflow: "ALL" } },
+    { label: "Reminders", value: stats.dueReminderBookings || 0, color: "text-rose-700", action: { status: "ALL", workflow: "REMINDERS" } },
     { label: "Urgent", value: stats.urgentBookings, color: "text-red-600", action: { status: "ALL", workflow: "URGENT" } },
     { label: "This Week", value: stats.thisWeekBookings, color: "text-blue-700", action: { status: "ALL", workflow: "THIS_WEEK" } },
-    { label: "International", value: stats.internationalBookings, color: "text-purple-700", action: { status: "ALL", workflow: "INTERNATIONAL" } },
     { label: "Completed", value: stats.completedBookings, color: "text-green-700", action: { status: "COMPLETED", workflow: "ALL" } },
   ] : [];
 
@@ -976,6 +1038,7 @@ export default function Admin() {
     { label: "Today", action: { status: "ALL", workflow: "TODAY" } },
     { label: "Week", action: { status: "ALL", workflow: "THIS_WEEK" } },
     { label: "Urgent", action: { status: "ALL", workflow: "URGENT" } },
+    { label: "Reminders", action: { status: "ALL", workflow: "REMINDERS" } },
     { label: "Pending", action: { status: "PENDING", workflow: "ALL" } },
     { label: "Needs Quote", action: { status: "ALL", workflow: "NEEDS_QUOTE" } },
   ];
@@ -1006,7 +1069,7 @@ export default function Admin() {
               </p>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 md:absolute md:right-5 md:top-5 md:mt-0 md:w-[22rem] md:grid-cols-2 md:rounded-[22px] md:border md:border-[#ead8bf] md:bg-[#fffaf2]/90 md:p-2 md:shadow-[0_16px_38px_rgba(66,40,18,0.12)] xl:w-auto xl:grid-cols-4">
+          <div className="mx-auto mt-4 grid w-full max-w-[34rem] grid-cols-2 gap-2 rounded-[22px] border border-[#ead8bf] bg-[#fffaf2]/90 p-2 shadow-[0_16px_38px_rgba(66,40,18,0.12)] md:max-w-[45rem] md:grid-cols-4">
             <Button type="button" onClick={installAdminApp} variant="outline" className="h-10 justify-center rounded-2xl bg-white/95 px-2 text-xs font-black shadow-sm sm:text-sm">
               <Download className="w-4 h-4 mr-2" />
               <span>{adminStandalone ? "App Open" : "Install App"}</span>
@@ -1065,6 +1128,44 @@ export default function Admin() {
               </button>
             ))}
           </div>
+        )}
+
+        {stats?.recentReminderBookings?.length > 0 && (
+          <Card className="mb-4 border-[#e7c7b5] bg-[#fff7f0] shadow-sm md:mb-6">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-rose-700">Reminder Watch</p>
+                  <h2 className="mt-1 text-lg font-display font-bold text-secondary">Customer follow-ups to keep in view</h2>
+                </div>
+                <Button type="button" variant="outline" className="h-9 bg-white text-xs font-bold" onClick={() => applyQuickBookingFilter({ status: "ALL", workflow: "REMINDERS" })}>
+                  View due reminders
+                </Button>
+              </div>
+              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {stats.recentReminderBookings.slice(0, 3).map((booking: Booking) => (
+                  <button
+                    key={booking.id}
+                    type="button"
+                    onClick={() => applyQuickBookingFilter({ status: "ALL", workflow: "REMINDERS" })}
+                    className={`rounded-2xl border bg-white p-3 text-left shadow-sm ${isReminderDueForAdmin(booking) ? "border-rose-200" : "border-[#ead8bf]"}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-secondary">{booking.name}</p>
+                        <p className="mt-0.5 text-[0.68rem] font-bold text-primary">{formatBookingDisplayId(booking)}</p>
+                      </div>
+                      <Badge className={isReminderDueForAdmin(booking) ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"}>
+                        {isReminderDueForAdmin(booking) ? "Due" : "Set"}
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-xs font-semibold text-foreground/75">{formatReminderDisplay(booking.reminderAt)}</p>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{booking.reminderNote || booking.repairType}</p>
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <Card className="mb-4 border-[#ead8bf] bg-[#fffaf2] shadow-sm md:mb-6">
@@ -1381,6 +1482,7 @@ export default function Admin() {
               <SelectItem value="THIS_WEEK">This Week</SelectItem>
               <SelectItem value="INTERNATIONAL">International Requests</SelectItem>
               <SelectItem value="URGENT">Urgent / Emergency</SelectItem>
+              <SelectItem value="REMINDERS">Due Reminders</SelectItem>
               <SelectItem value="NEEDS_QUOTE">Needs Quote</SelectItem>
               <SelectItem value="QUOTED">Quoted</SelectItem>
               <SelectItem value="SCHEDULED">Scheduled</SelectItem>
@@ -1438,14 +1540,14 @@ export default function Admin() {
                       {[
                         ["Requested", formatPreferredDate(booking.preferredDate)],
                         ["Appointment", booking.appointmentTime || "Not set"],
+                        ["Reminder", formatReminderDisplay(booking.reminderAt)],
                         ["Quote", booking.quoteAmount || "Not quoted"],
                         ["Payment", booking.paymentStatus || "Not paid"],
                         ["Urgency", booking.urgency || "Standard"],
-                        ["Country", booking.country || "Canada"],
                       ].map(([label, value]) => (
                         <div key={`${booking.id}-${label}`} className="min-w-0 rounded-xl bg-white px-3 py-2">
                           <p className="text-[0.65rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-                          <p className="mt-0.5 truncate font-semibold text-secondary">{value}</p>
+                          <p className={`mt-0.5 truncate font-semibold ${label === "Reminder" && isReminderDueForAdmin(booking) ? "text-rose-700" : "text-secondary"}`}>{value}</p>
                         </div>
                       ))}
                     </div>
@@ -1624,6 +1726,42 @@ export default function Admin() {
                                     onChange={(event) => setBookingDraft((draft) => ({ ...draft, appointmentTime: formatDateTimeLocalInput(event.target.value) }))}
                                     className="bg-white"
                                   />
+                                </div>
+                                <div className="rounded-xl border border-rose-100 bg-white p-3">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <Label htmlFor={`reminder-${booking.id}`}>Admin Reminder</Label>
+                                    {bookingDraft.reminderAt && (
+                                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[0.68rem]" onClick={() => setBookingDraft((draft) => ({ ...draft, reminderAt: "", reminderNote: "", reminderWindow: "At selected time" }))}>
+                                        Clear
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <Input
+                                    id={`reminder-${booking.id}`}
+                                    type="datetime-local"
+                                    value={toDateTimeLocalInputValue(bookingDraft.reminderAt)}
+                                    onChange={(event) => setBookingDraft((draft) => ({ ...draft, reminderAt: toIsoDateTimeInputValue(event.target.value) }))}
+                                    className="mt-1 bg-white"
+                                  />
+                                  <div className="mt-2 grid grid-cols-2 gap-2">
+                                    <Select value={bookingDraft.reminderWindow || "At selected time"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, reminderWindow: value }))}>
+                                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        {reminderWindowOptions.map((option) => (
+                                          <SelectItem key={option} value={option}>{option}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <Input
+                                      value={bookingDraft.reminderNote || ""}
+                                      onChange={(event) => setBookingDraft((draft) => ({ ...draft, reminderNote: event.target.value }))}
+                                      placeholder="Call / follow up"
+                                      className="bg-white"
+                                    />
+                                  </div>
+                                  <p className="mt-2 text-[0.68rem] leading-relaxed text-muted-foreground">
+                                    Admin will receive an alert at this reminder time.
+                                  </p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                   <div>
@@ -1852,6 +1990,11 @@ export default function Admin() {
                           <div className="text-xs text-muted-foreground mt-1">
                             Submitted: {new Date(booking.createdAt).toLocaleString()}
                           </div>
+                          {booking.reminderAt && (
+                            <div className={`mt-1 rounded-lg px-2 py-1 text-xs font-bold ${isReminderDueForAdmin(booking) ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"}`}>
+                              Reminder: {formatReminderDisplay(booking.reminderAt)}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -1945,6 +2088,17 @@ export default function Admin() {
                                         {selectedBooking.status.replace("_", " ")}
                                       </Badge>
                                     </div>
+                                    {selectedBooking.reminderAt && (
+                                      <div className="col-span-2 rounded-xl border border-rose-100 bg-[#fffaf2] p-3">
+                                        <Label>Admin Reminder</Label>
+                                        <p className={`mt-1 font-bold ${isReminderDueForAdmin(selectedBooking) ? "text-rose-700" : "text-secondary"}`}>
+                                          {formatReminderDisplay(selectedBooking.reminderAt)}
+                                        </p>
+                                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                          {selectedBooking.reminderNote || selectedBooking.reminderWindow || "Follow up with this request."}
+                                        </p>
+                                      </div>
+                                    )}
                                   </div>
                                   {selectedBooking.message && (
                                     <div>
@@ -2042,6 +2196,41 @@ export default function Admin() {
                                           value={toDateTimeLocalInputValue(bookingDraft.appointmentTime)}
                                           onChange={(event) => setBookingDraft((draft) => ({ ...draft, appointmentTime: formatDateTimeLocalInput(event.target.value) }))}
                                         />
+                                      </div>
+                                      <div className="sm:col-span-2 rounded-xl border border-rose-100 bg-[#fffaf2] p-3">
+                                        <div className="flex items-center justify-between gap-2">
+                                          <Label>Admin Reminder</Label>
+                                          {bookingDraft.reminderAt && (
+                                            <Button type="button" variant="outline" size="sm" className="h-8 bg-white text-xs" onClick={() => setBookingDraft((draft) => ({ ...draft, reminderAt: "", reminderNote: "", reminderWindow: "At selected time" }))}>
+                                              Clear Reminder
+                                            </Button>
+                                          )}
+                                        </div>
+                                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                          Pick the exact follow-up time and a short note. Admin alerts will remind you so the customer is not forgotten.
+                                        </p>
+                                        <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_0.8fr]">
+                                          <Input
+                                            type="datetime-local"
+                                            value={toDateTimeLocalInputValue(bookingDraft.reminderAt)}
+                                            onChange={(event) => setBookingDraft((draft) => ({ ...draft, reminderAt: toIsoDateTimeInputValue(event.target.value) }))}
+                                            className="bg-white"
+                                          />
+                                          <Select value={bookingDraft.reminderWindow || "At selected time"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, reminderWindow: value }))}>
+                                            <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                              {reminderWindowOptions.map((option) => (
+                                                <SelectItem key={option} value={option}>{option}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <Textarea
+                                            value={bookingDraft.reminderNote || ""}
+                                            onChange={(event) => setBookingDraft((draft) => ({ ...draft, reminderNote: event.target.value }))}
+                                            placeholder="Example: Call client after work, confirm measurements, send quote, or follow up about payment."
+                                            className="sm:col-span-2 bg-white"
+                                          />
+                                        </div>
                                       </div>
                                       <div>
                                         <Label>Quote Amount</Label>
