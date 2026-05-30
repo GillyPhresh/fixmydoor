@@ -9,7 +9,7 @@ import { createCipheriv, createECDH, createHmac, createPrivateKey, createSign, g
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { parseStatusHistory, saveBooking, serializeStatusHistory, toBooking, validateBooking, validateBookingStatus } from "./bookings";
+import { parseStatusHistory, saveBooking, saveManualBooking, serializeStatusHistory, toBooking, validateBooking, validateBookingStatus, validateManualBooking } from "./bookings";
 import { listAdminReviews, listReviews, saveReview, validateReview, validateReviewStatus } from "./reviews";
 import { createContentItem, listAdminContent, listPublicContent, updateContentItem, validateContentItem } from "./content";
 import { prisma } from "./prisma";
@@ -1420,6 +1420,7 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
   const lineItems = (booking.quoteNotes || "Labour, materials, sourcing, delivery, or installation details will be confirmed by FixMyDoor Services.").split(/\r?\n/).filter(Boolean);
   const bookingDisplayId = formatBookingDisplayId(booking);
   const issuedDate = new Date().toLocaleDateString();
+  const contactDetails = [booking.phone, booking.email].filter(Boolean).map(escapeHtml).join("<br>");
 
   return `<!doctype html>
 <html lang="en">
@@ -1513,7 +1514,7 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
     <main>
       <div class="grid">
         <div class="box"><div class="label">Customer</div><div class="value">${escapeHtml(booking.name)}</div></div>
-        <div class="box"><div class="label">Contact</div><div class="value">${escapeHtml(booking.phone)}<br>${escapeHtml(booking.email)}</div></div>
+        <div class="box"><div class="label">Contact</div><div class="value">${contactDetails || "Not provided"}</div></div>
         <div class="box"><div class="label">Location</div><div class="value">${escapeHtml([booking.city, booking.country].filter(Boolean).join(", ") || booking.address)}</div></div>
         <div class="box"><div class="label">Request</div><div class="value">${escapeHtml(booking.repairType)}</div></div>
         <div class="box"><div class="label">Invoice Status</div><div class="value">${escapeHtml(booking.invoiceStatus || "Not issued")}</div></div>
@@ -2297,6 +2298,20 @@ async function startServer() {
     } catch (error) {
       console.error("Booking creation error:", error);
       return res.status(500).json({ success: false, error: "Failed to create booking" });
+    }
+  });
+
+  app.post("/api/admin/bookings/manual", requireAuth, async (req, res) => {
+    if (!validateManualBooking(req.body)) {
+      return res.status(400).json({ success: false, error: "Invalid manual booking details" });
+    }
+
+    try {
+      const savedBooking = await saveManualBooking(req.body);
+      return res.status(201).json({ success: true, booking: savedBooking });
+    } catch (error) {
+      console.error("Manual booking creation error:", error);
+      return res.status(500).json({ success: false, error: "Failed to create manual booking" });
     }
   });
 

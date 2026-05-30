@@ -500,6 +500,11 @@ class EmailService {
       return false;
     }
 
+    if (!booking.email?.trim()) {
+      console.warn("Booking confirmation skipped because customer email is missing");
+      return false;
+    }
+
     const businessEmail = getBusinessEmail();
     const subject = "FixMyDoor Services - Booking Confirmation";
     const useResend = this.getProviderName() === "resend";
@@ -726,6 +731,11 @@ class EmailService {
   async sendStatusUpdate(booking: Booking) {
     if (!this.canSendEmail()) {
       console.warn("Email service not initialized");
+      return false;
+    }
+
+    if (!booking.email?.trim()) {
+      console.warn("Status update email skipped because customer email is missing");
       return false;
     }
 

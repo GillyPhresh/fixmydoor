@@ -28,6 +28,23 @@ export interface BookingRequest {
   website?: string;
 }
 
+export interface ManualBookingRequest {
+  name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  preferredContactMethod?: string;
+  urgency?: string;
+  repairType: string;
+  preferredDate?: string;
+  appointmentTime?: string;
+  message?: string;
+  adminNotes?: string;
+  customerConsent?: boolean;
+}
+
 export interface Booking extends BookingRequest {
   id: string;
   status: "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";

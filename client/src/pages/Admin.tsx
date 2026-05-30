@@ -12,9 +12,10 @@ import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText, Send, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
+import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, ManualBookingRequest, Review, ReviewStatus } from "@shared/types";
 import { formatBookingDisplayId } from "@shared/booking-code";
 import { getSmsUrl, getWhatsAppUrl, normalizePhoneForMessaging } from "@shared/phone";
+import { serviceCatalog } from "@shared/services";
 
 const ADMIN_NOTIFICATION_CHOICE_KEY = "fixmydoor-admin-push-choice-v1";
 const ADMIN_REMINDER_WATCH_DISMISS_KEY = "fixmydoor-admin-reminder-watch-dismissed-v1";
@@ -43,6 +44,23 @@ const emptyContentDraft: ContentItemRequest = {
   bookingValue: "",
   sortOrder: 0,
   active: true,
+};
+
+const emptyManualBookingDraft: ManualBookingRequest = {
+  name: "",
+  phone: "",
+  email: "",
+  address: "",
+  city: "Montreal",
+  country: "Canada",
+  preferredContactMethod: "Phone call",
+  urgency: "Normal",
+  repairType: "door-repair",
+  preferredDate: "",
+  appointmentTime: "",
+  message: "",
+  adminNotes: "",
+  customerConsent: false,
 };
 
 const contentCategories: { value: ContentItem["category"]; label: string }[] = [
@@ -195,6 +213,14 @@ function getAdminToClientWhatsAppUrl(booking: Booking, customMessage?: string) {
 
 function getAdminToClientSmsUrl(booking: Booking, customMessage?: string) {
   return getSmsUrl(booking.phone, booking.country || booking.address, customMessage || getDefaultClientMessage(booking));
+}
+
+function hasBookingEmail(booking: Pick<Booking, "email">) {
+  return Boolean(booking.email?.trim());
+}
+
+function getBookingEmailLabel(booking: Pick<Booking, "email">) {
+  return booking.email?.trim() || "No email added";
 }
 
 function getEmailStatusLabel(status: EmailRuntimeStatus) {
@@ -373,6 +399,9 @@ export default function Admin() {
   const [workflowFilter, setWorkflowFilter] = useState<string>("ALL");
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [bookingDraft, setBookingDraft] = useState<BookingUpdateRequest>({});
+  const [manualBookingDialogOpen, setManualBookingDialogOpen] = useState(false);
+  const [manualBookingDraft, setManualBookingDraft] = useState<ManualBookingRequest>(emptyManualBookingDraft);
+  const [manualBookingLoading, setManualBookingLoading] = useState(false);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -765,6 +794,39 @@ export default function Admin() {
       toast.error(err?.response?.data?.error || "Failed to send notification");
     } finally {
       setPushLoading(false);
+    }
+  };
+
+  const saveManualBooking = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!manualBookingDraft.name.trim() || !manualBookingDraft.phone.trim() || !manualBookingDraft.repairType.trim()) {
+      toast.error("Name, phone number, and service are required");
+      return;
+    }
+
+    const appointmentValue = manualBookingDraft.appointmentTime?.trim() || "";
+    const payload: ManualBookingRequest = {
+      ...manualBookingDraft,
+      preferredDate: manualBookingDraft.preferredDate || (appointmentValue ? appointmentValue.slice(0, 10) : ""),
+      appointmentTime: appointmentValue ? formatDateTimeLocalInput(appointmentValue) : "",
+    };
+
+    setManualBookingLoading(true);
+    try {
+      const response = await axios.post<{ booking: Booking }>("/api/admin/bookings/manual", payload);
+      const createdBooking = response.data.booking;
+      setBookings((currentBookings) => [createdBooking, ...currentBookings].slice(0, 20));
+      setManualBookingDraft(emptyManualBookingDraft);
+      setManualBookingDialogOpen(false);
+      setStatusFilter("ALL");
+      setWorkflowFilter("ALL");
+      setCurrentPage(1);
+      await fetchStats();
+      toast.success("Phone-call booking added to the dashboard");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Failed to add phone-call booking");
+    } finally {
+      setManualBookingLoading(false);
     }
   };
 
@@ -1321,6 +1383,142 @@ export default function Admin() {
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:justify-end">
+                <Dialog open={manualBookingDialogOpen} onOpenChange={setManualBookingDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button type="button" className="h-10 bg-[#6B4423] px-2 text-xs text-white hover:bg-[#543218] md:text-sm">
+                      <Phone className="mr-1.5 h-4 w-4" />
+                      Add Call Job
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-h-[88vh] w-[calc(100vw-1rem)] max-w-2xl overflow-x-hidden overflow-y-auto rounded-2xl p-4">
+                    <DialogHeader>
+                      <DialogTitle>Add Phone-Call Booking</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={saveManualBooking} className="grid gap-3">
+                      <div className="rounded-2xl border border-[#ead8bf] bg-[#fffaf2] p-3 text-xs leading-relaxed text-muted-foreground">
+                        Use this when a customer calls instead of using the website form. It will appear in Booking Requests like a normal website request.
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <Label htmlFor="manual-booking-name">Customer Name</Label>
+                          <Input
+                            id="manual-booking-name"
+                            value={manualBookingDraft.name}
+                            onChange={(event) => setManualBookingDraft((draft) => ({ ...draft, name: event.target.value }))}
+                            placeholder="Customer name"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="manual-booking-phone">Phone Number</Label>
+                          <Input
+                            id="manual-booking-phone"
+                            value={manualBookingDraft.phone}
+                            onChange={(event) => setManualBookingDraft((draft) => ({ ...draft, phone: event.target.value }))}
+                            placeholder="+1 438..."
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="manual-booking-email">Email Optional</Label>
+                          <Input
+                            id="manual-booking-email"
+                            type="email"
+                            value={manualBookingDraft.email || ""}
+                            onChange={(event) => setManualBookingDraft((draft) => ({ ...draft, email: event.target.value }))}
+                            placeholder="customer@email.com"
+                          />
+                        </div>
+                        <div>
+                          <Label>Service Needed</Label>
+                          <Select value={manualBookingDraft.repairType} onValueChange={(value) => setManualBookingDraft((draft) => ({ ...draft, repairType: value }))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {serviceCatalog.filter((service) => service.showInBooking).map((service) => (
+                                <SelectItem key={service.bookingValue} value={service.bookingValue}>{service.title}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="manual-booking-appointment">Appointment Date & Time</Label>
+                          <Input
+                            id="manual-booking-appointment"
+                            type="datetime-local"
+                            value={manualBookingDraft.appointmentTime || ""}
+                            onChange={(event) => setManualBookingDraft((draft) => ({ ...draft, appointmentTime: event.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <Label>Urgency</Label>
+                          <Select value={manualBookingDraft.urgency || "Normal"} onValueChange={(value) => setManualBookingDraft((draft) => ({ ...draft, urgency: value }))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Normal">Normal</SelectItem>
+                              <SelectItem value="Urgent">Urgent</SelectItem>
+                              <SelectItem value="Emergency">Emergency</SelectItem>
+                              <SelectItem value="Weekend follow-up">Weekend follow-up</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="manual-booking-city">City</Label>
+                          <Input
+                            id="manual-booking-city"
+                            value={manualBookingDraft.city || ""}
+                            onChange={(event) => setManualBookingDraft((draft) => ({ ...draft, city: event.target.value }))}
+                            placeholder="Montreal"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="manual-booking-country">Country</Label>
+                          <Input
+                            id="manual-booking-country"
+                            value={manualBookingDraft.country || ""}
+                            onChange={(event) => setManualBookingDraft((draft) => ({ ...draft, country: event.target.value }))}
+                            placeholder="Canada"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <Label htmlFor="manual-booking-address">Address Optional</Label>
+                          <Input
+                            id="manual-booking-address"
+                            value={manualBookingDraft.address || ""}
+                            onChange={(event) => setManualBookingDraft((draft) => ({ ...draft, address: event.target.value }))}
+                            placeholder="Customer address or area"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <Label htmlFor="manual-booking-message">Call Notes</Label>
+                          <Textarea
+                            id="manual-booking-message"
+                            value={manualBookingDraft.message || ""}
+                            onChange={(event) => setManualBookingDraft((draft) => ({ ...draft, message: event.target.value }))}
+                            placeholder="What did the customer ask for?"
+                            className="min-h-20"
+                          />
+                        </div>
+                        <label className="flex items-start gap-2 rounded-2xl border border-[#ead8bf] bg-white p-3 text-xs leading-relaxed text-muted-foreground sm:col-span-2">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 h-4 w-4"
+                            checked={manualBookingDraft.customerConsent === true}
+                            onChange={(event) => setManualBookingDraft((draft) => ({ ...draft, customerConsent: event.target.checked }))}
+                          />
+                          <span>Customer agreed that FixMyDoor Services can contact them about this request and future service updates.</span>
+                        </label>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button type="button" variant="outline" className="bg-white" onClick={() => setManualBookingDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={manualBookingLoading}>
+                          {manualBookingLoading ? "Saving..." : "Save Call Job"}
+                        </Button>
+                      </div>
+                    </form>
+                  </DialogContent>
+                </Dialog>
                 <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
                   <DialogTrigger asChild>
                     <Button type="button" className="h-10 bg-[#8a5a2d] px-2 text-xs text-white hover:bg-[#71451f] md:text-sm">
@@ -1669,9 +1867,9 @@ export default function Admin() {
                         <Phone className="h-3.5 w-3.5 text-primary" />
                         {normalizePhoneForMessaging(booking.phone, booking.country || booking.address) || booking.phone}
                       </a>
-                      <a href={`mailto:${booking.email}`} className="flex min-w-0 items-center gap-2 rounded-xl bg-white px-3 py-2 font-semibold text-secondary">
+                      <a href={hasBookingEmail(booking) ? `mailto:${booking.email}` : undefined} className={`flex min-w-0 items-center gap-2 rounded-xl bg-white px-3 py-2 font-semibold ${hasBookingEmail(booking) ? "text-secondary" : "pointer-events-none text-muted-foreground"}`}>
                         <Mail className="h-3.5 w-3.5 shrink-0 text-primary" />
-                        <span className="truncate">{booking.email}</span>
+                        <span className="truncate">{getBookingEmailLabel(booking)}</span>
                       </a>
                       <div className="flex items-start gap-2 rounded-xl bg-white px-3 py-2">
                         <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
@@ -2105,9 +2303,13 @@ export default function Admin() {
                           )}
                           <div className="flex items-center gap-1 text-sm">
                             <Mail className="w-3 h-3 text-muted-foreground" />
-                            <a href={`mailto:${booking.email}`} className="text-primary hover:underline">
-                              {booking.email}
-                            </a>
+                            {hasBookingEmail(booking) ? (
+                              <a href={`mailto:${booking.email}`} className="text-primary hover:underline">
+                                {booking.email}
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground">No email added</span>
+                            )}
                           </div>
                         </div>
                       </TableCell>
@@ -2214,7 +2416,7 @@ export default function Admin() {
                                     </div>
                                     <div>
                                       <Label>Email</Label>
-                                      <p className="font-medium">{selectedBooking.email}</p>
+                                      <p className="font-medium">{getBookingEmailLabel(selectedBooking)}</p>
                                     </div>
                                     <div>
                                       <Label>Repair Type</Label>
