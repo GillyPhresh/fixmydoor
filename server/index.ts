@@ -1454,7 +1454,7 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
     .notes-box p { margin: 4px 0 0; line-height: 1.28; }
     .approval-block { margin-top: 12px; border-top: 1px solid #e2c6a6; padding-top: 10px; }
     .approval-block p { margin: 0 0 7px; color: #7b6758; line-height: 1.3; }
-    .signature-script { width: 118px; max-width: 44vw; height: auto; display: block; margin: 0 0 3px; }
+    .signature-script { width: 118px; max-width: 44vw; height: auto; display: block; margin: 0 0 3px; mix-blend-mode: multiply; filter: contrast(1.18); }
     .signature-line { height: 1px; background: #8f6a48; margin: 0 0 4px; max-width: 150px; }
     .signature-name { display: block; font-weight: 800; color: #2f241c; }
     .signature-title { display: block; margin-top: 1px; color: #7b6758; font-size: 9px; }
