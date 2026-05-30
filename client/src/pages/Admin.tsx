@@ -10,13 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText, Send, RefreshCw } from "lucide-react";
+import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText, Send, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
 import { formatBookingDisplayId } from "@shared/booking-code";
 import { getSmsUrl, getWhatsAppUrl, normalizePhoneForMessaging } from "@shared/phone";
 
 const ADMIN_NOTIFICATION_CHOICE_KEY = "fixmydoor-admin-push-choice-v1";
+const ADMIN_REMINDER_WATCH_DISMISS_KEY = "fixmydoor-admin-reminder-watch-dismissed-v1";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -275,10 +276,17 @@ function applyAppointmentToDraft(draft: BookingUpdateRequest, value: string, rep
   const appointmentTime = formatDateTimeLocalInput(value);
 
   if (!appointmentTime) {
-    return { ...draft, appointmentTime: "" };
+    return {
+      ...draft,
+      appointmentTime: "",
+      reminderAt: "",
+      reminderWindow: "At selected time",
+      reminderNote: "",
+    };
   }
 
-  if (draft.reminderAt) {
+  const hasCustomReminder = Boolean(draft.reminderAt) && draft.reminderWindow && !["At selected time", "2 hours before appointment"].includes(draft.reminderWindow);
+  if (hasCustomReminder) {
     return { ...draft, appointmentTime };
   }
 
@@ -398,6 +406,9 @@ export default function Admin() {
   const [adminNotificationLoading, setAdminNotificationLoading] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [adminStandalone, setAdminStandalone] = useState(false);
+  const [dismissedReminderWatchKey, setDismissedReminderWatchKey] = useState(() => (
+    typeof window === "undefined" ? "" : window.localStorage.getItem(ADMIN_REMINDER_WATCH_DISMISS_KEY) || ""
+  ));
 
   useEffect(() => {
     checkAuthStatus();
@@ -580,6 +591,12 @@ export default function Admin() {
     setWorkflowFilter(filter.workflow || "ALL");
     setCurrentPage(1);
     document.getElementById("booking-requests")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const dismissReminderWatch = (reminderWatchKey: string) => {
+    setDismissedReminderWatchKey(reminderWatchKey);
+    window.localStorage.setItem(ADMIN_REMINDER_WATCH_DISMISS_KEY, reminderWatchKey);
+    toast.success("Reminder Watch closed for now");
   };
 
   const fetchReviews = async () => {
@@ -1145,6 +1162,13 @@ export default function Admin() {
     { label: "Pending", action: { status: "PENDING", workflow: "ALL" } },
     { label: "Needs Quote", action: { status: "ALL", workflow: "NEEDS_QUOTE" } },
   ];
+  const reminderWatchBookings: Booking[] = Array.isArray(stats?.recentReminderBookings)
+    ? stats.recentReminderBookings.slice(0, 3)
+    : [];
+  const reminderWatchKey = reminderWatchBookings
+    .map((booking) => `${booking.id}:${booking.reminderAt || ""}:${booking.status}`)
+    .join("|");
+  const showReminderWatch = reminderWatchBookings.length > 0 && reminderWatchKey !== dismissedReminderWatchKey;
 
   return (
     <div className="admin-dashboard-shell min-h-screen max-w-full overflow-x-hidden bg-[#f7efe4]">
@@ -1233,7 +1257,7 @@ export default function Admin() {
           </div>
         )}
 
-        {stats?.recentReminderBookings?.length > 0 && (
+        {showReminderWatch && (
           <Card className="mb-4 border-[#e7c7b5] bg-[#fff7f0] shadow-sm md:mb-6">
             <CardContent className="p-3 md:p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -1244,12 +1268,24 @@ export default function Admin() {
                     These are admin-only reminders. A red badge means the job or follow-up needs attention now.
                   </p>
                 </div>
-                <Button type="button" variant="outline" className="h-9 bg-white text-xs font-bold" onClick={() => applyQuickBookingFilter({ status: "ALL", workflow: "REMINDERS" })}>
-                  View reminders due now
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="outline" className="h-9 bg-white text-xs font-bold" onClick={() => applyQuickBookingFilter({ status: "ALL", workflow: "REMINDERS" })}>
+                    View reminders due now
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 bg-white text-xs font-bold text-rose-700 hover:text-rose-800"
+                    onClick={() => dismissReminderWatch(reminderWatchKey)}
+                    aria-label="Close Reminder Watch"
+                  >
+                    <X className="mr-1.5 h-4 w-4" />
+                    Close
+                  </Button>
+                </div>
               </div>
               <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                {stats.recentReminderBookings.slice(0, 3).map((booking: Booking) => (
+                {reminderWatchBookings.map((booking: Booking) => (
                   <button
                     key={booking.id}
                     type="button"
@@ -1711,7 +1747,7 @@ export default function Admin() {
                             View
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-h-[88vh] max-w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl p-4">
+                        <DialogContent className="max-h-[88vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-x-hidden overflow-y-auto rounded-2xl p-4">
                           <DialogHeader>
                             <DialogTitle className="text-lg">Booking Details</DialogTitle>
                           </DialogHeader>
@@ -1721,7 +1757,7 @@ export default function Admin() {
                               <p className="mt-1 text-xs font-black text-primary">{formatBookingDisplayId(booking)}</p>
                               <p className="mt-1 text-xs text-muted-foreground">Submitted: {new Date(booking.createdAt).toLocaleString()}</p>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="grid gap-2 text-sm sm:grid-cols-2">
                               <div className="rounded-xl border bg-white p-3">
                                 <p className="text-xs font-semibold text-muted-foreground">Service</p>
                                 <p className="mt-1 font-semibold">{booking.repairType}</p>
@@ -1730,7 +1766,7 @@ export default function Admin() {
                                 <p className="text-xs font-semibold text-muted-foreground">Date</p>
                                 <p className="mt-1 font-semibold">{formatPreferredDate(booking.preferredDate)}</p>
                               </div>
-                              <div className="col-span-2 rounded-xl border bg-white p-3">
+                              <div className="rounded-xl border bg-white p-3 sm:col-span-2">
                                 <p className="text-xs font-semibold text-muted-foreground">Address</p>
                                 <p className="mt-1 font-semibold">{booking.address}</p>
                               </div>
@@ -1755,9 +1791,9 @@ export default function Admin() {
                                     ["Installation", booking.installationNeeded],
                                     ["Budget", booking.budget],
                                   ].filter(([, value]) => value).map(([label, value]) => (
-                                    <p key={label} className="flex justify-between gap-3 rounded-lg bg-muted/40 px-2 py-1.5">
+                                    <p key={label} className="grid gap-1 rounded-lg bg-muted/40 px-2 py-1.5 sm:grid-cols-[0.8fr_1.2fr]">
                                       <span className="text-muted-foreground">{label}</span>
-                                      <span className="font-semibold text-right">{value}</span>
+                                      <span className="font-semibold sm:text-right">{value}</span>
                                     </p>
                                   ))}
                                 </div>
@@ -1801,8 +1837,8 @@ export default function Admin() {
                                 </div>
                               </div>
                             )}
-                            <div className="rounded-2xl border bg-[#fffaf2] p-3">
-                              <div className="mb-3 flex flex-col gap-2">
+                            <div className="rounded-2xl border border-[#ead8bf] bg-white p-3 shadow-sm">
+                              <div className="mb-3 rounded-xl bg-[#fffaf2] p-3">
                                 <div>
                                   <Label>Admin Workflow</Label>
                                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
@@ -1817,7 +1853,7 @@ export default function Admin() {
                                     </div>
                                   </details>
                                 </div>
-                                <Button type="button" size="sm" onClick={saveBookingWorkflow} className="w-full">
+                                <Button type="button" size="sm" onClick={saveBookingWorkflow} className="mt-3 w-full">
                                   <Save className="mr-1.5 h-4 w-4" />
                                   Save Details
                                 </Button>
@@ -1833,12 +1869,12 @@ export default function Admin() {
                                     className="bg-white"
                                   />
                                 </div>
-                                <div className="rounded-xl border border-rose-100 bg-white p-3">
+                                <div className="rounded-2xl border border-rose-100 bg-[#fff7f0] p-3">
                                   <div className="flex items-center justify-between gap-2">
                                     <div>
                                       <Label htmlFor={`reminder-${booking.id}`}>Admin Job Reminder</Label>
                                       <p className="mt-1 text-[0.68rem] leading-relaxed text-muted-foreground">
-                                        Set the appointment first. The reminder will be filled for 2 hours before the job.
+                                        Choose the appointment first. The reminder is recalculated for 2 hours before that visit so the timing stays correct.
                                       </p>
                                     </div>
                                     {bookingDraft.reminderAt && (
@@ -1847,11 +1883,14 @@ export default function Admin() {
                                       </Button>
                                     )}
                                   </div>
-                                  <div className="mt-2 rounded-xl bg-[#fff7f0] p-2 text-[0.68rem] leading-relaxed text-muted-foreground">
-                                    {reminderHelpSteps.map((step, index) => (
-                                      <p key={step}><strong className="text-rose-700">{index + 1}.</strong> {step}</p>
-                                    ))}
-                                  </div>
+                                  <details className="mt-2 rounded-xl bg-white/80 px-3 py-2 text-[0.68rem] leading-relaxed text-muted-foreground">
+                                    <summary className="cursor-pointer font-black text-rose-700">How this reminder works</summary>
+                                    <div className="mt-2 grid gap-1">
+                                      {reminderHelpSteps.map((step, index) => (
+                                        <p key={step}><strong className="text-rose-700">{index + 1}.</strong> {step}</p>
+                                      ))}
+                                    </div>
+                                  </details>
                                   <div className="mt-2 grid gap-2">
                                     <div>
                                       <Label className="text-[0.7rem]">Reminder Time</Label>
@@ -1863,7 +1902,7 @@ export default function Admin() {
                                         className="mt-1 bg-white"
                                       />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid gap-2 sm:grid-cols-2">
                                       <div>
                                         <Label className="text-[0.7rem]">Reminder Type</Label>
                                         <Select value={bookingDraft.reminderWindow || "At selected time"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, reminderWindow: value }))}>
@@ -1890,7 +1929,7 @@ export default function Admin() {
                                     This reminder is only for admin. It helps you prepare before the job and avoid forgetting the customer.
                                   </p>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid gap-2 sm:grid-cols-2">
                                   <div>
                                     <Label>Quote Amount</Label>
                                     <Input
@@ -1912,7 +1951,7 @@ export default function Admin() {
                                     </Select>
                                   </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid gap-2 sm:grid-cols-2">
                                   <div>
                                     <Label>Invoice / Quote Stage</Label>
                                     <Select value={bookingDraft.invoiceStatus || "Not issued"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, invoiceStatus: value }))}>
@@ -1968,14 +2007,15 @@ export default function Admin() {
                               </div>
                             </div>
                             {booking.statusHistory && booking.statusHistory.length > 0 && (
-                              <div className="rounded-xl border bg-white p-3">
+                              <div className="rounded-2xl border border-[#ead8bf] bg-white p-3">
                                 <Label>Status History</Label>
                                 <div className="mt-2 grid gap-2">
                                   {booking.statusHistory.map((entry, index) => (
-                                    <div key={`${entry.status}-${entry.changedAt}-${index}`} className="rounded-lg bg-muted/50 p-2">
-                                      <p className="text-sm font-semibold">{entry.status.replace("_", " ")}</p>
+                                    <div key={`${entry.status}-${entry.changedAt}-${index}`} className="relative rounded-xl bg-[#fffaf2] p-3 pl-8">
+                                      <span className="absolute left-3 top-4 h-2.5 w-2.5 rounded-full bg-[#6B4423]" />
+                                      <p className="text-sm font-black text-secondary">{entry.status.replace("_", " ")}</p>
                                       <p className="text-xs text-muted-foreground">{new Date(entry.changedAt).toLocaleString()}</p>
-                                      {entry.note && <p className="mt-1 text-xs leading-relaxed">{entry.note}</p>}
+                                      {entry.note && <p className="mt-1 text-xs leading-relaxed text-foreground/80">{entry.note}</p>}
                                     </div>
                                   ))}
                                 </div>
@@ -2134,13 +2174,13 @@ export default function Admin() {
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
+                            <DialogContent className="max-h-[88vh] w-[min(920px,calc(100vw-2rem))] max-w-none overflow-x-hidden overflow-y-auto rounded-2xl p-4">
                               <DialogHeader>
                                 <DialogTitle>Booking Details</DialogTitle>
                               </DialogHeader>
                               {selectedBooking && (
                                 <div className="space-y-4">
-                                  <div className="grid grid-cols-2 gap-4">
+                                  <div className="grid gap-3 sm:grid-cols-2">
                                     <div>
                                       <Label>Name</Label>
                                       <p className="font-medium">{selectedBooking.name}</p>
@@ -2180,12 +2220,12 @@ export default function Admin() {
                                       <Label>Repair Type</Label>
                                       <p className="font-medium">{selectedBooking.repairType}</p>
                                     </div>
-                                    <div className="col-span-2">
+                                    <div className="sm:col-span-2">
                                       <Label>Address</Label>
                                       <p className="font-medium">{selectedBooking.address}</p>
                                     </div>
                                     {(selectedBooking.city || selectedBooking.country || selectedBooking.timeZone || selectedBooking.preferredContactMethod || selectedBooking.urgency || selectedBooking.requestScope || selectedBooking.currency) && (
-                                      <div className="col-span-2 rounded-xl border bg-muted/30 p-4">
+                                      <div className="rounded-xl border bg-muted/30 p-4 sm:col-span-2">
                                         <Label>International / Contact Details</Label>
                                         <div className="mt-3 grid gap-3 sm:grid-cols-2">
                                           {[
@@ -2218,7 +2258,7 @@ export default function Admin() {
                                       </Badge>
                                     </div>
                                     {selectedBooking.reminderAt && (
-                                      <div className="col-span-2 rounded-xl border border-rose-100 bg-[#fffaf2] p-3">
+                                      <div className="rounded-xl border border-rose-100 bg-[#fffaf2] p-3 sm:col-span-2">
                                         <Label>Admin Reminder</Label>
                                         <p className={`mt-1 font-bold ${isReminderDueForAdmin(selectedBooking) ? "text-rose-700" : "text-secondary"}`}>
                                           {formatReminderDisplay(selectedBooking.reminderAt)}
@@ -2295,10 +2335,15 @@ export default function Admin() {
                                       </div>
                                     </div>
                                   )}
-                                  <div className="rounded-xl border p-4">
-                                    <div className="mb-3 flex items-center justify-between gap-3">
-                                      <Label>Admin Workflow</Label>
-                                      <div className="flex flex-wrap gap-2">
+                                  <div className="rounded-2xl border border-[#ead8bf] bg-white p-4 shadow-sm">
+                                    <div className="mb-3 grid gap-3 rounded-xl bg-[#fffaf2] p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                                      <div>
+                                        <Label>Admin Workflow</Label>
+                                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                          Manage the visit time, reminder, quote, payment, staff, and notes for this booking.
+                                        </p>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
                                         <Button type="button" size="sm" variant="outline" onClick={() => openQuoteInvoice(selectedBooking.id)}>
                                           <FileText className="mr-2 h-4 w-4" />
                                           Quote / Invoice
@@ -2326,12 +2371,12 @@ export default function Admin() {
                                           onChange={(event) => setBookingDraft((draft) => applyAppointmentToDraft(draft, event.target.value, selectedBooking.repairType))}
                                         />
                                       </div>
-                                      <div className="sm:col-span-2 rounded-xl border border-rose-100 bg-[#fffaf2] p-3">
+                                      <div className="rounded-2xl border border-rose-100 bg-[#fff7f0] p-3 sm:col-span-2">
                                         <div className="flex items-center justify-between gap-2">
                                           <div>
                                             <Label>Admin Job Reminder</Label>
                                             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                                              Set the appointment first. The dashboard automatically prepares a reminder 2 hours before the job.
+                                              Choose the appointment first. The dashboard recalculates the reminder for 2 hours before that visit.
                                             </p>
                                           </div>
                                           {bookingDraft.reminderAt && (
@@ -2340,11 +2385,14 @@ export default function Admin() {
                                             </Button>
                                           )}
                                         </div>
-                                        <div className="mt-2 grid gap-1 rounded-xl bg-white/80 p-2 text-xs leading-relaxed text-muted-foreground">
-                                          {reminderHelpSteps.map((step, index) => (
-                                            <p key={step}><strong className="text-rose-700">{index + 1}.</strong> {step}</p>
-                                          ))}
-                                        </div>
+                                        <details className="mt-2 rounded-xl bg-white/80 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                                          <summary className="cursor-pointer font-black text-rose-700">How this reminder works</summary>
+                                          <div className="mt-2 grid gap-1">
+                                            {reminderHelpSteps.map((step, index) => (
+                                              <p key={step}><strong className="text-rose-700">{index + 1}.</strong> {step}</p>
+                                            ))}
+                                          </div>
+                                        </details>
                                         <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_0.8fr]">
                                           <div>
                                             <Label className="text-xs">Reminder Time</Label>
@@ -2444,14 +2492,15 @@ export default function Admin() {
                                     </div>
                                   </div>
                                   {selectedBooking.statusHistory && selectedBooking.statusHistory.length > 0 && (
-                                    <div>
+                                    <div className="rounded-2xl border border-[#ead8bf] bg-white p-3">
                                       <Label>Status History</Label>
-                                      <div className="mt-2 space-y-2">
+                                      <div className="mt-2 grid gap-2">
                                         {selectedBooking.statusHistory.map((entry, index) => (
-                                          <div key={`${entry.status}-${entry.changedAt}-${index}`} className="rounded-lg bg-muted p-3">
-                                            <p className="font-medium">{entry.status.replace("_", " ")}</p>
+                                          <div key={`${entry.status}-${entry.changedAt}-${index}`} className="relative rounded-xl bg-[#fffaf2] p-3 pl-8">
+                                            <span className="absolute left-3 top-4 h-2.5 w-2.5 rounded-full bg-[#6B4423]" />
+                                            <p className="font-black text-secondary">{entry.status.replace("_", " ")}</p>
                                             <p className="text-xs text-muted-foreground">{new Date(entry.changedAt).toLocaleString()}</p>
-                                            {entry.note && <p className="mt-1 text-sm">{entry.note}</p>}
+                                            {entry.note && <p className="mt-1 text-sm leading-relaxed text-foreground/80">{entry.note}</p>}
                                           </div>
                                         ))}
                                       </div>

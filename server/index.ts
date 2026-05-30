@@ -1331,64 +1331,73 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FixMyDoor Services Quote / Invoice - ${escapeHtml(bookingDisplayId)}</title>
   <style>
-    @page { size: letter; margin: 10mm; }
+    @page { size: letter; margin: 7mm; }
     * { box-sizing: border-box; }
-    body { margin: 0; background: #f7efe4; color: #2f241c; font-family: Arial, sans-serif; font-size: 13px; }
-    .page { max-width: 820px; margin: 18px auto; background: #fffaf2; border: 1px solid #ead8bf; border-radius: 20px; overflow: hidden; box-shadow: 0 18px 60px rgba(47,36,28,.14); }
-    header { display: flex; justify-content: space-between; gap: 18px; align-items: center; background: #2f241c; color: white; padding: 20px 22px; }
-    header img { width: 138px; max-width: 34vw; background: white; border-radius: 14px; padding: 7px 10px; }
-    header p { margin: 6px 0 0; }
-    main { padding: 20px 22px; }
+    html { background: #f7efe4; }
+    body { margin: 0; background: #f7efe4; color: #2f241c; font-family: Arial, sans-serif; font-size: 12px; }
+    .page { max-width: 780px; margin: 14px auto; background: #fffaf2; border: 1px solid #ead8bf; border-radius: 18px; overflow: hidden; box-shadow: 0 18px 60px rgba(47,36,28,.14); }
+    header { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; background: #2f241c; color: white; padding: 16px 18px; }
+    header img { width: 118px; max-width: 34vw; background: white; border-radius: 13px; padding: 6px 9px; }
+    header p { margin: 4px 0 0; }
+    main { padding: 16px 18px; }
     h1, h2, h3 { margin: 0; color: #6B4423; }
-    h1 { font-size: 30px; }
-    h2 { font-size: 18px; }
-    h3 { font-size: 16px; }
-    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
-    .box { background: #f5f1e8; border-radius: 13px; padding: 11px; }
-    .label { color: #7b6758; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
-    .value { margin-top: 5px; font-weight: 700; line-height: 1.35; }
-    .total { margin: 14px 0; padding: 15px 16px; border-radius: 15px; background: #2f241c; color: white; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
-    .total strong { font-size: 24px; }
-    ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.45; }
-    li { margin-bottom: 2px; }
-    .signature-card { margin-top: 10px; display: flex; justify-content: space-between; gap: 16px; align-items: center; background: linear-gradient(135deg, #fff 0%, #fffaf2 58%, #f5ead8 100%); border: 1px solid #e2c6a6; border-radius: 16px; padding: 13px; box-shadow: inset 0 1px 0 rgba(255,255,255,.9); }
-    .signature-card p { margin: 5px 0 0; color: #7b6758; font-size: 12px; line-height: 1.35; }
+    h1 { font-size: 26px; }
+    h2 { font-size: 16px; }
+    h3 { font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 11px 0; }
+    .box { background: #f5f1e8; border-radius: 11px; padding: 9px; }
+    .label { color: #7b6758; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+    .value { margin-top: 4px; font-weight: 700; line-height: 1.28; }
+    .total { margin: 11px 0; padding: 12px 14px; border-radius: 13px; background: #2f241c; color: white; display: flex; justify-content: space-between; gap: 14px; align-items: center; }
+    .total strong { font-size: 21px; }
+    ul { margin: 6px 0 0; padding-left: 16px; line-height: 1.34; }
+    li { margin-bottom: 1px; }
+    .notes-box { margin-top: 10px; }
+    .notes-box p { margin: 5px 0 0; line-height: 1.35; }
+    .signature-card { margin-top: 10px; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; background: linear-gradient(135deg, #fff 0%, #fffaf2 58%, #f5ead8 100%); border: 1px solid #e2c6a6; border-radius: 14px; padding: 10px 12px; box-shadow: inset 0 1px 0 rgba(255,255,255,.9); }
+    .signature-card p { margin: 4px 0 0; color: #7b6758; font-size: 10px; line-height: 1.24; }
     .signature-card h3 { color: #2f241c; }
-    .signature-pill { display: inline-flex; align-items: center; border-radius: 999px; background: #2f241c; color: #fff; padding: 5px 8px; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-    .signature-mark { min-width: 230px; border-radius: 14px; background: rgba(255,255,255,.84); border: 1px solid #ead8bf; padding: 9px 11px; text-align: center; }
-    .signature-mark img { width: 210px; max-width: 100%; height: auto; object-fit: contain; display: block; margin: 0 auto 4px; }
-    .signature-line { height: 1px; background: #8f6a48; margin: 0 auto 6px; max-width: 205px; }
+    .signature-pill { display: inline-flex; align-items: center; border-radius: 999px; background: #2f241c; color: #fff; padding: 4px 7px; font-size: 8px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .signature-mark { width: 176px; border-radius: 12px; background: rgba(255,255,255,.9); border: 1px solid #ead8bf; padding: 7px 9px; text-align: center; }
+    .signature-mark img { width: 132px; max-width: 100%; height: auto; object-fit: contain; display: block; margin: 0 auto 3px; }
+    .signature-line { height: 1px; background: #8f6a48; margin: 0 auto 5px; max-width: 132px; }
     .signature-name { display: block; font-weight: 800; color: #2f241c; }
-    .signature-title { display: block; margin-top: 2px; color: #7b6758; font-size: 12px; }
-    .actions { margin-top: 18px; display: flex; gap: 10px; }
-    button { border: 0; border-radius: 12px; background: #b46532; color: white; padding: 12px 16px; font-weight: 800; cursor: pointer; }
+    .signature-title { display: block; margin-top: 1px; color: #7b6758; font-size: 10px; }
+    .actions { margin-top: 14px; display: flex; gap: 10px; }
+    button { border: 0; border-radius: 12px; background: #b46532; color: white; padding: 11px 15px; font-weight: 800; cursor: pointer; }
     @media print {
-      body { background: white; font-size: 11px; }
-      .page { width: 100%; max-width: none; margin: 0; box-shadow: none; border-radius: 0; border: 0; }
-      header { padding: 12px 14px; gap: 10px; }
-      header img { width: 106px; border-radius: 10px; padding: 5px 8px; }
-      header p { margin-top: 3px; }
-      main { padding: 12px 14px; }
-      h1 { font-size: 22px; }
-      h2 { font-size: 15px; }
-      h3 { font-size: 13px; }
-      .grid { gap: 7px; margin: 9px 0; }
-      .box { border-radius: 9px; padding: 7px 8px; }
-      .label { font-size: 8px; }
-      .value { margin-top: 3px; line-height: 1.2; }
-      .total { margin: 9px 0; padding: 10px 12px; border-radius: 10px; }
-      .total strong { font-size: 18px; }
-      ul { margin-top: 5px; padding-left: 14px; line-height: 1.28; }
-      .signature-card { margin-top: 7px; padding: 8px; gap: 10px; border-radius: 10px; break-inside: avoid; page-break-inside: avoid; }
-      .signature-card p { font-size: 9px; line-height: 1.2; }
+      html, body { background: white; }
+      body { font-size: 9.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page { width: 100%; max-width: none; margin: 0; box-shadow: none; border-radius: 0; border: 0; break-inside: avoid; page-break-inside: avoid; }
+      header { padding: 8px 10px; gap: 8px; }
+      header img { width: 82px; border-radius: 9px; padding: 4px 6px; }
+      header p { margin-top: 2px; }
+      main { padding: 8px 10px; }
+      h1 { font-size: 18px; }
+      h2 { font-size: 12px; }
+      h3 { font-size: 11px; }
+      .grid { gap: 5px; margin: 6px 0; }
+      .box { border-radius: 8px; padding: 5px 6px; }
+      .label { font-size: 7px; }
+      .value { margin-top: 2px; line-height: 1.12; }
+      .total { margin: 6px 0; padding: 7px 9px; border-radius: 8px; }
+      .total strong { font-size: 15px; }
+      ul { margin-top: 4px; padding-left: 12px; line-height: 1.16; }
+      li { margin-bottom: 0; }
+      .notes-box { margin-top: 6px; }
+      .notes-box p { margin-top: 3px; line-height: 1.18; }
+      .signature-card { margin-top: 6px; padding: 6px 7px; gap: 8px; border-radius: 9px; break-inside: avoid; page-break-inside: avoid; }
+      .signature-card h3 { font-size: 10px; }
+      .signature-card p { font-size: 7.5px; line-height: 1.12; }
       .signature-pill { font-size: 7px; padding: 3px 6px; }
-      .signature-mark { min-width: 175px; padding: 6px 8px; border-radius: 8px; }
-      .signature-mark img { width: 155px; margin-bottom: 2px; }
-      .signature-line { max-width: 150px; margin-bottom: 4px; }
-      .signature-title { font-size: 9px; }
+      .signature-mark { width: 128px; padding: 4px 6px; border-radius: 8px; }
+      .signature-mark img { width: 92px; margin-bottom: 1px; }
+      .signature-line { max-width: 92px; margin-bottom: 3px; }
+      .signature-name { font-size: 8px; }
+      .signature-title { font-size: 7px; }
       .actions { display: none; }
     }
-    @media (max-width: 640px) { header, .grid, .signature-card { grid-template-columns: 1fr; display: grid; } .signature-mark { min-width: 0; } .signature-mark img { width: 210px; max-width: 100%; } }
+    @media (max-width: 640px) { body { font-size: 11px; } .page { margin: 0; border-radius: 0; } header, .grid, .signature-card { grid-template-columns: 1fr; display: grid; } .signature-mark { width: 100%; max-width: 170px; } .signature-mark img { width: 120px; max-width: 100%; } }
   </style>
 </head>
 <body>
@@ -1414,11 +1423,11 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
         <div class="box"><div class="label">Payment Status</div><div class="value">${escapeHtml(booking.paymentStatus || "Not paid")}</div></div>
       </div>
       <div class="total"><span>Estimated Amount</span><strong>${escapeHtml(booking.quoteAmount || "To be confirmed")}</strong></div>
-      <div class="box">
+      <div class="box quote-box">
         <h2>Quote Details</h2>
         <ul>${lineItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
       </div>
-      <div class="box" style="margin-top:14px;">
+      <div class="box notes-box">
         <h3>Notes</h3>
         <p>This quote/invoice is prepared from the booking details. Final cost may change if measurements, parts, delivery, or installation requirements change.</p>
         <p><strong>FixMyDoor Services</strong><br>info.fixmydoor@gmail.com<br>+1 (438) 347-1823</p>
@@ -1509,8 +1518,8 @@ async function startServer() {
         defaultSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        imgSrc: ["'self'", "data:", "https:", "http:"],
-        mediaSrc: ["'self'", "data:", "https:", "http:"],
+        imgSrc: ["'self'", "data:", "https:"],
+        mediaSrc: ["'self'", "data:", "https:"],
         scriptSrc: ["'self'", "https://www.googletagmanager.com"],
         workerSrc: ["'self'"],
         manifestSrc: ["'self'"],
@@ -2401,7 +2410,7 @@ async function startServer() {
       const nonce = randomUUID().replace(/-/g, "");
       res.setHeader(
         "Content-Security-Policy",
-        `default-src 'self'; img-src 'self' data: https: http:; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-${nonce}'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'`,
+        `default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-${nonce}'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'`,
       );
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       return res.send(renderQuoteInvoiceHtml(toBooking(booking), nonce));

@@ -9,7 +9,7 @@ const VALID_CATEGORIES: ContentCategory[] = [
   "hardwareProduct",
   "projectGallery",
 ];
-const CONTENT_MEDIA_PATTERN = /^(\/uploads\/[a-z0-9-]+\.(png|jpe?g|webp|mp4|webm|ogg)|https?:\/\/[^\s<>"']{1,900})$/i;
+const CONTENT_MEDIA_PATTERN = /^(\/uploads\/[a-z0-9-]+\.(png|jpe?g|webp|mp4|webm|ogg)|https:\/\/[^\s<>"']{1,900})$/i;
 
 function cleanOptional(value: unknown, maxLength = 1000) {
   return typeof value === "string" && value.trim().length > 0
