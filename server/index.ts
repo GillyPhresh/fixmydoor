@@ -16,6 +16,7 @@ import { prisma } from "./prisma";
 import { findAdminByUsername, initializeAdminUser, verifyPassword, hashPassword } from "./auth";
 import { emailService, getPublicBaseUrl } from "./email";
 import type { Booking, BookingStatusHistoryEntry, BookingUpdateRequest } from "@shared/types";
+import { formatBookingDisplayId } from "@shared/booking-code";
 import { serviceCatalog } from "@shared/services";
 import { normalizeSeoPath, resolveSeoPage, seoRouteAliases, serviceSeoPages, sitemapRoutes } from "@shared/seo";
 
@@ -199,11 +200,16 @@ function getVapidKeys() {
 }
 
 function loadPushSubscriptions() {
-  return loadJsonFile<StoredPushSubscription[]>("push-subscriptions.json", []);
+  const savedSubscriptions = loadJsonFile<StoredPushSubscription[]>("push-subscriptions.json", []);
+  const subscriptions = dedupePushSubscriptions(savedSubscriptions);
+  if (subscriptions.length !== savedSubscriptions.length) {
+    saveJsonFile("push-subscriptions.json", subscriptions);
+  }
+  return subscriptions;
 }
 
 function savePushSubscriptions(subscriptions: StoredPushSubscription[]) {
-  saveJsonFile("push-subscriptions.json", subscriptions);
+  saveJsonFile("push-subscriptions.json", dedupePushSubscriptions(subscriptions));
 }
 
 function loadPushNotificationLog() {
@@ -229,13 +235,54 @@ function normalizePushAudience(value: unknown): PushAudience {
   return value === "admin" ? "admin" : "visitor";
 }
 
+function getPushAudiences(subscription: StoredPushSubscription): PushAudience[] {
+  const audiences = subscription.audiences?.length ? subscription.audiences : [subscription.audience || "visitor"];
+  return Array.from(new Set(audiences.map(normalizePushAudience)));
+}
+
+function dedupePushSubscriptions(subscriptions: StoredPushSubscription[]) {
+  const uniqueSubscriptions = new Map<string, StoredPushSubscription>();
+
+  subscriptions.forEach((subscription) => {
+    if (!subscription?.endpoint) {
+      return;
+    }
+
+    const endpoint = subscription.endpoint.trim();
+    const existing = uniqueSubscriptions.get(endpoint);
+    const audiences = Array.from(new Set([
+      ...(existing ? getPushAudiences(existing) : []),
+      ...getPushAudiences(subscription),
+    ]));
+
+    uniqueSubscriptions.set(endpoint, {
+      ...existing,
+      ...subscription,
+      endpoint,
+      audiences,
+      audience: subscription.audience || existing?.audience || audiences[0] || "visitor",
+      createdAt: existing?.createdAt || subscription.createdAt || new Date().toISOString(),
+      updatedAt: subscription.updatedAt || existing?.updatedAt || new Date().toISOString(),
+    });
+  });
+
+  return Array.from(uniqueSubscriptions.values());
+}
+
+function getPushSubscriberCounts(subscriptions = loadPushSubscriptions()) {
+  return {
+    subscriberCount: subscriptions.length,
+    visitorSubscriberCount: subscriptions.filter((subscription) => matchesPushAudience(subscription, "visitor")).length,
+    adminSubscriberCount: subscriptions.filter((subscription) => matchesPushAudience(subscription, "admin")).length,
+  };
+}
+
 function matchesPushAudience(subscription: StoredPushSubscription, audience?: PushAudience | "all") {
   if (!audience || audience === "all") {
     return true;
   }
 
-  const audiences = subscription.audiences?.length ? subscription.audiences : [subscription.audience || "visitor"];
-  return audiences.includes(audience);
+  return getPushAudiences(subscription).includes(audience);
 }
 
 function hkdfExpand(prk: Buffer, info: Buffer | string, length: number) {
@@ -1070,13 +1117,14 @@ function renderSitemapXml() {
 
 function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
   const lineItems = (booking.quoteNotes || "Labour, materials, sourcing, delivery, or installation details will be confirmed by FixMyDoor Services.").split(/\r?\n/).filter(Boolean);
+  const bookingDisplayId = formatBookingDisplayId(booking);
 
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FixMyDoor Services Quote / Invoice - ${escapeHtml(booking.id)}</title>
+  <title>FixMyDoor Services Quote / Invoice - ${escapeHtml(bookingDisplayId)}</title>
   <style>
     body { margin: 0; background: #f7efe4; color: #2f241c; font-family: Arial, sans-serif; }
     .page { max-width: 860px; margin: 24px auto; background: #fffaf2; border: 1px solid #ead8bf; border-radius: 24px; overflow: hidden; box-shadow: 0 18px 60px rgba(47,36,28,.14); }
@@ -1106,7 +1154,7 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
       </div>
       <div>
         <h1 style="color:white;">Quote / Invoice</h1>
-        <p>Booking ID: ${escapeHtml(booking.id)}</p>
+        <p>Booking ID: ${escapeHtml(bookingDisplayId)}</p>
         <p>Date: ${escapeHtml(new Date().toLocaleDateString())}</p>
       </div>
     </header>
@@ -1583,9 +1631,10 @@ async function startServer() {
     }
 
     savePushSubscriptions(subscriptions);
+    const subscriberCounts = getPushSubscriberCounts();
     return res.json({
       success: true,
-      subscriberCount: subscriptions.length,
+      ...subscriberCounts,
       audience: requestedAudience,
       audiences,
     });
@@ -1593,10 +1642,9 @@ async function startServer() {
 
   app.get("/api/admin/notifications", requireAuth, (_req, res) => {
     const subscriptions = loadPushSubscriptions();
+    const subscriberCounts = getPushSubscriberCounts(subscriptions);
     return res.json({
-      subscriberCount: subscriptions.length,
-      visitorSubscriberCount: subscriptions.filter((subscription) => matchesPushAudience(subscription, "visitor")).length,
-      adminSubscriberCount: subscriptions.filter((subscription) => matchesPushAudience(subscription, "admin")).length,
+      ...subscriberCounts,
       notifications: loadPushNotificationLog(),
       publicKeyReady: Boolean(getVapidKeys().publicKey),
     });
@@ -1835,7 +1883,7 @@ async function startServer() {
 
       queuePushNotification({
         title: "New customer request",
-        message: `${savedBooking.name} requested ${savedBooking.repairType}`,
+        message: `${formatBookingDisplayId(savedBooking)} - ${savedBooking.name} requested ${savedBooking.repairType}`,
         url: "/admin",
         icon: "/icons/admin-icon-v2-192x192.png",
         badge: "/icons/admin-icon-v2-96x96.png",
@@ -1963,7 +2011,8 @@ async function startServer() {
       })).map(toBooking);
 
       const headers = [
-        "ID",
+        "Booking Code",
+        "Internal ID",
         "Name",
         "Phone",
         "Email",
@@ -1992,6 +2041,7 @@ async function startServer() {
         "Created At",
       ];
       const rows = bookings.map((booking) => [
+        formatBookingDisplayId(booking),
         booking.id,
         booking.name,
         booking.phone,

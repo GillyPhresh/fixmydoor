@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText, Send, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
+import { formatBookingDisplayId } from "@shared/booking-code";
 
 const ADMIN_NOTIFICATION_CHOICE_KEY = "fixmydoor-admin-push-choice-v1";
 
@@ -54,19 +55,19 @@ const contentCategories: { value: ContentItem["category"]; label: string }[] = [
 const quickMessageTemplates = [
   {
     label: "Received",
-    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. We received your request for ${booking.repairType} and will review the details shortly.`,
+    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. We received your request for ${booking.repairType} and will review the details shortly.\nBooking ID: ${formatBookingDisplayId(booking)}`,
   },
   {
     label: "Quote sent",
-    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. Your quote for ${booking.repairType} has been prepared. Please review it and let us know if you have any questions.`,
+    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. Your quote for ${booking.repairType} has been prepared. Please review it and let us know if you have any questions.\nBooking ID: ${formatBookingDisplayId(booking)}`,
   },
   {
     label: "Confirmed",
-    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. Your appointment for ${booking.repairType} is confirmed${booking.appointmentTime ? ` for ${booking.appointmentTime}` : ""}.`,
+    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. Your appointment for ${booking.repairType} is confirmed${booking.appointmentTime ? ` for ${booking.appointmentTime}` : ""}.\nBooking ID: ${formatBookingDisplayId(booking)}`,
   },
   {
     label: "Completed",
-    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. Thank you for choosing us. Your job is marked completed. Please contact us if you need any follow-up.`,
+    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. Thank you for choosing us. Your job is marked completed. Please contact us if you need any follow-up.\nBooking ID: ${formatBookingDisplayId(booking)}`,
   },
 ];
 
@@ -78,6 +79,16 @@ const quoteTemplateText = [
   "Notes:",
   "Quote is based on the photos, measurements, and details provided. Final cost may change if site conditions are different.",
 ].join("\n");
+
+const workflowExamples = [
+  ["Appointment Date & Time", "Pick the visit time from the calendar, for example May 30, 2026 at 2:30 PM."],
+  ["Quote Amount", "Use a clear amount such as C$250, or a range such as C$180-C$320 when the final parts are not confirmed."],
+  ["Staff", "Write who will handle the job, for example Richard, Team A, or Supplier follow-up."],
+  ["Invoice Status", "Use Quote sent after pricing is shared, Invoice sent when the final invoice is ready, and Revised if you update the price."],
+  ["Payment", "Use Deposit requested, Partially paid, Paid, or Not paid so the job status is easy to track."],
+  ["Quote / Invoice Notes", "Write customer-facing line items such as labour, hinges, delivery, installation, warranty, and payment terms."],
+  ["Private Admin Notes", "Write internal reminders only, such as confirm hinge size, call after 6 PM, or customer prefers WhatsApp."],
+] as const;
 
 type EmailRuntimeStatus = {
   configured: boolean;
@@ -140,6 +151,10 @@ function normalizeWhatsAppPhone(phone: string) {
   return digits.length >= 8 ? digits : "";
 }
 
+function isDocumentMedia(value?: string | null) {
+  return Boolean(value && /\.(pdf|docx?)(\?.*)?$/i.test(value));
+}
+
 function getAdminToClientWhatsAppUrl(booking: Booking, customMessage?: string) {
   const normalizedPhone = normalizeWhatsAppPhone(booking.phone);
   if (!normalizedPhone) {
@@ -150,7 +165,7 @@ function getAdminToClientWhatsAppUrl(booking: Booking, customMessage?: string) {
     `Hello ${booking.name}, this is FixMyDoor Services.`,
     `We received your request for ${booking.repairType}.`,
     "Our staff will contact you to confirm the appointment details.",
-    `Booking ID: ${booking.id}`,
+    `Booking ID: ${formatBookingDisplayId(booking)}`,
   ].join("\n");
 
   return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
@@ -778,7 +793,7 @@ export default function Admin() {
       const response = await axios.post<{ url: string; kind?: "image" | "video" | "document" }>("/api/admin/media", { dataUrl, fileName: file.name });
       if (response.data.kind === "document") {
         setContentDraft((draft) => ({ ...draft, items: response.data.url }));
-        toast.success("Document uploaded. The document link was saved in the details field.");
+        toast.success("Document uploaded. Save this content item and the document will appear as a clickable link in the selected website section.");
       } else {
         setContentDraft((draft) => ({ ...draft, image: response.data.url }));
         toast.success("Media uploaded. Save the content item to publish it.");
@@ -1194,7 +1209,7 @@ export default function Admin() {
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a5a2d]">Push Notifications</p>
                 <CardTitle className="mt-1 text-xl font-display text-secondary md:text-2xl">Send update to subscribers</CardTitle>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">
-                  {pushSubscriberCount} total device{pushSubscriberCount === 1 ? "" : "s"} subscribed: {visitorSubscriberCount} visitor{visitorSubscriberCount === 1 ? "" : "s"} and {adminSubscriberCount} admin device{adminSubscriberCount === 1 ? "" : "s"}.
+                  {pushSubscriberCount} unique device{pushSubscriberCount === 1 ? "" : "s"} subscribed. Audience tags: {visitorSubscriberCount} visitor{visitorSubscriberCount === 1 ? "" : "s"} and {adminSubscriberCount} admin device{adminSubscriberCount === 1 ? "" : "s"}. A device is counted once even if it logs in many times.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:flex">
@@ -1307,6 +1322,7 @@ export default function Admin() {
                   <div key={booking.id} className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-bold text-secondary">{booking.name}</p>
+                      <p className="truncate text-[0.68rem] font-bold text-primary">{formatBookingDisplayId(booking)}</p>
                       <p className="truncate text-xs text-muted-foreground">{booking.repairType}</p>
                     </div>
                     <Badge variant={booking.status === "PENDING" ? "secondary" : booking.status === "COMPLETED" ? "default" : "outline"} className="shrink-0 text-[0.65rem]">
@@ -1406,6 +1422,7 @@ export default function Admin() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <h3 className="truncate font-bold text-secondary">{booking.name}</h3>
+                        <p className="mt-0.5 truncate text-[0.68rem] font-black text-primary">{formatBookingDisplayId(booking)}</p>
                         <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{booking.repairType}</p>
                       </div>
                       <Badge className={`${statusColors[booking.status]} shrink-0 text-[0.65rem]`}>
@@ -1489,6 +1506,7 @@ export default function Admin() {
                           <div className="space-y-3">
                             <div className="rounded-2xl bg-[#fffaf2] p-3">
                               <p className="font-bold text-secondary">{booking.name}</p>
+                              <p className="mt-1 text-xs font-black text-primary">{formatBookingDisplayId(booking)}</p>
                               <p className="mt-1 text-xs text-muted-foreground">Submitted: {new Date(booking.createdAt).toLocaleString()}</p>
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-sm">
@@ -1569,6 +1587,14 @@ export default function Admin() {
                                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                                     Set the appointment, quote, invoice status, payment status, assigned staff, and private notes from your phone.
                                   </p>
+                                  <details className="mt-2 rounded-xl border border-primary/10 bg-white px-3 py-2 text-xs">
+                                    <summary className="cursor-pointer font-bold text-secondary">Example formats</summary>
+                                    <div className="mt-2 grid gap-2 text-muted-foreground">
+                                      {workflowExamples.map(([label, example]) => (
+                                        <p key={label}><strong className="text-secondary">{label}:</strong> {example}</p>
+                                      ))}
+                                    </div>
+                                  </details>
                                 </div>
                                 <Button type="button" size="sm" onClick={saveBookingWorkflow} className="w-full">
                                   <Save className="mr-1.5 h-4 w-4" />
@@ -1727,7 +1753,10 @@ export default function Admin() {
                 <TableBody>
                   {bookings.map((booking) => (
                     <TableRow key={booking.id}>
-                      <TableCell className="font-medium">{booking.name}</TableCell>
+                      <TableCell>
+                        <p className="font-medium">{booking.name}</p>
+                        <p className="mt-1 text-xs font-bold text-primary">{formatBookingDisplayId(booking)}</p>
+                      </TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center gap-1 text-sm">
@@ -1821,6 +1850,7 @@ export default function Admin() {
                                     <div>
                                       <Label>Name</Label>
                                       <p className="font-medium">{selectedBooking.name}</p>
+                                      <p className="mt-1 text-xs font-black text-primary">{formatBookingDisplayId(selectedBooking)}</p>
                                     </div>
                                     <div>
                                       <Label>Phone</Label>
@@ -1954,6 +1984,14 @@ export default function Admin() {
                                         </Button>
                                       </div>
                                     </div>
+                                    <details className="mb-3 rounded-xl border border-primary/10 bg-[#fffaf2] px-3 py-2 text-xs">
+                                      <summary className="cursor-pointer font-bold text-secondary">Example formats for this workflow</summary>
+                                      <div className="mt-2 grid gap-2 text-muted-foreground sm:grid-cols-2">
+                                        {workflowExamples.map(([label, example]) => (
+                                          <p key={label}><strong className="text-secondary">{label}:</strong> {example}</p>
+                                        ))}
+                                      </div>
+                                    </details>
                                     <div className="grid gap-3 sm:grid-cols-3">
                                       <div>
                                         <Label>Appointment Date & Time</Label>
@@ -2191,6 +2229,9 @@ export default function Admin() {
               <div className="md:col-span-2">
                 <Label>{contentDraft.category === "advert" ? "Button Text / Details" : "Items / Details"}</Label>
                 <Input value={contentDraft.items || ""} onChange={(event) => setContentDraft((draft) => ({ ...draft, items: event.target.value }))} placeholder={contentDraft.category === "advert" ? "Book This Offer" : "Handles, cylinders, hinges, lock bodies..."} />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  For normal content, write the details customers should see. If you upload a PDF or Word document, the document link is saved here and appears publicly as a clickable document link.
+                </p>
               </div>
               <div className="md:col-span-2">
                 <Label>Main Media</Label>
@@ -2218,6 +2259,20 @@ export default function Admin() {
                       <img src={contentDraft.image} alt="Selected content preview" className="max-h-56 w-full object-contain" />
                     )}
                   </div>
+                )}
+                {isDocumentMedia(contentDraft.items) && (
+                  <a
+                    href={contentDraft.items || "#"}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-primary/15 bg-[#fffaf2] p-3 text-sm font-bold text-secondary transition hover:text-primary"
+                  >
+                    <span className="inline-flex min-w-0 items-center gap-2">
+                      <FileText className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="truncate">Document saved for this content item</span>
+                    </span>
+                    <span className="shrink-0 text-xs">Open</span>
+                  </a>
                 )}
               </div>
               <div>

@@ -157,6 +157,7 @@ type DisplayAdvert = {
   image: string;
   isVideo: boolean;
   cta: string;
+  documentUrl?: string;
   bookingValue: string;
   updatedAt?: string;
   alt: string;
@@ -191,6 +192,9 @@ function isCanadaLocation(value?: string) {
 
 const isVideoMedia = (media?: string) =>
   Boolean(media && (media.startsWith("data:video/") || /\.(mp4|webm|ogg)(\?.*)?$/i.test(media)));
+
+const isDocumentMedia = (media?: string) =>
+  Boolean(media && /\.(pdf|docx?)(\?.*)?$/i.test(media));
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -304,6 +308,7 @@ export default function Home() {
   const [lightboxAdvert, setLightboxAdvert] = useState<DisplayAdvert | null>(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [lightboxPan, setLightboxPan] = useState({ x: 0, y: 0 });
+  const [lightboxControlsVisible, setLightboxControlsVisible] = useState(true);
   const [notificationSupported, setNotificationSupported] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notificationPromptOpen, setNotificationPromptOpen] = useState(false);
@@ -320,6 +325,7 @@ export default function Home() {
   const lightboxPointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const lightboxPinchRef = useRef<{ distance: number; zoom: number } | null>(null);
   const lightboxDragRef = useRef<{ pointerId: number; x: number; y: number; panX: number; panY: number } | null>(null);
+  const lightboxTapRef = useRef<{ pointerId: number; x: number; y: number; moved: boolean } | null>(null);
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
@@ -883,7 +889,8 @@ export default function Home() {
     tag: item.tag || "Promotion",
     image: item.image || heroImage,
     isVideo: isVideoMedia(item.image),
-    cta: item.items || "Send Request",
+    cta: isDocumentMedia(item.items) ? "View Document" : item.items || "Send Request",
+    documentUrl: isDocumentMedia(item.items) ? item.items : undefined,
     bookingValue: item.bookingValue || "consultation",
     updatedAt: item.updatedAt || item.createdAt,
     alt: getAdvertAlt({ title: item.title, tag: item.tag || "Promotion" }),
@@ -1012,15 +1019,18 @@ export default function Home() {
     setLightboxAdvert(advert);
     setLightboxZoom(1);
     setLightboxPan({ x: 0, y: 0 });
+    setLightboxControlsVisible(true);
   };
 
   const closeAdvertLightbox = () => {
     setLightboxAdvert(null);
     setLightboxZoom(1);
     setLightboxPan({ x: 0, y: 0 });
+    setLightboxControlsVisible(true);
     lightboxPointersRef.current.clear();
     lightboxPinchRef.current = null;
     lightboxDragRef.current = null;
+    lightboxTapRef.current = null;
   };
 
   const updateLightboxZoom = (nextZoom: number | ((currentZoom: number) => number)) => {
@@ -1042,6 +1052,7 @@ export default function Home() {
   const handleLightboxPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
     lightboxPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    lightboxTapRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
 
     const points = Array.from(lightboxPointersRef.current.values());
     if (points.length >= 2) {
@@ -1067,6 +1078,11 @@ export default function Home() {
   const handleLightboxPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!lightboxPointersRef.current.has(event.pointerId)) {
       return;
+    }
+
+    const tap = lightboxTapRef.current;
+    if (tap?.pointerId === event.pointerId && Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 8) {
+      tap.moved = true;
     }
 
     lightboxPointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -1100,6 +1116,14 @@ export default function Home() {
     if (lightboxDragRef.current?.pointerId === event.pointerId) {
       lightboxDragRef.current = null;
     }
+  };
+
+  const toggleLightboxControls = () => {
+    if (lightboxTapRef.current?.moved) {
+      return;
+    }
+
+    setLightboxControlsVisible((visible) => !visible);
   };
 
   const showPreviousAdvert = () => {
@@ -1815,14 +1839,26 @@ export default function Home() {
                         {advert.description}
                       </p>
                       <div className="mt-auto flex items-center gap-2 pt-3">
-                        <button
-                          type="button"
-                          onClick={() => handleCatalogPick(advert.bookingValue, advert.title)}
-                          className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-secondary px-3 text-[0.76rem] font-black text-white shadow-[0_12px_24px_rgba(47,36,28,0.16)] transition hover:-translate-y-0.5 hover:bg-primary"
-                        >
-                          {advert.cta}
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </button>
+                        {advert.documentUrl ? (
+                          <a
+                            href={advert.documentUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-secondary px-3 text-[0.76rem] font-black text-white shadow-[0_12px_24px_rgba(47,36,28,0.16)] transition hover:-translate-y-0.5 hover:bg-primary"
+                          >
+                            {advert.cta}
+                            <FileText className="h-3.5 w-3.5" />
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleCatalogPick(advert.bookingValue, advert.title)}
+                            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-2xl bg-secondary px-3 text-[0.76rem] font-black text-white shadow-[0_12px_24px_rgba(47,36,28,0.16)] transition hover:-translate-y-0.5 hover:bg-primary"
+                          >
+                            {advert.cta}
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                         <a
                           href={BUSINESS_WHATSAPP_URL}
                           target="_blank"
@@ -1922,7 +1958,7 @@ export default function Home() {
               onPointerUp={handleLightboxPointerEnd}
               onPointerCancel={handleLightboxPointerEnd}
             >
-              <div className="absolute bottom-3 left-1/2 top-auto z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/12 bg-black/54 p-1 backdrop-blur sm:left-3 sm:top-3 sm:bottom-auto sm:translate-x-0 sm:gap-2 sm:p-1.5">
+              <div className={`absolute bottom-3 left-1/2 top-auto z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/12 bg-black/54 p-1 backdrop-blur transition duration-200 sm:left-3 sm:top-3 sm:bottom-auto sm:translate-x-0 sm:gap-2 sm:p-1.5 ${lightboxControlsVisible ? "opacity-100" : "pointer-events-none translate-y-2 opacity-0"}`}>
                 <button type="button" onClick={() => updateLightboxZoom((currentZoom) => currentZoom - 0.25)} className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-secondary transition hover:bg-primary hover:text-white sm:h-9 sm:w-9" aria-label="Zoom out">
                   <Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
@@ -1935,7 +1971,7 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="flex h-full min-h-[18rem] items-center justify-center overflow-hidden p-4 sm:min-h-[28rem] sm:p-8">
+              <div className="flex h-full min-h-[18rem] items-center justify-center overflow-hidden p-4 sm:min-h-[28rem] sm:p-8" onClick={toggleLightboxControls}>
                 {lightboxAdvert.isVideo ? (
                   <video
                     src={lightboxAdvert.image}
@@ -1960,10 +1996,17 @@ export default function Home() {
             <div className="relative z-10 flex flex-col gap-3 border-t border-white/10 bg-white/8 p-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
               <p className="max-w-3xl text-sm leading-relaxed text-white/78">{lightboxAdvert.description}</p>
               <div className="flex shrink-0 gap-2">
-                <button type="button" onClick={() => handleCatalogPick(lightboxAdvert.bookingValue, lightboxAdvert.title)} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-primary/90">
-                  {lightboxAdvert.cta}
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+                {lightboxAdvert.documentUrl ? (
+                  <a href={lightboxAdvert.documentUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-primary/90">
+                    {lightboxAdvert.cta}
+                    <FileText className="h-4 w-4" />
+                  </a>
+                ) : (
+                  <button type="button" onClick={() => handleCatalogPick(lightboxAdvert.bookingValue, lightboxAdvert.title)} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-primary/90">
+                    {lightboxAdvert.cta}
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                )}
                 <a href={BUSINESS_WHATSAPP_URL} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-2.5 text-sm font-black text-secondary shadow-lg transition hover:-translate-y-0.5 hover:text-primary">
                   WhatsApp
                 </a>
@@ -2163,7 +2206,19 @@ export default function Home() {
                 <div className="p-5 md:p-6">
                   <h3 className="text-xl font-bold text-secondary md:text-2xl">{category.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-foreground/70">{category.desc}</p>
-                  <p className="mt-4 rounded-2xl bg-background p-4 text-sm font-semibold text-secondary">{category.items}</p>
+                  {isDocumentMedia(category.items) ? (
+                    <a
+                      href={category.items}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-background p-4 text-sm font-bold text-secondary transition hover:text-primary"
+                    >
+                      <FileText className="h-4 w-4" />
+                      View attached document
+                    </a>
+                  ) : (
+                    <p className="mt-4 rounded-2xl bg-background p-4 text-sm font-semibold text-secondary">{category.items}</p>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleCatalogPick(category.bookingValue, category.title)}

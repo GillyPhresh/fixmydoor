@@ -3,6 +3,7 @@ import { setDefaultResultOrder } from "node:dns";
 import { existsSync } from "fs";
 import { resolve } from "path";
 import type { Booking, BookingStatus } from "../shared/types";
+import { formatBookingDisplayId } from "../shared/booking-code";
 
 interface EmailConfig {
   host: string;
@@ -496,6 +497,7 @@ class EmailService {
     const useResend = this.getProviderName() === "resend";
     const logoAttachment = useResend ? undefined : getLogoAttachment();
     const trackingUrl = booking.customerToken ? `${getPublicBaseUrl()}/track/${booking.customerToken}` : "";
+    const bookingDisplayId = formatBookingDisplayId(booking);
     const logoHtml = renderEmailLogo(logoAttachment, { hosted: useResend });
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; background:#fffaf2; border:1px solid #ead8bf; border-radius:22px; overflow:hidden;">
@@ -511,7 +513,7 @@ class EmailService {
 
         <div style="background:#F5F1E8; padding:20px; border-radius:16px; margin:22px 0; color:#3a281f;">
           <h3 style="margin-top:0; color:#6B4423;">Your request details</h3>
-          <p><strong>Booking ID:</strong> ${escapeHtml(booking.id)}</p>
+          <p><strong>Booking ID:</strong> ${escapeHtml(bookingDisplayId)}</p>
           <p><strong>Request:</strong> ${escapeHtml(booking.repairType)}</p>
           <p><strong>Address:</strong> ${escapeHtml(booking.address)}</p>
           ${formatOptionalRow("City / Province", booking.city)}
@@ -555,7 +557,7 @@ class EmailService {
         "",
         "Thanks for contacting FixMyDoor Services. Your request is now in our system, and our staff will contact you soon to confirm the details.",
         "",
-        `Booking ID: ${booking.id}`,
+        `Booking ID: ${bookingDisplayId}`,
         `Request: ${booking.repairType}`,
         `Address: ${booking.address}`,
         `City / Province: ${booking.city || "Not specified"}`,
@@ -610,10 +612,11 @@ class EmailService {
     const logoAttachment = useResend ? undefined : getLogoAttachment();
     const logoHtml = `<div style="text-align:center; background:#2f241c; padding:24px; border-radius:18px 18px 0 0;">${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px", hosted: useResend })}</div>`;
     const subject = `New FixMyDoor Services Booking: ${cleanSubjectValue(booking.name)} - ${cleanSubjectValue(booking.repairType)}`;
+    const bookingDisplayId = formatBookingDisplayId(booking);
     const text = [
       "New FixMyDoor Services booking received",
       "",
-      `Booking ID: ${booking.id}`,
+      `Booking ID: ${bookingDisplayId}`,
       `Name: ${booking.name}`,
       `Phone: ${booking.phone}`,
       `Email: ${booking.email}`,
@@ -653,7 +656,7 @@ class EmailService {
 
         <div style="background: #F5F1E8; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3>Customer Details:</h3>
-          <p><strong>Booking ID:</strong> ${escapeHtml(booking.id)}</p>
+          <p><strong>Booking ID:</strong> ${escapeHtml(bookingDisplayId)}</p>
           <p><strong>Name:</strong> ${escapeHtml(booking.name)}</p>
           <p><strong>Phone:</strong> ${escapeHtml(booking.phone)}</p>
           <p><strong>Email:</strong> <a href="mailto:${escapeHtml(booking.email)}">${escapeHtml(booking.email)}</a></p>
@@ -723,6 +726,7 @@ class EmailService {
     const subject = `FixMyDoor Services request update: ${booking.status.replace("_", " ")}`;
     const useResend = this.getProviderName() === "resend";
     const logoAttachment = useResend ? undefined : getLogoAttachment();
+    const bookingDisplayId = formatBookingDisplayId(booking);
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; background:#fffaf2; border:1px solid #ead8bf; border-radius:20px; overflow:hidden;">
         <div style="background:#2f241c; padding:22px; text-align:center;">
@@ -733,7 +737,7 @@ class EmailService {
           <p>Hi ${escapeHtml(booking.name)},</p>
           <p>${escapeHtml(statusMessage(booking.status))}</p>
           <div style="background:#F5F1E8; padding:18px; border-radius:14px; margin:20px 0;">
-            <p><strong>Booking ID:</strong> ${escapeHtml(booking.id)}</p>
+            <p><strong>Booking ID:</strong> ${escapeHtml(bookingDisplayId)}</p>
             <p><strong>Current Status:</strong> ${escapeHtml(booking.status.replace("_", " "))}</p>
             ${formatOptionalRow("Appointment Time", booking.appointmentTime)}
             ${formatOptionalRow("Quote Amount", booking.quoteAmount)}
