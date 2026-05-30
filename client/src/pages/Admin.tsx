@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText, Send } from "lucide-react";
+import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText, Send, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, Review, ReviewStatus } from "@shared/types";
 
@@ -50,6 +50,34 @@ const contentCategories: { value: ContentItem["category"]; label: string }[] = [
   { value: "hardwareProduct", label: "Hardware Product" },
   { value: "projectGallery", label: "Project Gallery" },
 ];
+
+const quickMessageTemplates = [
+  {
+    label: "Received",
+    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. We received your request for ${booking.repairType} and will review the details shortly.`,
+  },
+  {
+    label: "Quote sent",
+    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. Your quote for ${booking.repairType} has been prepared. Please review it and let us know if you have any questions.`,
+  },
+  {
+    label: "Confirmed",
+    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. Your appointment for ${booking.repairType} is confirmed${booking.appointmentTime ? ` for ${booking.appointmentTime}` : ""}.`,
+  },
+  {
+    label: "Completed",
+    message: (booking: Booking) => `Hello ${booking.name}, this is FixMyDoor Services. Thank you for choosing us. Your job is marked completed. Please contact us if you need any follow-up.`,
+  },
+];
+
+const quoteTemplateText = [
+  "Labour: C$",
+  "Materials / parts: C$",
+  "Delivery / pickup: C$",
+  "Estimated total: C$",
+  "Notes:",
+  "Quote is based on the photos, measurements, and details provided. Final cost may change if site conditions are different.",
+].join("\n");
 
 type EmailRuntimeStatus = {
   configured: boolean;
@@ -112,13 +140,13 @@ function normalizeWhatsAppPhone(phone: string) {
   return digits.length >= 8 ? digits : "";
 }
 
-function getAdminToClientWhatsAppUrl(booking: Booking) {
+function getAdminToClientWhatsAppUrl(booking: Booking, customMessage?: string) {
   const normalizedPhone = normalizeWhatsAppPhone(booking.phone);
   if (!normalizedPhone) {
     return "";
   }
 
-  const message = [
+  const message = customMessage || [
     `Hello ${booking.name}, this is FixMyDoor Services.`,
     `We received your request for ${booking.repairType}.`,
     "Our staff will contact you to confirm the appointment details.",
@@ -212,6 +240,8 @@ export default function Admin() {
   const [pushTitle, setPushTitle] = useState("");
   const [pushMessage, setPushMessage] = useState("");
   const [pushLoading, setPushLoading] = useState(false);
+  const [pushRefreshLoading, setPushRefreshLoading] = useState(false);
+  const [dashboardRefreshing, setDashboardRefreshing] = useState(false);
   const [pushSubscriberCount, setPushSubscriberCount] = useState(0);
   const [visitorSubscriberCount, setVisitorSubscriberCount] = useState(0);
   const [adminSubscriberCount, setAdminSubscriberCount] = useState(0);
@@ -371,6 +401,32 @@ export default function Admin() {
     }
   };
 
+  const refreshDashboard = async () => {
+    setDashboardRefreshing(true);
+    try {
+      await Promise.all([
+        fetchStats(),
+        fetchBookings(),
+        fetchReviews(),
+        fetchContentItems(),
+        fetchEmailStatus(),
+        fetchPushNotifications(),
+      ]);
+      toast.success("Admin dashboard refreshed");
+    } catch {
+      toast.error("Some dashboard data could not refresh");
+    } finally {
+      setDashboardRefreshing(false);
+    }
+  };
+
+  const applyQuickBookingFilter = (filter: { status?: string; workflow?: string }) => {
+    setStatusFilter(filter.status || "ALL");
+    setWorkflowFilter(filter.workflow || "ALL");
+    setCurrentPage(1);
+    document.getElementById("booking-requests")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const fetchReviews = async () => {
     try {
       const response = await axios.get("/api/admin/reviews?limit=100");
@@ -407,7 +463,8 @@ export default function Admin() {
     }
   };
 
-  const fetchPushNotifications = async () => {
+  const fetchPushNotifications = async (showToast = false) => {
+    setPushRefreshLoading(true);
     try {
       const response = await axios.get<{
         subscriberCount: number;
@@ -419,8 +476,16 @@ export default function Admin() {
       setVisitorSubscriberCount(response.data.visitorSubscriberCount || 0);
       setAdminSubscriberCount(response.data.adminSubscriberCount || 0);
       setPushNotifications(response.data.notifications || []);
+      if (showToast) {
+        toast.success("Notification log refreshed");
+      }
     } catch (err) {
       console.error("Failed to fetch push notifications:", err);
+      if (showToast) {
+        toast.error("Unable to refresh notifications");
+      }
+    } finally {
+      setPushRefreshLoading(false);
     }
   };
 
@@ -600,6 +665,20 @@ export default function Admin() {
     } catch (err) {
       toast.error("Failed to save content item");
     }
+  };
+
+  const adjustContentSortOrder = (amount: number) => {
+    setContentDraft((draft) => ({
+      ...draft,
+      sortOrder: Math.max(0, (Number(draft.sortOrder) || 0) + amount),
+    }));
+  };
+
+  const insertQuoteTemplate = () => {
+    setBookingDraft((draft) => ({
+      ...draft,
+      quoteNotes: draft.quoteNotes?.trim() ? `${draft.quoteNotes}\n\n${quoteTemplateText}` : quoteTemplateText,
+    }));
   };
 
   const changePassword = async (event: React.FormEvent) => {
@@ -877,6 +956,24 @@ export default function Admin() {
     );
   }
 
+  const statsCards = stats ? [
+    { label: "Total", value: stats.totalBookings, color: "text-secondary", action: { status: "ALL", workflow: "ALL" } },
+    { label: "Pending", value: stats.pendingBookings, color: "text-yellow-700", action: { status: "PENDING", workflow: "ALL" } },
+    { label: "Urgent", value: stats.urgentBookings, color: "text-red-600", action: { status: "ALL", workflow: "URGENT" } },
+    { label: "This Week", value: stats.thisWeekBookings, color: "text-blue-700", action: { status: "ALL", workflow: "THIS_WEEK" } },
+    { label: "International", value: stats.internationalBookings, color: "text-purple-700", action: { status: "ALL", workflow: "INTERNATIONAL" } },
+    { label: "Completed", value: stats.completedBookings, color: "text-green-700", action: { status: "COMPLETED", workflow: "ALL" } },
+  ] : [];
+
+  const quickBookingFilters = [
+    { label: "All", action: { status: "ALL", workflow: "ALL" } },
+    { label: "Today", action: { status: "ALL", workflow: "TODAY" } },
+    { label: "Week", action: { status: "ALL", workflow: "THIS_WEEK" } },
+    { label: "Urgent", action: { status: "ALL", workflow: "URGENT" } },
+    { label: "Pending", action: { status: "PENDING", workflow: "ALL" } },
+    { label: "Needs Quote", action: { status: "ALL", workflow: "NEEDS_QUOTE" } },
+  ];
+
   return (
     <div className="admin-dashboard-shell min-h-screen max-w-full overflow-x-hidden bg-[#f7efe4]">
       <div className="container mx-auto w-full max-w-[1320px] min-w-0 overflow-x-hidden px-3 py-4 sm:px-4 md:py-8">
@@ -918,7 +1015,11 @@ export default function Admin() {
               <Bell className="w-4 h-4 mr-2" />
               {adminNotificationLoading ? "Enabling..." : adminNotificationsEnabled ? "Alerts On" : "Alerts"}
             </Button>
-            <Button onClick={handleLogout} variant="outline" className="col-span-2 h-10 bg-white/90 text-xs sm:text-sm md:col-span-1">
+            <Button type="button" onClick={refreshDashboard} variant="outline" className="h-10 bg-white/90 px-2 text-xs sm:text-sm" disabled={dashboardRefreshing}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${dashboardRefreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+            <Button onClick={handleLogout} variant="outline" className="h-10 bg-white/90 text-xs sm:text-sm">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
@@ -945,55 +1046,18 @@ export default function Admin() {
 
         {/* Stats Dashboard */}
         {stats && (
-          <div className="mb-4 grid grid-cols-2 gap-2.5 md:mb-6 md:grid-cols-3 md:gap-3 xl:grid-cols-6">
-            <Card className="border-[#ead8bf] bg-white shadow-sm">
-              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">Total Bookings</CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
-                <div className="text-xl font-bold md:text-2xl">{stats.totalBookings}</div>
-              </CardContent>
-            </Card>
-            <Card className="border-[#ead8bf] bg-white shadow-sm">
-              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">Pending</CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
-                <div className="text-xl font-bold text-yellow-600 md:text-2xl">{stats.pendingBookings}</div>
-              </CardContent>
-            </Card>
-            <Card className="border-[#ead8bf] bg-white shadow-sm">
-              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">Urgent</CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
-                <div className="text-xl font-bold text-red-600 md:text-2xl">{stats.urgentBookings}</div>
-              </CardContent>
-            </Card>
-            <Card className="border-[#ead8bf] bg-white shadow-sm">
-              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">This Week</CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
-                <div className="text-xl font-bold text-blue-600 md:text-2xl">{stats.thisWeekBookings}</div>
-              </CardContent>
-            </Card>
-            <Card className="border-[#ead8bf] bg-white shadow-sm">
-              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">International</CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
-                <div className="text-xl font-bold text-purple-700 md:text-2xl">{stats.internationalBookings}</div>
-              </CardContent>
-            </Card>
-            <Card className="border-[#ead8bf] bg-white shadow-sm">
-              <CardHeader className="p-3 pb-1 md:p-4 md:pb-2">
-                <CardTitle className="text-xs font-medium text-muted-foreground md:text-sm">Completed</CardTitle>
-              </CardHeader>
-              <CardContent className="px-3 pb-3 md:px-4 md:pb-4">
-                <div className="text-xl font-bold text-green-600 md:text-2xl">{stats.completedBookings}</div>
-              </CardContent>
-            </Card>
+          <div className="mb-4 grid grid-cols-3 gap-1.5 md:mb-6 md:grid-cols-3 md:gap-3 xl:grid-cols-6">
+            {statsCards.map((card) => (
+              <button
+                key={card.label}
+                type="button"
+                onClick={() => applyQuickBookingFilter(card.action)}
+                className="rounded-2xl border border-[#ead8bf] bg-white px-2.5 py-2 text-left shadow-sm transition active:scale-[0.98] md:rounded-xl md:px-4 md:py-4"
+              >
+                <span className="block text-[0.64rem] font-bold uppercase tracking-[0.1em] text-muted-foreground md:text-xs">{card.label}</span>
+                <span className={`mt-0.5 block text-lg font-black leading-none md:mt-2 md:text-2xl ${card.color}`}>{card.value}</span>
+              </button>
+            ))}
           </div>
         )}
 
@@ -1138,7 +1202,8 @@ export default function Admin() {
                   <Bell className="mr-2 h-4 w-4" />
                   {adminNotificationsEnabled ? "Alerts On" : "Admin Alerts"}
                 </Button>
-                <Button type="button" variant="outline" onClick={fetchPushNotifications} className="h-10 bg-white px-2 text-xs md:text-sm">
+                <Button type="button" variant="outline" onClick={() => fetchPushNotifications(true)} className="h-10 bg-white px-2 text-xs md:text-sm" disabled={pushRefreshLoading}>
+                  <RefreshCw className={`mr-1.5 h-4 w-4 ${pushRefreshLoading ? "animate-spin" : ""}`} />
                   Refresh
                 </Button>
               </div>
@@ -1197,23 +1262,29 @@ export default function Admin() {
               </Button>
             </form>
             <div className="rounded-2xl border border-primary/10 bg-background p-3 md:p-4">
-              <h3 className="font-bold text-secondary">Recent notification log</h3>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-bold text-secondary md:text-base">Recent notification log</h3>
+                <Button type="button" variant="ghost" size="sm" onClick={() => fetchPushNotifications(true)} disabled={pushRefreshLoading} className="h-8 px-2 text-xs">
+                  <RefreshCw className={`mr-1 h-3.5 w-3.5 ${pushRefreshLoading ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+              </div>
               {pushNotifications.length === 0 ? (
                 <p className="mt-3 text-sm text-muted-foreground">No push notifications have been sent yet.</p>
               ) : (
-                <div className="mt-3 space-y-3">
-                  {pushNotifications.slice(0, 5).map((notification) => (
-                    <div key={notification.id} className="rounded-2xl bg-white p-3 shadow-sm">
-                      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <p className="font-bold text-secondary">{notification.title}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{notification.message}</p>
+                <div className="mt-2 max-h-64 space-y-2 overflow-y-auto pr-1">
+                  {pushNotifications.slice(0, 8).map((notification) => (
+                    <div key={notification.id} className="rounded-xl bg-white p-2.5 shadow-sm">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-secondary">{notification.title}</p>
+                          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{notification.message}</p>
                         </div>
-                        <Badge variant={notification.failed > 0 ? "secondary" : "default"}>
+                        <Badge variant={notification.failed > 0 ? "secondary" : "default"} className="shrink-0 text-[0.65rem]">
                           {notification.delivered} sent
                         </Badge>
                       </div>
-                      <p className="mt-2 text-xs text-muted-foreground">
+                      <p className="mt-1.5 text-[0.68rem] text-muted-foreground">
                         {new Date(notification.sentAt).toLocaleString()} | Audience: {notification.audience || "all"} | Failed: {notification.failed}
                       </p>
                     </div>
@@ -1226,19 +1297,19 @@ export default function Admin() {
 
         {/* Recent Bookings */}
         {stats?.recentBookings && stats.recentBookings.length > 0 && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Recent Bookings</CardTitle>
+          <Card className="mb-4 border-[#ead8bf] bg-white shadow-sm md:mb-6">
+            <CardHeader className="p-3 pb-2 md:p-6 md:pb-3">
+              <CardTitle className="text-base md:text-xl">Recent Bookings</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {stats.recentBookings.map((booking: any) => (
-                  <div key={booking.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                    <div>
-                      <p className="font-medium">{booking.name}</p>
-                      <p className="text-sm text-muted-foreground">{booking.repairType}</p>
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {stats.recentBookings.slice(0, 6).map((booking: any) => (
+                  <div key={booking.id} className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-muted/40 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-secondary">{booking.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{booking.repairType}</p>
                     </div>
-                    <Badge variant={booking.status === "PENDING" ? "secondary" : booking.status === "COMPLETED" ? "default" : "outline"}>
+                    <Badge variant={booking.status === "PENDING" ? "secondary" : booking.status === "COMPLETED" ? "default" : "outline"} className="shrink-0 text-[0.65rem]">
                       {booking.status}
                     </Badge>
                   </div>
@@ -1247,6 +1318,22 @@ export default function Admin() {
             </CardContent>
           </Card>
         )}
+
+        <div className="mb-3 grid grid-cols-3 gap-1.5 rounded-2xl border border-[#ead8bf] bg-white p-1.5 shadow-sm sm:grid-cols-6 lg:mb-4">
+          {quickBookingFilters.map((filter) => {
+            const isActive = statusFilter === filter.action.status && workflowFilter === filter.action.workflow;
+            return (
+              <button
+                key={filter.label}
+                type="button"
+                onClick={() => applyQuickBookingFilter(filter.action)}
+                className={`rounded-xl px-2 py-2 text-[0.68rem] font-black transition sm:text-xs ${isActive ? "bg-[#6B4423] text-white shadow-sm" : "bg-[#fff6ea] text-[#6B4423]"}`}
+              >
+                {filter.label}
+              </button>
+            );
+          })}
+        </div>
 
         <div className="mb-4 grid gap-2 lg:mb-6 lg:grid-cols-[1fr_auto_auto_auto] lg:gap-4">
           <div className="flex-1">
@@ -1283,6 +1370,8 @@ export default function Admin() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All Workflows</SelectItem>
+              <SelectItem value="TODAY">Today</SelectItem>
+              <SelectItem value="THIS_WEEK">This Week</SelectItem>
               <SelectItem value="INTERNATIONAL">International Requests</SelectItem>
               <SelectItem value="URGENT">Urgent / Emergency</SelectItem>
               <SelectItem value="NEEDS_QUOTE">Needs Quote</SelectItem>
@@ -1444,6 +1533,25 @@ export default function Admin() {
                                 </div>
                               </div>
                             )}
+                            <div className="rounded-xl border bg-white p-3">
+                              <p className="text-xs font-semibold text-muted-foreground">Quick Client Messages</p>
+                              <div className="mt-2 grid grid-cols-2 gap-2">
+                                {quickMessageTemplates.map((template) => {
+                                  const messageUrl = getAdminToClientWhatsAppUrl(booking, template.message(booking));
+                                  return (
+                                    <a
+                                      key={`${booking.id}-${template.label}`}
+                                      href={messageUrl || undefined}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className={`inline-flex h-9 items-center justify-center rounded-lg px-2 text-xs font-bold ${messageUrl ? "bg-green-600 text-white" : "pointer-events-none bg-muted text-muted-foreground"}`}
+                                    >
+                                      {template.label}
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            </div>
                             {booking.photos && booking.photos.length > 0 && (
                               <div>
                                 <Label>Customer Photos</Label>
@@ -1525,7 +1633,12 @@ export default function Admin() {
                                   </div>
                                 </div>
                                 <div>
-                                  <Label>Quote / Invoice Notes</Label>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <Label>Quote / Invoice Notes</Label>
+                                    <Button type="button" variant="outline" size="sm" onClick={insertQuoteTemplate} className="h-8 bg-white px-2 text-[0.68rem]">
+                                      Template
+                                    </Button>
+                                  </div>
                                   <Textarea
                                     value={bookingDraft.quoteNotes || ""}
                                     onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteNotes: event.target.value }))}
@@ -1776,6 +1889,25 @@ export default function Admin() {
                                       <p className="mt-1 p-3 bg-muted rounded-md">{selectedBooking.message}</p>
                                     </div>
                                   )}
+                                  <div className="rounded-xl border bg-muted/30 p-4">
+                                    <Label>Quick Client Messages</Label>
+                                    <div className="mt-3 grid gap-2 sm:grid-cols-4">
+                                      {quickMessageTemplates.map((template) => {
+                                        const messageUrl = getAdminToClientWhatsAppUrl(selectedBooking, template.message(selectedBooking));
+                                        return (
+                                          <a
+                                            key={`${selectedBooking.id}-${template.label}`}
+                                            href={messageUrl || undefined}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className={`inline-flex h-10 items-center justify-center rounded-lg px-3 text-sm font-bold ${messageUrl ? "bg-green-600 text-white hover:bg-green-700" : "pointer-events-none bg-muted text-muted-foreground"}`}
+                                          >
+                                            {template.label}
+                                          </a>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
                                   {(selectedBooking.dimensions || selectedBooking.quantity || selectedBooking.material || selectedBooking.color || selectedBooking.swingDirection || selectedBooking.deliveryNeeded || selectedBooking.installationNeeded || selectedBooking.budget) && (
                                     <div className="rounded-xl border bg-muted/30 p-4">
                                       <Label>Product / Job Details</Label>
@@ -1872,7 +2004,12 @@ export default function Admin() {
                                         </Select>
                                       </div>
                                       <div className="sm:col-span-3">
-                                        <Label>Quote / Invoice Notes</Label>
+                                        <div className="flex items-center justify-between gap-2">
+                                          <Label>Quote / Invoice Notes</Label>
+                                          <Button type="button" variant="outline" size="sm" onClick={insertQuoteTemplate}>
+                                            Use Template
+                                          </Button>
+                                        </div>
                                         <Textarea
                                           value={bookingDraft.quoteNotes || ""}
                                           onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteNotes: event.target.value }))}
@@ -2085,7 +2222,23 @@ export default function Admin() {
               </div>
               <div>
                 <Label>Sort Order</Label>
-                <Input type="number" value={contentDraft.sortOrder} onChange={(event) => setContentDraft((draft) => ({ ...draft, sortOrder: Number(event.target.value) || 0 }))} />
+                <div className="mt-1 flex overflow-hidden rounded-xl border bg-white">
+                  <button type="button" onClick={() => adjustContentSortOrder(-1)} className="h-11 w-11 border-r text-lg font-black text-[#6B4423]">-</button>
+                  <Input type="number" value={contentDraft.sortOrder} onChange={(event) => setContentDraft((draft) => ({ ...draft, sortOrder: Number(event.target.value) || 0 }))} className="h-11 rounded-none border-0 text-center font-bold focus-visible:ring-0" />
+                  <button type="button" onClick={() => adjustContentSortOrder(1)} className="h-11 w-11 border-l text-lg font-black text-[#6B4423]">+</button>
+                </div>
+                <div className="mt-2 grid grid-cols-4 gap-1.5">
+                  {[0, 10, 20, 30].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setContentDraft((draft) => ({ ...draft, sortOrder: value }))}
+                      className="rounded-lg bg-white px-2 py-1.5 text-xs font-bold text-[#6B4423] ring-1 ring-[#ead8bf]"
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <Label>Visibility</Label>

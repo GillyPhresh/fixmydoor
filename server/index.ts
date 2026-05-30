@@ -398,8 +398,35 @@ function isInternationalBooking(booking: Booking) {
   );
 }
 
+function getDateKey(value: string | Date) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toISOString().slice(0, 10);
+}
+
+function isBookingInDateRange(booking: Booking, days: number) {
+  const now = new Date();
+  const todayKey = getDateKey(now);
+  const startTime = new Date(`${todayKey}T00:00:00.000Z`).getTime();
+  const endTime = startTime + days * 24 * 60 * 60 * 1000;
+  const preferredTime = booking.preferredDate ? new Date(`${booking.preferredDate}T12:00:00.000Z`).getTime() : NaN;
+  const createdTime = new Date(booking.createdAt).getTime();
+
+  return (
+    (!Number.isNaN(preferredTime) && preferredTime >= startTime && preferredTime < endTime) ||
+    (!Number.isNaN(createdTime) && createdTime >= startTime && createdTime < endTime)
+  );
+}
+
 function matchesWorkflowFilter(booking: Booking, workflow: string) {
   switch (workflow) {
+    case "TODAY":
+      return isBookingInDateRange(booking, 1);
+    case "THIS_WEEK":
+      return isBookingInDateRange(booking, 7);
     case "INTERNATIONAL":
       return isInternationalBooking(booking);
     case "URGENT":
