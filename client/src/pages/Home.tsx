@@ -1895,8 +1895,8 @@ export default function Home() {
                         <img src={advert.image} alt={advert.alt} loading={index === 0 ? "eager" : "lazy"} decoding="async" className="h-full w-full object-cover" />
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-secondary/42 via-transparent to-white/8" />
-                      <span className="absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.16em] text-white shadow-lg">
-                        <Bell className="h-3 w-3" />
+                      <span className="fixmydoor-ad-badge absolute left-2 top-2 inline-flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 text-[0.58rem] font-black uppercase tracking-[0.16em] text-white shadow-lg">
+                        <Bell className="fixmydoor-ad-bell h-3 w-3" />
                         Ad
                       </span>
                       <span className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/88 text-secondary shadow-md transition group-hover:scale-105 sm:h-8 sm:w-8" aria-hidden="true">
@@ -1977,7 +1977,7 @@ export default function Home() {
                     className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition ${notificationsEnabled ? "border-primary bg-primary text-white" : "border-primary/14 bg-white text-secondary hover:border-primary hover:text-primary"}`}
                     aria-label={notificationsEnabled ? "FixMyDoor update notifications enabled" : "Enable FixMyDoor update notifications"}
                   >
-                    <Bell className="h-3.5 w-3.5" />
+                    <Bell className={`h-3.5 w-3.5 ${notificationsEnabled ? "" : "fixmydoor-ad-bell"}`} />
                   </button>
                 )}
                 {displayedAdverts.length > 1 && (
