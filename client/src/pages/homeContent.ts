@@ -302,15 +302,15 @@ export const customerReviews = [
 
 export const quickHighlights = [
   {
-    title: "Canada-Based Reach",
-    text: "Based in Canada, with support for customers who contact us from other regions.",
+    title: "Montreal & Quebec Reach",
+    text: "Based in Montreal, serving nearby Quebec areas and Canada by request.",
   },
   {
     title: "Trusted Workmanship",
     text: "Careful service for doors, locks, hinges, cabinets, and furniture.",
   },
   {
-    title: "Fast Response",
-    text: "Prompt replies, clear timing, and follow-up that is easy to understand.",
+    title: "24/7 Request Intake",
+    text: "Send a request anytime. We reply as soon as availability allows.",
   },
 ];

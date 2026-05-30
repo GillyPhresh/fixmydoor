@@ -1006,8 +1006,8 @@ export default function Admin() {
               </p>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 md:absolute md:right-5 md:top-5 md:mt-0 md:flex md:max-w-[31rem] md:flex-wrap md:justify-end">
-            <Button type="button" onClick={installAdminApp} variant="outline" className="h-10 bg-white/90 px-2 text-xs sm:text-sm">
+          <div className="mt-4 grid grid-cols-2 gap-2 md:absolute md:right-5 md:top-5 md:mt-0 md:w-[22rem] md:grid-cols-2 md:rounded-[22px] md:border md:border-[#ead8bf] md:bg-[#fffaf2]/90 md:p-2 md:shadow-[0_16px_38px_rgba(66,40,18,0.12)] xl:w-auto xl:grid-cols-4">
+            <Button type="button" onClick={installAdminApp} variant="outline" className="h-10 justify-center rounded-2xl bg-white/95 px-2 text-xs font-black shadow-sm sm:text-sm">
               <Download className="w-4 h-4 mr-2" />
               <span>{adminStandalone ? "App Open" : "Install App"}</span>
             </Button>
@@ -1015,17 +1015,17 @@ export default function Admin() {
               type="button"
               onClick={enableAdminNotifications}
               variant={adminNotificationsEnabled ? "default" : "outline"}
-              className={`h-10 px-2 text-xs sm:text-sm ${adminNotificationsEnabled ? "bg-[#6B4423] text-white hover:bg-[#543218]" : "bg-white/90"}`}
+              className={`h-10 justify-center rounded-2xl px-2 text-xs font-black shadow-sm sm:text-sm ${adminNotificationsEnabled ? "bg-[#6B4423] text-white hover:bg-[#543218]" : "bg-white/95"}`}
               disabled={adminNotificationLoading}
             >
               <Bell className="w-4 h-4 mr-2" />
               {adminNotificationLoading ? "Enabling..." : adminNotificationsEnabled ? "Alerts On" : "Alerts"}
             </Button>
-            <Button type="button" onClick={refreshDashboard} variant="outline" className="h-10 bg-white/90 px-2 text-xs sm:text-sm" disabled={dashboardRefreshing}>
+            <Button type="button" onClick={refreshDashboard} variant="outline" className="h-10 justify-center rounded-2xl bg-white/95 px-2 text-xs font-black shadow-sm sm:text-sm" disabled={dashboardRefreshing}>
               <RefreshCw className={`mr-2 h-4 w-4 ${dashboardRefreshing ? "animate-spin" : ""}`} />
               Refresh
             </Button>
-            <Button onClick={handleLogout} variant="outline" className="h-10 bg-white/90 text-xs sm:text-sm">
+            <Button onClick={handleLogout} variant="outline" className="h-10 justify-center rounded-2xl bg-white/95 text-xs font-black shadow-sm sm:text-sm">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>

@@ -11,27 +11,27 @@ type LanguageTranslatorProps = {
   className?: string;
 };
 
-const SKIPPED_TRANSLATE_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA", "INPUT", "SELECT"]);
+const SKIPPED_TEXT_TAGS = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA", "INPUT", "SELECT"]);
 const TRANSLATABLE_ATTRIBUTES = ["placeholder", "aria-label", "title"] as const;
 const FALLBACK_FR_TERMS: Array<[RegExp, string]> = [
-  [/\bdoor repairs?\b/gi, "reparations de portes"],
-  [/\bdoor installations?\b/gi, "installations de portes"],
-  [/\bfurniture repairs?\b/gi, "reparations de meubles"],
+  [/\bdoor repairs?\b/gi, "réparations de portes"],
+  [/\bdoor installations?\b/gi, "installation de portes"],
+  [/\bfurniture repairs?\b/gi, "réparation de meubles"],
   [/\bfurniture installations?\b/gi, "installations de meubles"],
   [/\bhardware sourcing\b/gi, "recherche de quincaillerie"],
-  [/\bentry door\b/gi, "porte d'entree"],
-  [/\bfront door\b/gi, "porte d'entree"],
-  [/\binterior door\b/gi, "porte interieure"],
+  [/\bentry door\b/gi, "porte d'entrée"],
+  [/\bfront door\b/gi, "porte d'entrée"],
+  [/\binterior door\b/gi, "porte intérieure"],
   [/\bcustomer requests?\b/gi, "demandes des clients"],
   [/\binternational requests?\b/gi, "demandes internationales"],
   [/\bmeasurements?\b/gi, "mesures"],
   [/\bphotos?\b/gi, "photos"],
-  [/\bhandles?\b/gi, "poignees"],
+  [/\bhandles?\b/gi, "poignées"],
   [/\blocks?\b/gi, "serrures"],
-  [/\bhinges?\b/gi, "charnieres"],
+  [/\bhinges?\b/gi, "charnières"],
   [/\bcabinets?\b/gi, "armoires"],
   [/\bdrawers?\b/gi, "tiroirs"],
-  [/\brepairs?\b/gi, "reparations"],
+  [/\brepairs?\b/gi, "réparations"],
   [/\binstallations?\b/gi, "installations"],
   [/\bhardware\b/gi, "quincaillerie"],
   [/\bfurniture\b/gi, "meubles"],
@@ -46,7 +46,8 @@ const FALLBACK_FR_TERMS: Array<[RegExp, string]> = [
   [/\bbuy\b/gi, "acheter"],
   [/\bsource\b/gi, "trouver"],
   [/\bCanada\b/g, "Canada"],
-  [/\bMontreal\b/g, "Montreal"],
+  [/\bMontreal\b/g, "Montréal"],
+  [/\bQuebec\b/g, "Québec"],
 ];
 
 function normalizeText(value: string) {
@@ -57,12 +58,8 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function shouldSkipNode(element: Element | null) {
+function shouldSkipElement(element: Element | null) {
   if (!element) {
-    return true;
-  }
-
-  if (SKIPPED_TRANSLATE_TAGS.has(element.tagName)) {
     return true;
   }
 
@@ -72,12 +69,16 @@ function shouldSkipNode(element: Element | null) {
   );
 }
 
+function shouldSkipTextNode(element: Element | null) {
+  return shouldSkipElement(element) || Boolean(element && SKIPPED_TEXT_TAGS.has(element.tagName));
+}
+
 function collectTextNodes() {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       const parent = node.parentElement;
       const text = normalizeText(node.textContent || "");
-      if (text.length < 2 || shouldSkipNode(parent)) {
+      if (text.length < 2 || shouldSkipTextNode(parent)) {
         return NodeFilter.FILTER_REJECT;
       }
 
@@ -98,7 +99,7 @@ function collectTextNodes() {
 function collectTranslatableAttributes() {
   const items: Array<{ element: Element; attribute: (typeof TRANSLATABLE_ATTRIBUTES)[number]; value: string }> = [];
   document.querySelectorAll<HTMLElement>("input, textarea, button, a, img, [aria-label], [title]").forEach((element) => {
-    if (shouldSkipNode(element)) {
+    if (shouldSkipElement(element)) {
       return;
     }
 
@@ -119,7 +120,7 @@ async function loadLocale(language: "en" | "fr") {
     return cachedLocale;
   }
 
-  const response = await fetch(`/locales/${language}.json?v=2`, { cache: "force-cache" });
+  const response = await fetch(`/locales/${language}.json?v=3`, { cache: "force-cache" });
   if (!response.ok) {
     throw new Error(`Unable to load ${language} language file`);
   }

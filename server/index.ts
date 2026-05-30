@@ -75,6 +75,13 @@ type PushNotificationLogEntry = {
   delivered: number;
   failed: number;
 };
+const socialPlatformLabels = {
+  instagram: "Instagram",
+  x: "X (Twitter)",
+  facebook: "Facebook",
+} as const;
+const socialClickNoticeCooldown = new Map<string, number>();
+const SOCIAL_CLICK_NOTICE_COOLDOWN_MS = 2 * 60 * 1000;
 const mediaTypes: Record<string, { extension: string; kind: "image" | "video" | "document" }> = {
   "image/png": { extension: "png", kind: "image" },
   "image/jpeg": { extension: "jpg", kind: "image" },
@@ -877,9 +884,21 @@ function renderPageStructuredData(pagePath: string) {
           "addressCountry": "CA",
         },
         "areaServed": ["Montreal", "Laval", "Longueuil", "Brossard", "West Island", "Quebec", "Canada"],
-        "openingHours": "Mo-Su 08:00-20:00",
+        "openingHours": "Mo-Su 00:00-23:59",
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+            "opens": "00:00",
+            "closes": "23:59",
+          },
+        ],
         "priceRange": "$$",
-        "sameAs": ["https://www.fixmydoor.ca"],
+        "sameAs": [
+          "https://www.facebook.com/share/1Mc9zS8fXa/?mibextid=wwXIfr",
+          "https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=fixmydoor.ca&utm_medium=social_link&utm_campaign=montreal_quebec_canada",
+          "https://x.com/fixmydoor?s=11",
+        ],
       },
       {
         "@type": "Service",
@@ -1734,6 +1753,33 @@ async function startServer() {
       subscriberCount: logEntry.subscriberCount,
       notification: logEntry,
     });
+  });
+
+  app.post("/api/social-click", (req, res) => {
+    const platform = String(req.body?.platform || "").trim().toLowerCase();
+    if (!Object.prototype.hasOwnProperty.call(socialPlatformLabels, platform)) {
+      return res.status(400).json({ success: false, error: "Invalid social platform" });
+    }
+
+    const platformLabel = socialPlatformLabels[platform as keyof typeof socialPlatformLabels];
+    const page = String(req.body?.page || "/").replace(/[^\w\-./#?=&]/g, "").slice(0, 140) || "/";
+    const ipKey = `${req.ip || req.socket.remoteAddress || "unknown"}:${platform}`;
+    const now = Date.now();
+    const nextAllowedAt = socialClickNoticeCooldown.get(ipKey) || 0;
+    const shouldNotify = now >= nextAllowedAt;
+
+    if (shouldNotify) {
+      socialClickNoticeCooldown.set(ipKey, now + SOCIAL_CLICK_NOTICE_COOLDOWN_MS);
+      queuePushNotification({
+        title: `${platformLabel} link opened`,
+        message: `A visitor opened FixMyDoor Services on ${platformLabel} from ${page}. Montreal, Quebec social lead.`,
+        url: "/admin",
+        icon: "/icons/admin-icon-v2-192x192.png",
+        badge: "/icons/admin-icon-v2-96x96.png",
+      }, { audience: "admin", log: false });
+    }
+
+    return res.json({ success: true, notified: shouldNotify });
   });
 
   app.post("/api/media", async (req, res) => {

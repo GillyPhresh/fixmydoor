@@ -99,6 +99,26 @@ const ADVERT_SLIDE_DURATION_MS = 7000;
 const SLIDE_HOLD_PAUSE_MS = 12000;
 const DOT_SELECTION_PAUSE_MS = 9000;
 const SITE_URL = "https://www.fixmydoor.ca";
+const SOCIAL_LINKS = [
+  {
+    platform: "instagram",
+    label: "Instagram",
+    href: "https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=fixmydoor.ca&utm_medium=social_link&utm_campaign=montreal_quebec_canada",
+    Icon: Instagram,
+  },
+  {
+    platform: "x",
+    label: "X (Twitter)",
+    href: "https://x.com/fixmydoor?s=11",
+    Icon: Twitter,
+  },
+  {
+    platform: "facebook",
+    label: "Facebook",
+    href: "https://www.facebook.com/share/1Mc9zS8fXa/?mibextid=wwXIfr",
+    Icon: Facebook,
+  },
+] as const;
 const NOTIFICATION_CHOICE_KEY = "fixmydoor-push-choice-v1";
 const mobileScrollTrackClass = "fixmydoor-mobile-carousel flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:overflow-visible md:pb-0";
 const mobileScrollItemClass = "fixmydoor-flip-card w-[84%] max-w-[23rem] flex-none snap-center md:w-auto md:max-w-none md:flex-auto";
@@ -226,6 +246,7 @@ function getAdvertAlt(advert: Pick<DisplayAdvert, "title" | "tag">) {
 const serviceAreaNotes = [
   "Based in Montreal at 10158 Rue Berri.",
   "Serving Montreal, Laval, Longueuil, Brossard, the West Island, nearby Quebec areas, and other Canadian locations by request.",
+  "Requests are accepted 24/7. Service timing depends on location, urgency, and availability.",
   "International customers can contact us for sourcing, measurements, repair advice, and product guidance.",
 ];
 
@@ -937,9 +958,17 @@ export default function Home() {
           addressCountry: "CA",
         },
         areaServed: ["Montreal", "Laval", "Longueuil", "Brossard", "West Island", "Quebec", "Canada"],
-        openingHours: "Mo-Su 08:00-20:00",
+        openingHours: "Mo-Su 00:00-23:59",
+        openingHoursSpecification: [
+          {
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+            opens: "00:00",
+            closes: "23:59",
+          },
+        ],
         priceRange: "$$",
-        sameAs: ["https://www.fixmydoor.ca"],
+        sameAs: SOCIAL_LINKS.map((link) => link.href),
         ...(reviewSchemaItems.length > 0
           ? {
               aggregateRating: {
@@ -1556,6 +1585,28 @@ export default function Home() {
     requestNotificationsFromHumanConfirmation();
   };
 
+  const trackSocialClick = (platform: (typeof SOCIAL_LINKS)[number]["platform"], label: string) => {
+    const payload = JSON.stringify({
+      platform,
+      label,
+      page: window.location.pathname || "/",
+      source: "homepage-social-link",
+    });
+
+    try {
+      if ("sendBeacon" in navigator) {
+        navigator.sendBeacon("/api/social-click", new Blob([payload], { type: "application/json" }));
+        return;
+      }
+
+      void axios.post("/api/social-click", JSON.parse(payload), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.error("Social click tracking failed:", error);
+    }
+  };
+
   const scrollMobileCarousel = (trackId: string, direction: -1 | 1) => {
     const track = document.getElementById(trackId);
     if (!track) {
@@ -1704,7 +1755,7 @@ export default function Home() {
           <div className="max-w-lg">
             <div className="mb-2 inline-flex items-center gap-2 rounded-2xl border border-primary/18 bg-white px-3.5 py-1.5 text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-secondary shadow-sm">
               <Globe2 className="h-4 w-4 text-primary" />
-              Montreal-based. Requests welcome.
+              Montreal-based. 24/7 requests welcome.
             </div>
             <h1 className="font-display text-[1.9rem] font-bold leading-[1.06] text-secondary sm:text-4xl md:text-[3.05rem] xl:text-[3.25rem]">
               Door, lock, furniture, or hardware problem?
@@ -2712,10 +2763,22 @@ export default function Home() {
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Instagram className="h-5 w-5 text-primary" /></div>
                 <div>
                   <p className="font-semibold text-secondary">Follow Us</p>
+                  <p className="mt-1 text-xs leading-relaxed text-foreground/60">Montreal, Quebec, Canada updates. Click any profile to message or follow FixMyDoor Services.</p>
                   <div className="mt-2 flex gap-3">
-                    <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="text-primary transition hover:text-primary/80" aria-label="Instagram"><Instagram className="h-5 w-5" /></a>
-                    <a href="https://x.com/fixmydoor?s=11" className="text-primary transition hover:text-primary/80" aria-label="X (Twitter)"><Twitter className="h-5 w-5" /></a>
-                    <a href="https://www.facebook.com/share/1Mc9zS8fXa/?mibextid=wwXIfr" className="text-primary transition hover:text-primary/80" aria-label="Facebook"><Facebook className="h-5 w-5" /></a>
+                    {SOCIAL_LINKS.map(({ platform, label, href, Icon }) => (
+                      <a
+                        key={platform}
+                        href={href}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={() => trackSocialClick(platform, label)}
+                        className="text-primary transition hover:text-primary/80"
+                        aria-label={`${label} - FixMyDoor Services Montreal, Quebec, Canada`}
+                        title={`Open FixMyDoor Services on ${label} from Montreal, Quebec, Canada`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </a>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -3080,9 +3143,20 @@ export default function Home() {
             <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-white/10 pt-2.5">
               <p className="text-[0.68rem] leading-relaxed text-white/58">&copy; 2017-2026 FixMyDoor Services.</p>
               <div className="flex gap-1.5">
-                <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80" aria-label="Instagram"><Instagram className="h-3.5 w-3.5" /></a>
-                <a href="https://x.com/fixmydoor?s=11" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80" aria-label="X (Twitter)"><Twitter className="h-3.5 w-3.5" /></a>
-                <a href="https://www.facebook.com/share/1Mc9zS8fXa/?mibextid=wwXIfr" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80" aria-label="Facebook"><Facebook className="h-3.5 w-3.5" /></a>
+                {SOCIAL_LINKS.map(({ platform, label, href, Icon }) => (
+                  <a
+                    key={platform}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => trackSocialClick(platform, label)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/80"
+                    aria-label={`${label} - FixMyDoor Services Montreal, Quebec, Canada`}
+                    title={`Open FixMyDoor Services on ${label}`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </a>
+                ))}
               </div>
             </div>
           </div>
@@ -3156,9 +3230,20 @@ export default function Home() {
                 </a>
               </div>
               <div className="mt-3 flex gap-2">
-                <a href="https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=qr" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-primary hover:text-white" aria-label="Instagram"><Instagram className="h-4 w-4" /></a>
-                <a href="https://x.com/fixmydoor?s=11" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-primary hover:text-white" aria-label="X (Twitter)"><Twitter className="h-4 w-4" /></a>
-                <a href="https://www.facebook.com/share/1Mc9zS8fXa/?mibextid=wwXIfr" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-primary hover:text-white" aria-label="Facebook"><Facebook className="h-4 w-4" /></a>
+                {SOCIAL_LINKS.map(({ platform, label, href, Icon }) => (
+                  <a
+                    key={platform}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => trackSocialClick(platform, label)}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-primary hover:text-white"
+                    aria-label={`${label} - FixMyDoor Services Montreal, Quebec, Canada`}
+                    title={`Open FixMyDoor Services on ${label}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                ))}
               </div>
             </div>
           </div>
