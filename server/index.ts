@@ -1461,8 +1461,10 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
     .signature-line { height: 1px; background: #8f6a48; margin: 0 auto 5px; max-width: 132px; }
     .signature-name { display: block; font-weight: 800; color: #2f241c; }
     .signature-title { display: block; margin-top: 1px; color: #7b6758; font-size: 10px; }
-    .actions { margin-top: 14px; display: flex; gap: 10px; }
-    button { border: 0; border-radius: 12px; background: #b46532; color: white; padding: 11px 15px; font-weight: 800; cursor: pointer; }
+    .actions { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    button { border: 0; border-radius: 12px; background: #b46532; color: white; padding: 11px 15px; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+    .secondary-button { background: #2f241c; }
+    .print-help { margin: 8px 0 0; color: #7b6758; font-size: 11px; line-height: 1.35; }
     @media print {
       html, body { background: white; }
       body { font-size: 9.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1544,11 +1546,57 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
           <span class="signature-title">Owner / Authorized Signatory</span>
         </div>
       </div>
-      <div class="actions"><button id="print-quote" type="button">Print / Save PDF</button></div>
+      <div class="actions">
+        <button id="print-quote" type="button">Print / Save PDF</button>
+        <button id="open-browser-print" class="secondary-button" type="button">Try Again</button>
+      </div>
+      <p id="print-help" class="print-help">On phones, tap Print / Save PDF once. If your phone browser blocks it, tap Try Again or use the browser menu and choose Share, Print, or Save as PDF.</p>
     </main>
   </section>
   <script nonce="${nonce}">
-    document.getElementById("print-quote")?.addEventListener("click", () => window.print());
+    const printButton = document.getElementById("print-quote");
+    const retryButton = document.getElementById("open-browser-print");
+    const printHelp = document.getElementById("print-help");
+    let lastPrintRequest = 0;
+
+    function requestPrint(event) {
+      if (event && typeof event.preventDefault === "function") {
+        event.preventDefault();
+      }
+
+      const now = Date.now();
+      if (now - lastPrintRequest < 800) return;
+      lastPrintRequest = now;
+
+      if (printHelp) {
+        printHelp.textContent = "Opening the phone print / PDF screen...";
+      }
+
+      try {
+        window.focus();
+        setTimeout(function () {
+          if (typeof window.print === "function") {
+            window.print();
+            setTimeout(function () {
+              if (printHelp) {
+                printHelp.textContent = "If nothing opened, use your browser menu and choose Share, Print, or Save as PDF.";
+              }
+            }, 900);
+          } else if (printHelp) {
+            printHelp.textContent = "This phone browser does not support direct printing. Use the browser menu to Share, Print, or Save as PDF.";
+          }
+        }, 150);
+      } catch (error) {
+        if (printHelp) {
+          printHelp.textContent = "Unable to open print directly. Use the browser menu and choose Share, Print, or Save as PDF.";
+        }
+      }
+    }
+
+    printButton?.addEventListener("click", requestPrint);
+    printButton?.addEventListener("touchend", requestPrint, { passive: false });
+    retryButton?.addEventListener("click", requestPrint);
+    retryButton?.addEventListener("touchend", requestPrint, { passive: false });
   </script>
 </body>
 </html>`;

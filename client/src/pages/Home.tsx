@@ -904,6 +904,7 @@ export default function Home() {
     desc: item.description || "",
     category: item.tag || "Project",
   }));
+  const ownerProfileImage = dynamicItems("ownerProfile")[0]?.image || technicianImage;
   const dynamicAdverts: DisplayAdvert[] = dynamicItems("advert").map((item) => ({
     id: item.id,
     title: item.title,
@@ -2498,7 +2499,7 @@ export default function Home() {
         <div className="container grid max-w-[1180px] gap-6 md:grid-cols-[0.58fr_1.42fr] md:items-start">
           <div className="relative order-2 md:order-1">
             <div className="relative mx-auto flex h-[280px] max-w-[240px] items-center justify-center overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,_#f7efe4,_#ffffff)] shadow-[0_16px_42px_rgba(66,40,18,0.13)] sm:h-[340px] sm:max-w-[300px] md:mx-0 md:h-[380px] md:max-w-[320px] md:rounded-[26px]">
-              <img src={technicianImage} alt="Richard Ampofo working on a door repair" loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
+              <img src={ownerProfileImage} alt="Richard Ampofo working on a door repair" loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
             </div>
           </div>
           <div className="order-1 md:order-2">

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText, Send, RefreshCw, X } from "lucide-react";
+import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText, Send, RefreshCw, X, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, ManualBookingRequest, Review, ReviewStatus } from "@shared/types";
 import { formatBookingDisplayId } from "@shared/booking-code";
@@ -70,6 +70,7 @@ const contentCategories: { value: ContentItem["category"]; label: string }[] = [
   { value: "doorProduct", label: "Door Product" },
   { value: "hardwareProduct", label: "Hardware Product" },
   { value: "projectGallery", label: "Project Gallery" },
+  { value: "ownerProfile", label: "Owner Profile Photo" },
 ];
 
 const quickMessageTemplates = [
@@ -118,6 +119,15 @@ const reminderWindowOptions = [
   "Within 30 minutes",
   "Within 1 hour",
   "Same day follow-up",
+] as const;
+
+const reminderTypeDescriptions = [
+  ["At selected time", "The reminder fires at the exact Reminder Time you selected."],
+  ["2 hours before appointment", "Best for scheduled jobs. When you choose an appointment, the dashboard sets this reminder 2 hours before the visit."],
+  ["Within 15 minutes", "Use this as a quick-response label when the customer needs attention almost immediately."],
+  ["Within 30 minutes", "Use this for a short follow-up window after a call, message, or quote request."],
+  ["Within 1 hour", "Use this when the customer should be contacted within the hour."],
+  ["Same day follow-up", "Use this when the request should be handled before the end of the day."],
 ] as const;
 
 const staffAssignmentOptions = ["Not assigned", "Richard", "Staff"] as const;
@@ -196,6 +206,15 @@ function formatPreferredDate(dateString?: string | null) {
 
 function isDocumentMedia(value?: string | null) {
   return Boolean(value && /\.(pdf|docx?)(\?.*)?$/i.test(value));
+}
+
+function readFileAsDataUrl(selectedFile: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(selectedFile);
+  });
 }
 
 function getDefaultClientMessage(booking: Booking) {
@@ -410,6 +429,9 @@ export default function Admin() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [contentDraft, setContentDraft] = useState<ContentItemRequest>(emptyContentDraft);
   const [editingContentId, setEditingContentId] = useState<string | null>(null);
+  const [ownerPhotoDialogOpen, setOwnerPhotoDialogOpen] = useState(false);
+  const [ownerPhotoDraft, setOwnerPhotoDraft] = useState("");
+  const [ownerPhotoLoading, setOwnerPhotoLoading] = useState(false);
   const [passwordDraft, setPasswordDraft] = useState({
     currentPassword: "",
     newPassword: "",
@@ -503,6 +525,13 @@ export default function Admin() {
       fetchBookings();
     }
   }, [authenticated, debouncedSearch, statusFilter, workflowFilter, currentPage]);
+
+  useEffect(() => {
+    if (!ownerPhotoDialogOpen) {
+      const ownerPhoto = contentItems.find((item) => item.category === "ownerProfile" && item.active);
+      setOwnerPhotoDraft(ownerPhoto?.image || "");
+    }
+  }, [contentItems, ownerPhotoDialogOpen]);
 
   const checkAuthStatus = async () => {
     try {
@@ -990,6 +1019,74 @@ export default function Admin() {
     }
   };
 
+  const handleOwnerPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image for the owner profile.");
+      return;
+    }
+
+    if (file.size > 8_000_000) {
+      toast.error("Please use an image under 8MB.");
+      return;
+    }
+
+    try {
+      setOwnerPhotoLoading(true);
+      const dataUrl = await readFileAsDataUrl(file);
+      const response = await axios.post<{ url: string }>("/api/admin/media", { dataUrl, fileName: file.name });
+      setOwnerPhotoDraft(response.data.url);
+      toast.success("Owner photo uploaded. Save it to publish on the website.");
+    } catch (err) {
+      toast.error("Unable to upload the owner photo.");
+    } finally {
+      setOwnerPhotoLoading(false);
+    }
+  };
+
+  const saveOwnerPhoto = async () => {
+    if (!ownerPhotoDraft.trim()) {
+      toast.error("Upload or paste an owner photo first.");
+      return;
+    }
+
+    const ownerPhotoItem = contentItems.find((item) => item.category === "ownerProfile");
+    const payload: ContentItemRequest = {
+      category: "ownerProfile",
+      title: "Richard Ampofo",
+      description: "Owner profile photo for FixMyDoor Services.",
+      tag: "Owner",
+      image: ownerPhotoDraft.trim(),
+      accentImage: "",
+      items: "",
+      bookingValue: "",
+      sortOrder: 0,
+      active: true,
+    };
+
+    try {
+      setOwnerPhotoLoading(true);
+      if (ownerPhotoItem) {
+        await axios.patch(`/api/admin/content/${ownerPhotoItem.id}`, payload);
+      } else {
+        await axios.post("/api/admin/content", payload);
+      }
+      await fetchContentItems();
+      setOwnerPhotoDialogOpen(false);
+      toast.success("Owner photo updated on the website");
+    } catch (err) {
+      toast.error("Failed to save owner photo");
+    } finally {
+      setOwnerPhotoLoading(false);
+    }
+  };
+
   const handleContentImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -1014,17 +1111,9 @@ export default function Admin() {
       return;
     }
 
-    const readFile = (selectedFile: File) =>
-      new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = reject;
-        reader.readAsDataURL(selectedFile);
-      });
-
     try {
       setContentUploadLoading(true);
-      const dataUrl = await readFile(file);
+      const dataUrl = await readFileAsDataUrl(file);
       const response = await axios.post<{ url: string; kind?: "image" | "video" | "document" }>("/api/admin/media", { dataUrl, fileName: file.name });
       if (response.data.kind === "document") {
         setContentDraft((draft) => ({ ...draft, items: response.data.url }));
@@ -1383,6 +1472,59 @@ export default function Admin() {
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:justify-end">
+                <Dialog open={ownerPhotoDialogOpen} onOpenChange={setOwnerPhotoDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button type="button" variant="outline" className="h-10 bg-white px-2 text-xs md:text-sm">
+                      <ImageIcon className="mr-1.5 h-4 w-4" />
+                      Owner Photo
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-h-[88vh] w-[calc(100vw-1rem)] max-w-lg overflow-x-hidden overflow-y-auto rounded-2xl p-4">
+                    <DialogHeader>
+                      <DialogTitle>Change Website Owner Photo</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4">
+                      <div className="rounded-2xl border border-[#ead8bf] bg-[#fffaf2] p-3 text-xs leading-relaxed text-muted-foreground">
+                        This changes the Richard Ampofo picture in the homepage expert section. Use a clear professional image for trust.
+                      </div>
+                      <div className="overflow-hidden rounded-3xl border border-[#ead8bf] bg-white shadow-sm">
+                        {ownerPhotoDraft ? (
+                          <img src={ownerPhotoDraft} alt="Owner profile preview" className="h-64 w-full object-cover object-top" />
+                        ) : (
+                          <div className="flex h-48 items-center justify-center bg-[#f7efe4] text-sm font-bold text-muted-foreground">
+                            No owner photo selected
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <Label htmlFor="owner-photo-url">Owner Photo URL</Label>
+                        <Input
+                          id="owner-photo-url"
+                          value={ownerPhotoDraft}
+                          onChange={(event) => setOwnerPhotoDraft(event.target.value)}
+                          placeholder="/uploads/photo.jpg"
+                          className="mt-1"
+                        />
+                      </div>
+                      <label htmlFor="owner-photo-upload" className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/25 bg-white p-4 text-center">
+                        <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <Upload className="h-5 w-5" />
+                        </span>
+                        <span className="font-semibold text-foreground">{ownerPhotoLoading ? "Uploading..." : "Upload new owner photo"}</span>
+                        <span className="text-xs text-muted-foreground">Image only. Use a clean photo under 8MB.</span>
+                      </label>
+                      <Input id="owner-photo-upload" type="file" accept="image/*" className="sr-only" onChange={handleOwnerPhotoUpload} disabled={ownerPhotoLoading} />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button type="button" variant="outline" className="bg-white" onClick={() => setOwnerPhotoDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="button" onClick={saveOwnerPhoto} disabled={ownerPhotoLoading}>
+                          {ownerPhotoLoading ? "Saving..." : "Save Photo"}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 <Dialog open={manualBookingDialogOpen} onOpenChange={setManualBookingDialogOpen}>
                   <DialogTrigger asChild>
                     <Button type="button" className="h-10 bg-[#6B4423] px-2 text-xs text-white hover:bg-[#543218] md:text-sm">
@@ -2088,6 +2230,12 @@ export default function Admin() {
                                         <p key={step}><strong className="text-rose-700">{index + 1}.</strong> {step}</p>
                                       ))}
                                     </div>
+                                    <div className="mt-2 grid gap-1 border-t border-rose-100 pt-2">
+                                      <p className="font-black text-rose-700">Reminder type meanings</p>
+                                      {reminderTypeDescriptions.map(([label, description]) => (
+                                        <p key={label}><strong className="text-foreground">{label}:</strong> {description}</p>
+                                      ))}
+                                    </div>
                                   </details>
                                   <div className="mt-2 grid gap-2">
                                     <div>
@@ -2186,17 +2334,19 @@ export default function Admin() {
                                     value={bookingDraft.quoteNotes || ""}
                                     onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteNotes: event.target.value }))}
                                     placeholder="Labour, material, delivery, payment terms, or quote details."
-                                    className="bg-white"
+                                    className="min-h-36 resize-y bg-white transition-all duration-200 focus:min-h-72"
                                   />
+                                  <p className="mt-1 text-[0.66rem] leading-relaxed text-muted-foreground">Tap or click inside this box and it opens more space for longer invoice details.</p>
                                 </div>
                                 <div>
-                                  <Label>Private Admin Notes</Label>
+                                  <Label>Private Admin / Payment Notes</Label>
                                   <Textarea
                                     value={bookingDraft.adminNotes || ""}
                                     onChange={(event) => setBookingDraft((draft) => ({ ...draft, adminNotes: event.target.value }))}
-                                    placeholder="Internal follow-up notes. Customers do not see this."
-                                    className="bg-white"
+                                    placeholder="Internal payment notes, follow-up reminders, customer preference, parts, supplier info, or anything the customer should not see."
+                                    className="min-h-32 resize-y bg-white transition-all duration-200 focus:min-h-72"
                                   />
+                                  <p className="mt-1 text-[0.66rem] leading-relaxed text-muted-foreground">Use this for deposit, balance, collection notes, and private follow-up details.</p>
                                 </div>
                                 <Button type="button" variant="outline" className="bg-white" onClick={() => openQuoteInvoice(booking.id)}>
                                   <FileText className="mr-1.5 h-4 w-4" />
@@ -2594,6 +2744,12 @@ export default function Admin() {
                                               <p key={step}><strong className="text-rose-700">{index + 1}.</strong> {step}</p>
                                             ))}
                                           </div>
+                                          <div className="mt-2 grid gap-1 border-t border-rose-100 pt-2">
+                                            <p className="font-black text-rose-700">Reminder type meanings</p>
+                                            {reminderTypeDescriptions.map(([label, description]) => (
+                                              <p key={label}><strong className="text-foreground">{label}:</strong> {description}</p>
+                                            ))}
+                                          </div>
                                         </details>
                                         <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_0.8fr]">
                                           <div>
@@ -2681,15 +2837,19 @@ export default function Admin() {
                                           value={bookingDraft.quoteNotes || ""}
                                           onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteNotes: event.target.value }))}
                                           placeholder="Line items, labour, materials, delivery, tax notes, payment link, or quote terms..."
+                                          className="min-h-36 resize-y transition-all duration-200 focus:min-h-72"
                                         />
+                                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Click inside this box and it opens more space for longer invoice details.</p>
                                       </div>
                                       <div className="sm:col-span-3">
-                                        <Label>Internal Notes</Label>
+                                        <Label>Private Admin / Payment Notes</Label>
                                         <Textarea
                                           value={bookingDraft.adminNotes || ""}
                                           onChange={(event) => setBookingDraft((draft) => ({ ...draft, adminNotes: event.target.value }))}
-                                          placeholder="Private notes for follow-up, measurements, pricing, supplier info..."
+                                          placeholder="Private payment notes, follow-up reminders, measurements, pricing, supplier info, or customer preferences..."
+                                          className="min-h-32 resize-y transition-all duration-200 focus:min-h-72"
                                         />
+                                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Use this for deposit, balance, collection notes, and anything only the admin should see.</p>
                                       </div>
                                     </div>
                                   </div>
