@@ -1539,6 +1539,44 @@ export default function Home() {
     toast.success(`${label} selected. Add your details and we'll follow up.`);
   };
 
+  const handleProblemImagePick = (title: string, tag?: string) => {
+    const text = `${title} ${tag || ""}`.toLowerCase();
+    let bookingValue = "door-repair";
+    let message = `I need help with ${title}. Please review the problem and tell me the best repair option.`;
+
+    if (/entry|exterior|front|replacement/.test(text)) {
+      bookingValue = "entry-door-installation";
+      message = `I need help with ${title}. Please advise on measuring, fitting, hardware, and installation pricing.`;
+    } else if (/closer|lock|handle|hinge|hardware|rekey|security/.test(text)) {
+      bookingValue = "lock-rekeying";
+      message = `I need help with ${title}. Please check the lock, hinge, handle, or hardware issue and advise the safest next step.`;
+    } else if (/cabinet|desk|office|furniture|setup/.test(text)) {
+      bookingValue = /setup|installation/.test(text) ? "furniture-installation" : "furniture-repair";
+      message = `I need help with ${title}. Please review the furniture or cabinet issue and tell me the repair or installation option.`;
+    } else if (/interior|fitting|alignment/.test(text)) {
+      bookingValue = "door-alignment";
+      message = `I need help with ${title}. Please check the door fitting, alignment, and closing problem.`;
+    }
+
+    form.setValue("repairType", bookingValue, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+
+    const currentMessage = form.getValues("message")?.trim();
+    const canReplaceMessage = !currentMessage || /^i('| a)m interested in|^i need help with/i.test(currentMessage);
+    if (canReplaceMessage) {
+      form.setValue("message", message, {
+        shouldDirty: true,
+        shouldTouch: true,
+      });
+    }
+
+    scrollToContactForm();
+    toast.success(`${title} selected. Add your contact details and we'll follow up.`);
+  };
+
   const openReviewForm = () => {
     setReviewFormOpen(true);
     window.setTimeout(() => {
@@ -2215,7 +2253,13 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 min-[481px]:grid-cols-3 md:gap-3 lg:grid-cols-3 lg:p-2">
                   {featuredServiceCollage.map((item, index) => (
-                    <figure key={`${item.title}-${index}`} className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-white/5 shadow-[0_14px_34px_rgba(0,0,0,0.14)]">
+                    <button
+                      key={`${item.title}-${index}`}
+                      type="button"
+                      onClick={() => handleProblemImagePick(item.title, item.tag)}
+                      className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-white/5 text-left shadow-[0_14px_34px_rgba(0,0,0,0.14)] transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70"
+                      aria-label={`Book help for ${item.title}`}
+                    >
                       <img
                         src={item.src}
                         alt={item.title}
@@ -2228,7 +2272,7 @@ export default function Home() {
                         <span className="text-[0.58rem] font-bold uppercase tracking-[0.16em] text-white/72 md:text-[0.62rem]">{item.tag}</span>
                         <p className="mt-1 text-xs font-bold leading-tight text-white md:text-sm">{item.title}</p>
                       </figcaption>
-                    </figure>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -2237,7 +2281,16 @@ export default function Home() {
             <div className="overflow-hidden md:overflow-visible">
               <div id="services-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-5`}>
               {serviceShowcaseLoopItems.map(({ item: service, loopKey, isClone, loopEdge }, index) => (
-                <article key={loopKey} data-loop-clone={isClone || undefined} data-loop-edge={loopEdge} aria-hidden={isClone || undefined} className={`${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[24px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 md:rounded-[28px]`}>
+                <button
+                  key={loopKey}
+                  type="button"
+                  onClick={() => handleProblemImagePick(service.title, service.tag)}
+                  data-loop-clone={isClone || undefined}
+                  data-loop-edge={loopEdge}
+                  aria-hidden={isClone || undefined}
+                  className={`${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[24px] border border-primary/12 bg-[linear-gradient(180deg,_#fffdfb,_#f4ede3)] text-left shadow-[0_14px_40px_rgba(0,0,0,0.06)] transition duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/55 md:rounded-[28px]`}
+                  aria-label={`Book help for ${service.title}`}
+                >
                   <img
                     src={service.src}
                     alt={service.title}
@@ -2249,8 +2302,11 @@ export default function Home() {
                     <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{service.tag}</span>
                     <h3 className="mt-3 text-xl font-bold text-secondary">{service.title}</h3>
                     <p className="mt-2 text-sm leading-relaxed text-foreground/70">{service.desc}</p>
+                    <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.16em] text-primary">
+                      Book this fix <ArrowRight className="h-3.5 w-3.5" />
+                    </span>
                   </div>
-                </article>
+                </button>
               ))}
               </div>
               {renderMobileCarouselControls("services-mobile-carousel", displayedServiceShowcase.length)}
