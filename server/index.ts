@@ -1399,7 +1399,7 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
           <p><strong>Issued:</strong> ${escapeHtml(issuedDate)}</p>
         </div>
         <div class="signature-mark">
-          <img src="/fixmydoor-richard-ampofo-signature.jpg" alt="Official signature of Richard Ampofo for FixMyDoor Services" />
+          <img src="/richard-ampofo-official-signature.jpg" alt="Official signature of Richard Ampofo for FixMyDoor Services" />
           <div class="signature-line"></div>
           <span class="signature-name">Richard Ampofo</span>
           <span class="signature-title">Owner / Authorized Signatory</span>
