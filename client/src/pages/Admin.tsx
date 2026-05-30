@@ -83,7 +83,7 @@ const quoteTemplateText = [
 
 const workflowExamples = [
   ["Appointment Date & Time", "Pick the visit time from the calendar, for example May 30, 2026 at 2:30 PM."],
-  ["Reminder", "Pick the follow-up time. The dashboard will alert admin at that time so the customer is not forgotten."],
+  ["Reminder", "When you pick an appointment, a 2-hour-before job reminder is added automatically. You can still change it if needed."],
   ["Quote Amount", "Use a clear amount such as C$250, or a range such as C$180-C$320 when the final parts are not confirmed."],
   ["Staff", "Write who will handle the job, for example Richard, Team A, or Supplier follow-up."],
   ["Invoice Status", "Use Quote sent after pricing is shared, Invoice sent when the final invoice is ready, and Revised if you update the price."],
@@ -94,11 +94,14 @@ const workflowExamples = [
 
 const reminderWindowOptions = [
   "At selected time",
+  "2 hours before appointment",
   "Within 15 minutes",
   "Within 30 minutes",
   "Within 1 hour",
   "Same day follow-up",
 ] as const;
+
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
 type EmailRuntimeStatus = {
   configured: boolean;
@@ -229,6 +232,44 @@ function toIsoDateTimeInputValue(value: string) {
   return Number.isNaN(parsedDate.getTime()) ? "" : parsedDate.toISOString();
 }
 
+function getTwoHourReminderIsoFromInput(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  const parsedDate = new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  return new Date(Math.max(Date.now(), parsedDate.getTime() - TWO_HOURS_MS)).toISOString();
+}
+
+function getDefaultJobReminderNote(repairType?: string) {
+  return `About 2 hours left to go and do the ${repairType || "job"}. Check the customer details, route, tools, and parts before leaving.`;
+}
+
+function applyAppointmentToDraft(draft: BookingUpdateRequest, value: string, repairType?: string): BookingUpdateRequest {
+  const appointmentTime = formatDateTimeLocalInput(value);
+
+  if (!appointmentTime) {
+    return { ...draft, appointmentTime: "" };
+  }
+
+  if (draft.reminderAt) {
+    return { ...draft, appointmentTime };
+  }
+
+  const reminderAt = getTwoHourReminderIsoFromInput(value);
+  return {
+    ...draft,
+    appointmentTime,
+    reminderAt,
+    reminderWindow: reminderAt ? "2 hours before appointment" : draft.reminderWindow || "At selected time",
+    reminderNote: draft.reminderNote || getDefaultJobReminderNote(repairType),
+  };
+}
+
 function formatReminderDisplay(value?: string | null) {
   if (!value) {
     return "No reminder set";
@@ -255,6 +296,38 @@ function isReminderDueForAdmin(booking: Pick<Booking, "reminderAt" | "status">) 
 
   const reminderTime = new Date(booking.reminderAt).getTime();
   return Number.isFinite(reminderTime) && reminderTime <= Date.now();
+}
+
+function getBookingDateTimeMs(value?: string | null) {
+  const parsedDate = value ? new Date(value) : null;
+  const time = parsedDate?.getTime() ?? Number.NaN;
+  return Number.isFinite(time) ? time : Number.NaN;
+}
+
+function isJobWithinTwoHours(booking: Pick<Booking, "appointmentTime" | "status">) {
+  if (!booking.appointmentTime || ["COMPLETED", "CANCELLED"].includes(booking.status)) {
+    return false;
+  }
+
+  const appointmentTime = getBookingDateTimeMs(booking.appointmentTime);
+  const timeLeft = appointmentTime - Date.now();
+  return Number.isFinite(timeLeft) && timeLeft > 0 && timeLeft <= TWO_HOURS_MS;
+}
+
+function getReminderBadgeText(booking: Pick<Booking, "appointmentTime" | "reminderAt" | "status">) {
+  if (isJobWithinTwoHours(booking)) {
+    return "2 hours left";
+  }
+
+  return isReminderDueForAdmin(booking) ? "Due" : "Set";
+}
+
+function getReminderCardMessage(booking: Pick<Booking, "appointmentTime" | "reminderAt" | "reminderNote" | "repairType" | "status">) {
+  if (isJobWithinTwoHours(booking)) {
+    return getDefaultJobReminderNote(booking.repairType);
+  }
+
+  return booking.reminderNote || booking.repairType;
 }
 
 export default function Admin() {
@@ -1148,19 +1221,19 @@ export default function Admin() {
                     key={booking.id}
                     type="button"
                     onClick={() => applyQuickBookingFilter({ status: "ALL", workflow: "REMINDERS" })}
-                    className={`rounded-2xl border bg-white p-3 text-left shadow-sm ${isReminderDueForAdmin(booking) ? "border-rose-200" : "border-[#ead8bf]"}`}
+                    className={`rounded-2xl border bg-white p-3 text-left shadow-sm ${isJobWithinTwoHours(booking) || isReminderDueForAdmin(booking) ? "border-rose-200" : "border-[#ead8bf]"}`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-black text-secondary">{booking.name}</p>
                         <p className="mt-0.5 text-[0.68rem] font-bold text-primary">{formatBookingDisplayId(booking)}</p>
                       </div>
-                      <Badge className={isReminderDueForAdmin(booking) ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"}>
-                        {isReminderDueForAdmin(booking) ? "Due" : "Set"}
+                      <Badge className={isJobWithinTwoHours(booking) || isReminderDueForAdmin(booking) ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800"}>
+                        {getReminderBadgeText(booking)}
                       </Badge>
                     </div>
                     <p className="mt-2 text-xs font-semibold text-foreground/75">{formatReminderDisplay(booking.reminderAt)}</p>
-                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{booking.reminderNote || booking.repairType}</p>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{getReminderCardMessage(booking)}</p>
                   </button>
                 ))}
               </div>
@@ -1723,7 +1796,7 @@ export default function Admin() {
                                     id={`appointment-${booking.id}`}
                                     type="datetime-local"
                                     value={toDateTimeLocalInputValue(bookingDraft.appointmentTime)}
-                                    onChange={(event) => setBookingDraft((draft) => ({ ...draft, appointmentTime: formatDateTimeLocalInput(event.target.value) }))}
+                                    onChange={(event) => setBookingDraft((draft) => applyAppointmentToDraft(draft, event.target.value, booking.repairType))}
                                     className="bg-white"
                                   />
                                 </div>
@@ -1760,7 +1833,7 @@ export default function Admin() {
                                     />
                                   </div>
                                   <p className="mt-2 text-[0.68rem] leading-relaxed text-muted-foreground">
-                                    Admin will receive an alert at this reminder time.
+                                    Admin will receive an alert at this time. Appointment reminders are set 2 hours before the job by default.
                                   </p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
@@ -2194,7 +2267,7 @@ export default function Admin() {
                                         <Input
                                           type="datetime-local"
                                           value={toDateTimeLocalInputValue(bookingDraft.appointmentTime)}
-                                          onChange={(event) => setBookingDraft((draft) => ({ ...draft, appointmentTime: formatDateTimeLocalInput(event.target.value) }))}
+                                          onChange={(event) => setBookingDraft((draft) => applyAppointmentToDraft(draft, event.target.value, selectedBooking.repairType))}
                                         />
                                       </div>
                                       <div className="sm:col-span-2 rounded-xl border border-rose-100 bg-[#fffaf2] p-3">
@@ -2207,7 +2280,7 @@ export default function Admin() {
                                           )}
                                         </div>
                                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                                          Pick the exact follow-up time and a short note. Admin alerts will remind you so the customer is not forgotten.
+                                          Pick the exact follow-up time and a short note. When an appointment is selected, a 2-hour-before job reminder is prepared automatically.
                                         </p>
                                         <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_0.8fr]">
                                           <Input

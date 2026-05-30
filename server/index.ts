@@ -443,6 +443,8 @@ function queuePushNotification(
   });
 }
 
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+
 let bookingReminderSweepRunning = false;
 
 async function sendDueBookingReminders() {
@@ -464,10 +466,10 @@ async function sendDueBookingReminders() {
 
     for (const booking of reminderCandidates) {
       const displayId = formatBookingDisplayId(booking);
-      const reminderText = booking.reminderNote?.trim() || "Follow up with this customer request.";
+      const appointmentReminder = isTwoHourAppointmentReminder(booking);
       queuePushNotification({
-        title: `Reminder: ${booking.name}`,
-        message: `${displayId} - ${reminderText}`,
+        title: appointmentReminder ? `Job in 2 hours: ${booking.name}` : `Reminder: ${booking.name}`,
+        message: buildAdminReminderMessage(booking, displayId),
         url: "/admin",
         icon: "/icons/admin-icon-v2-192x192.png",
         badge: "/icons/admin-icon-v2-96x96.png",
@@ -592,6 +594,54 @@ function isReminderActive(booking: Pick<Booking, "reminderAt" | "status">) {
 function isReminderDue(booking: Pick<Booking, "reminderAt" | "status">, now = Date.now()) {
   const reminderTime = getBookingReminderTime(booking);
   return isReminderActive(booking) && Number.isFinite(reminderTime) && reminderTime <= now;
+}
+
+function getDateTimeMs(value?: string | null) {
+  const text = value?.trim();
+  if (!text) {
+    return Number.NaN;
+  }
+
+  const parsedTime = Date.parse(text);
+  return Number.isFinite(parsedTime) ? parsedTime : Number.NaN;
+}
+
+function getTwoHourAppointmentReminderAt(appointmentTime?: string | null) {
+  const appointmentMs = getDateTimeMs(appointmentTime);
+  if (!Number.isFinite(appointmentMs)) {
+    return "";
+  }
+
+  return new Date(Math.max(Date.now(), appointmentMs - TWO_HOURS_MS)).toISOString();
+}
+
+function isTwoHourAppointmentReminder(booking: Pick<Booking, "appointmentTime" | "reminderAt">) {
+  const appointmentMs = getDateTimeMs(booking.appointmentTime);
+  const reminderMs = getBookingReminderTime(booking);
+
+  return (
+    Number.isFinite(appointmentMs) &&
+    Number.isFinite(reminderMs) &&
+    Math.abs(reminderMs - (appointmentMs - TWO_HOURS_MS)) <= 90_000
+  );
+}
+
+function buildDefaultAppointmentReminderNote(booking: Pick<Booking, "repairType">) {
+  return `About 2 hours left to go and do the ${booking.repairType || "job"}. Check the customer details, route, tools, and parts before leaving.`;
+}
+
+function buildAdminReminderMessage(booking: Pick<Booking, "appointmentTime" | "reminderAt" | "reminderNote" | "repairType">, displayId: string) {
+  const reminderText = booking.reminderNote?.trim() || (
+    isTwoHourAppointmentReminder(booking)
+      ? buildDefaultAppointmentReminderNote(booking)
+      : "Follow up with this customer request."
+  );
+
+  if (isTwoHourAppointmentReminder(booking)) {
+    return `${displayId} - ${reminderText}${booking.appointmentTime ? ` Appointment: ${booking.appointmentTime}.` : ""}`;
+  }
+
+  return `${displayId} - ${reminderText}`;
 }
 
 function matchesWorkflowFilter(booking: Booking, workflow: string) {
@@ -1272,6 +1322,7 @@ function renderSitemapXml() {
 function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
   const lineItems = (booking.quoteNotes || "Labour, materials, sourcing, delivery, or installation details will be confirmed by FixMyDoor Services.").split(/\r?\n/).filter(Boolean);
   const bookingDisplayId = formatBookingDisplayId(booking);
+  const issuedDate = new Date().toLocaleDateString();
 
   return `<!doctype html>
 <html lang="en">
@@ -1293,13 +1344,19 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
     .total { margin: 20px 0; padding: 20px; border-radius: 18px; background: #2f241c; color: white; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
     .total strong { font-size: 28px; }
     ul { margin: 12px 0 0; padding-left: 20px; line-height: 1.7; }
-    .signature-card { margin-top: 14px; display: flex; justify-content: space-between; gap: 20px; align-items: center; background: #fff; border: 1px solid #ead8bf; border-radius: 18px; padding: 16px; }
+    .signature-card { margin-top: 14px; display: flex; justify-content: space-between; gap: 22px; align-items: center; background: linear-gradient(135deg, #fff 0%, #fffaf2 58%, #f5ead8 100%); border: 1px solid #e2c6a6; border-radius: 20px; padding: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,.9); }
     .signature-card p { margin: 6px 0 0; color: #7b6758; font-size: 13px; line-height: 1.5; }
-    .signature-card img { width: 230px; max-width: 44%; height: auto; object-fit: contain; border-radius: 12px; background: #fff; }
+    .signature-card h3 { color: #2f241c; }
+    .signature-pill { display: inline-flex; align-items: center; border-radius: 999px; background: #2f241c; color: #fff; padding: 6px 10px; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .signature-mark { min-width: 260px; border-radius: 16px; background: rgba(255,255,255,.84); border: 1px solid #ead8bf; padding: 12px 14px; text-align: center; }
+    .signature-mark img { width: 250px; max-width: 100%; height: auto; object-fit: contain; display: block; margin: 0 auto 6px; }
+    .signature-line { height: 1px; background: #8f6a48; margin: 0 auto 8px; max-width: 230px; }
+    .signature-name { display: block; font-weight: 800; color: #2f241c; }
+    .signature-title { display: block; margin-top: 2px; color: #7b6758; font-size: 12px; }
     .actions { margin-top: 24px; display: flex; gap: 10px; }
     button { border: 0; border-radius: 12px; background: #b46532; color: white; padding: 12px 16px; font-weight: 800; cursor: pointer; }
     @media print { body { background: white; } .page { margin: 0; box-shadow: none; border: 0; } .signature-card { break-inside: avoid; } .actions { display: none; } }
-    @media (max-width: 640px) { header, .grid, .signature-card { grid-template-columns: 1fr; display: grid; } .signature-card img { width: 230px; max-width: 100%; } }
+    @media (max-width: 640px) { header, .grid, .signature-card { grid-template-columns: 1fr; display: grid; } .signature-mark { min-width: 0; } .signature-mark img { width: 230px; max-width: 100%; } }
   </style>
 </head>
 <body>
@@ -1312,7 +1369,7 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
       <div>
         <h1 style="color:white;">Quote / Invoice</h1>
         <p>Booking ID: ${escapeHtml(bookingDisplayId)}</p>
-        <p>Date: ${escapeHtml(new Date().toLocaleDateString())}</p>
+        <p>Date: ${escapeHtml(issuedDate)}</p>
       </div>
     </header>
     <main>
@@ -1336,11 +1393,17 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
       </div>
       <div class="signature-card">
         <div>
-          <div class="label">Authorized Approval</div>
-          <h3>Richard Ampofo</h3>
-          <p>Official FixMyDoor Services signature for quotes, invoices, and customer documents.</p>
+          <span class="signature-pill">Authorized Approval</span>
+          <h3 style="margin-top:10px;">Approved by FixMyDoor Services</h3>
+          <p>This quote/invoice is issued with the official signature of Richard Ampofo.</p>
+          <p><strong>Issued:</strong> ${escapeHtml(issuedDate)}</p>
         </div>
-        <img src="/fixmydoor-richard-ampofo-signature.jpg" alt="Official signature of Richard Ampofo for FixMyDoor Services" />
+        <div class="signature-mark">
+          <img src="/fixmydoor-richard-ampofo-signature.jpg" alt="Official signature of Richard Ampofo for FixMyDoor Services" />
+          <div class="signature-line"></div>
+          <span class="signature-name">Richard Ampofo</span>
+          <span class="signature-title">Owner / Authorized Signatory</span>
+        </div>
       </div>
       <div class="actions"><button id="print-quote" type="button">Print / Save PDF</button></div>
     </main>
@@ -2353,7 +2416,20 @@ async function startServer() {
         statusHistory: serializeStatusHistory(history),
       };
 
-      if ("appointmentTime" in update) updateData.appointmentTime = cleanOptionalText(update.appointmentTime, 160);
+      if ("appointmentTime" in update) {
+        const appointmentTime = cleanOptionalText(update.appointmentTime, 160);
+        updateData.appointmentTime = appointmentTime;
+
+        if (appointmentTime && !("reminderAt" in update) && !(existingBooking as any).reminderAt) {
+          const autoReminderAt = getTwoHourAppointmentReminderAt(appointmentTime);
+          if (autoReminderAt) {
+            updateData.reminderAt = autoReminderAt;
+            updateData.reminderWindow = "2 hours before appointment";
+            updateData.reminderNote = buildDefaultAppointmentReminderNote({ repairType: existingBooking.repairType });
+            updateData.reminderSentAt = null;
+          }
+        }
+      }
       if ("quoteAmount" in update) updateData.quoteAmount = cleanOptionalText(update.quoteAmount, 80);
       if ("quoteNotes" in update) updateData.quoteNotes = cleanOptionalText(update.quoteNotes, 1000);
       if ("invoiceStatus" in update) updateData.invoiceStatus = cleanOptionalText(update.invoiceStatus, 80);
