@@ -70,7 +70,7 @@ const contentCategories: { value: ContentItem["category"]; label: string }[] = [
   { value: "doorProduct", label: "Door Product" },
   { value: "hardwareProduct", label: "Hardware Product" },
   { value: "projectGallery", label: "Project Gallery" },
-  { value: "ownerProfile", label: "Owner Profile Photo" },
+  { value: "documentResource", label: "Website Document Link" },
 ];
 
 const contentCategoryHelp: Record<ContentItem["category"], string> = {
@@ -80,6 +80,7 @@ const contentCategoryHelp: Record<ContentItem["category"], string> = {
   doorProduct: "Door buying gallery item.",
   hardwareProduct: "Hardware and tools gallery item.",
   projectGallery: "Recent work or project photo shown in gallery sections.",
+  documentResource: "PDF or Word document shown in the website Documents & Downloads section.",
   ownerProfile: "Richard Ampofo owner photo shown in the homepage expert section.",
 };
 
@@ -149,6 +150,22 @@ const contentAssistantTemplates: Record<ContentItem["category"], Array<Pick<Cont
       tag: "Recent Work",
       description: "A practical repair example showing the type of door, lock, furniture, or hardware issue customers ask us to review.",
       items: "Repair review, clean fitting, stronger hardware, and follow-up guidance",
+      bookingValue: "door-repair",
+    },
+  ],
+  documentResource: [
+    {
+      title: "Service Information Document",
+      tag: "Customer Document",
+      description: "Helpful FixMyDoor Services information customers can open or download from the website.",
+      items: "",
+      bookingValue: "",
+    },
+    {
+      title: "Repair or Product Guide",
+      tag: "Download",
+      description: "A useful document for customers who need repair details, product information, or service guidance.",
+      items: "",
       bookingValue: "door-repair",
     },
   ],
@@ -1431,6 +1448,7 @@ export default function Admin() {
     .map((booking) => `${booking.id}:${booking.reminderAt || ""}:${booking.status}`)
     .join("|");
   const showReminderWatch = reminderWatchBookings.length > 0 && reminderWatchKey !== dismissedReminderWatchKey;
+  const managerContentItems = contentItems.filter((item) => item.category !== "ownerProfile");
 
   return (
     <div className="admin-dashboard-shell min-h-screen max-w-full overflow-x-hidden bg-[#f7efe4]">
@@ -3136,9 +3154,9 @@ export default function Admin() {
                     <Upload className="h-5 w-5" />
                   </span>
                   <span className="grid gap-0.5">
-                    <span className="font-semibold text-foreground">{contentUploadLoading ? "Uploading..." : "Upload image, video, or document"}</span>
-                    <span className="text-xs text-muted-foreground">
-                      Flyers, product photos, service images, short videos, PDFs, or Word documents up to 20MB.
+                  <span className="font-semibold text-foreground">{contentUploadLoading ? "Uploading..." : contentDraft.category === "documentResource" ? "Upload PDF or Word document" : "Upload image, video, or document"}</span>
+                  <span className="text-xs text-muted-foreground">
+                      {contentDraft.category === "documentResource" ? "The document link will be saved and shown in Documents & Downloads." : "Flyers, product photos, service images, short videos, PDFs, or Word documents up to 20MB."}
                     </span>
                   </span>
                 </Label>
@@ -3212,7 +3230,7 @@ export default function Admin() {
             </div>
 
             <div className="mt-4 grid gap-2 md:grid-cols-2">
-              {contentItems.map((item) => (
+              {managerContentItems.map((item) => (
                 <div key={item.id} className="min-w-0 rounded-xl border border-[#ead8bf] bg-white p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -3231,7 +3249,7 @@ export default function Admin() {
                   </div>
                 </div>
               ))}
-              {contentItems.length === 0 && (
+              {managerContentItems.length === 0 && (
                 <p className="text-sm text-muted-foreground">No custom content yet. The website is using its built-in cards until you add replacements here.</p>
               )}
             </div>

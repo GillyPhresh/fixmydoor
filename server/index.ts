@@ -1450,20 +1450,15 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
     .total strong { font-size: 21px; }
     ul { margin: 6px 0 0; padding-left: 16px; line-height: 1.34; }
     li { margin-bottom: 1px; }
-    .service-line { margin: 10px 0; border: 1px solid #ead8bf; border-radius: 12px; background: white; padding: 9px 10px; }
-    .service-line strong { display: block; margin-bottom: 4px; color: #2f241c; }
-    .service-line span { color: #7b6758; font-size: 11px; line-height: 1.35; }
     .notes-box { margin-top: 10px; }
-    .notes-box p { margin: 5px 0 0; line-height: 1.35; }
-    .signature-card { margin-top: 10px; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; background: #fff; border: 1px solid #e2c6a6; border-radius: 12px; padding: 8px 10px; }
-    .signature-card p { margin: 3px 0 0; color: #7b6758; font-size: 9.5px; line-height: 1.2; }
-    .signature-card h3 { color: #2f241c; font-size: 13px; }
-    .signature-pill { display: inline-flex; align-items: center; border-radius: 999px; background: #2f241c; color: #fff; padding: 3px 6px; font-size: 7.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-    .signature-mark { width: 138px; border-radius: 10px; background: #fffaf2; border: 1px solid #ead8bf; padding: 5px 7px; text-align: center; }
-    .signature-mark img { width: 98px; max-width: 100%; height: auto; object-fit: contain; display: block; margin: 0 auto 2px; }
-    .signature-line { height: 1px; background: #8f6a48; margin: 0 auto 4px; max-width: 100px; }
+    .notes-box p { margin: 4px 0 0; line-height: 1.28; }
+    .approval-block { margin-top: 12px; border-top: 1px solid #e2c6a6; padding-top: 10px; }
+    .approval-block p { margin: 0 0 7px; color: #7b6758; line-height: 1.3; }
+    .signature-script { width: 118px; max-width: 44vw; height: auto; display: block; margin: 0 0 3px; }
+    .signature-line { height: 1px; background: #8f6a48; margin: 0 0 4px; max-width: 150px; }
     .signature-name { display: block; font-weight: 800; color: #2f241c; }
     .signature-title { display: block; margin-top: 1px; color: #7b6758; font-size: 9px; }
+    .invoice-footer { margin-top: 10px; border-top: 1px solid #ead8bf; padding-top: 7px; color: #7b6758; font-size: 9.5px; line-height: 1.24; }
     .actions { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
     button { border: 0; border-radius: 12px; background: #b46532; color: white; padding: 11px 15px; font-weight: 800; cursor: pointer; touch-action: manipulation; }
     .secondary-button { background: #2f241c; }
@@ -1486,23 +1481,18 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
       .total strong { font-size: 15px; }
       ul { margin-top: 4px; padding-left: 12px; line-height: 1.16; }
       li { margin-bottom: 0; }
-      .service-line { margin: 6px 0; padding: 5px 6px; border-radius: 8px; }
-      .service-line strong { margin-bottom: 2px; font-size: 8.5px; }
-      .service-line span { font-size: 7.5px; line-height: 1.12; }
       .notes-box { margin-top: 6px; }
-      .notes-box p { margin-top: 3px; line-height: 1.18; }
-      .signature-card { margin-top: 6px; padding: 6px 7px; gap: 8px; border-radius: 9px; break-inside: avoid; page-break-inside: avoid; }
-      .signature-card h3 { font-size: 10px; }
-      .signature-card p { font-size: 7.5px; line-height: 1.12; }
-      .signature-pill { font-size: 7px; padding: 3px 6px; }
-      .signature-mark { width: 104px; padding: 3px 5px; border-radius: 8px; }
-      .signature-mark img { width: 74px; margin-bottom: 1px; }
-      .signature-line { max-width: 78px; margin-bottom: 3px; }
+      .notes-box p { margin-top: 2px; line-height: 1.12; }
+      .approval-block { margin-top: 6px; padding-top: 5px; break-inside: avoid; page-break-inside: avoid; }
+      .approval-block p { margin-bottom: 3px; line-height: 1.1; }
+      .signature-script { width: 76px; margin-bottom: 1px; }
+      .signature-line { max-width: 96px; margin-bottom: 2px; }
       .signature-name { font-size: 8px; }
       .signature-title { font-size: 7px; }
+      .invoice-footer { margin-top: 5px; padding-top: 4px; font-size: 7.2px; line-height: 1.12; }
       .actions { display: none; }
     }
-    @media (max-width: 640px) { body { font-size: 11px; } .page { margin: 0; border-radius: 0; } header, .grid, .signature-card { grid-template-columns: 1fr; display: grid; } .signature-mark { width: 100%; max-width: 138px; } .signature-mark img { width: 98px; max-width: 100%; } }
+    @media (max-width: 640px) { body { font-size: 11px; } .page { margin: 0; border-radius: 0; } header, .grid { grid-template-columns: 1fr; display: grid; } }
   </style>
 </head>
 <body>
@@ -1528,33 +1518,26 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
         <div class="box"><div class="label">Payment Status</div><div class="value">${escapeHtml(booking.paymentStatus || "Not paid")}</div></div>
       </div>
       <div class="total"><span>Estimated Amount</span><strong>${escapeHtml(booking.quoteAmount || "To be confirmed")}</strong></div>
-      <div class="service-line">
-        <strong>Services Provided</strong>
-        <span>Door repairs, door installations, lock rekeying, furniture repairs, furniture installations, and hardware sourcing.</span>
-      </div>
       <div class="box quote-box">
         <h2>Quote Details</h2>
         <ul>${lineItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
       </div>
       <div class="box notes-box">
         <h3>Notes</h3>
-        <p>This quote/invoice is prepared from the booking details. Final cost may change if measurements, parts, delivery, or installation requirements change.</p>
-        <p>Thank you for choosing FixMyDoor Services. We appreciate your trust and will handle your request with care, clear communication, and a clean finish.</p>
+        <p>Prepared from the booking details. Final cost may change if measurements, parts, delivery, or installation requirements change.</p>
+        <p>Thank you for choosing FixMyDoor Services. We appreciate your trust.</p>
         <p><strong>FixMyDoor Services</strong><br>info.fixmydoor@gmail.com<br>+1 (438) 347-1823</p>
       </div>
-      <div class="signature-card">
-        <div>
-          <span class="signature-pill">Authorized Approval</span>
-          <h3 style="margin-top:10px;">Approved by FixMyDoor Services</h3>
-          <p>This quote/invoice is issued with the official signature of Richard Ampofo.</p>
-          <p><strong>Issued:</strong> ${escapeHtml(issuedDate)}</p>
-        </div>
-        <div class="signature-mark">
-          <img src="/richard-ampofo-official-signature.jpg" alt="Official signature of Richard Ampofo for FixMyDoor Services" />
-          <div class="signature-line"></div>
-          <span class="signature-name">Richard Ampofo</span>
-          <span class="signature-title">Owner / Authorized Signatory</span>
-        </div>
+      <div class="approval-block">
+        <p>Sincerely,</p>
+        <img class="signature-script" src="/richard-ampofo-official-signature.jpg" alt="Official signature of Richard Ampofo for FixMyDoor Services" />
+        <div class="signature-line"></div>
+        <span class="signature-name">Richard Ampofo</span>
+        <span class="signature-title">Owner / Authorized Signatory, FixMyDoor Services</span>
+        <p><strong>Issued:</strong> ${escapeHtml(issuedDate)}</p>
+      </div>
+      <div class="invoice-footer">
+        Services we provide: door repairs, door installations, lock rekeying, furniture repairs, furniture installations, and hardware sourcing.
       </div>
       <div class="actions">
         <button id="print-quote" type="button">Print / Save PDF</button>

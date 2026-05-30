@@ -126,6 +126,7 @@ export type ContentCategory =
   | "doorProduct"
   | "hardwareProduct"
   | "projectGallery"
+  | "documentResource"
   | "ownerProfile";
 
 export type ContentItemRequest = Omit<ContentItem, "id" | "createdAt" | "updatedAt">;

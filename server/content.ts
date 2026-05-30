@@ -8,6 +8,7 @@ const VALID_CATEGORIES: ContentCategory[] = [
   "doorProduct",
   "hardwareProduct",
   "projectGallery",
+  "documentResource",
   "ownerProfile",
 ];
 const CONTENT_MEDIA_PATTERN = /^(\/uploads\/[a-z0-9-]+\.(png|jpe?g|webp|mp4|webm|ogg)|https:\/\/[^\s<>"']{1,900})$/i;

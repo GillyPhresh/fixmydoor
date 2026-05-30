@@ -904,6 +904,15 @@ export default function Home() {
     desc: item.description || "",
     category: item.tag || "Project",
   }));
+  const dynamicDocuments = dynamicItems("documentResource")
+    .filter((item) => isDocumentMedia(item.items))
+    .map((item) => ({
+      id: item.id,
+      title: item.title,
+      description: item.description || "Open or download this FixMyDoor Services document.",
+      tag: item.tag || "Document",
+      url: item.items || "#",
+    }));
   const ownerProfileImage = dynamicItems("ownerProfile")[0]?.image || technicianImage;
   const dynamicAdverts: DisplayAdvert[] = dynamicItems("advert").map((item) => ({
     id: item.id,
@@ -2788,6 +2797,43 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {dynamicDocuments.length > 0 && (
+        <section id="documents" className="bg-[linear-gradient(180deg,_#fffaf2,_#ffffff)] py-5 md:py-8">
+          <div className="container max-w-[1180px]">
+            <div className="mb-3 flex flex-col gap-2 md:mb-4 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary md:text-xs md:tracking-[0.3em]">Documents & Downloads</p>
+                <h2 className="mt-1 font-display text-xl font-bold text-secondary md:text-3xl">Helpful files from FixMyDoor Services</h2>
+              </div>
+              <p className="max-w-xl text-xs leading-relaxed text-foreground/65 md:text-sm">
+                Public documents uploaded from the admin dashboard appear here for customers to open or download.
+              </p>
+            </div>
+            <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+              {dynamicDocuments.map((documentItem) => (
+                <a
+                  key={documentItem.id}
+                  href={documentItem.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group flex min-w-0 items-start gap-3 rounded-[18px] border border-primary/12 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-[0_14px_34px_rgba(66,40,18,0.08)]"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[0.65rem] font-bold uppercase tracking-[0.18em] text-primary">{documentItem.tag}</span>
+                    <span className="mt-1 block truncate text-sm font-black text-secondary md:text-base">{documentItem.title}</span>
+                    <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-foreground/65">{documentItem.description}</span>
+                    <span className="mt-2 inline-flex text-xs font-bold text-primary group-hover:underline">Open document</span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section id="contact" className="bg-background pb-3 pt-8 md:pb-4 md:pt-10">
         <div className="container grid max-w-[1180px] gap-6 md:grid-cols-[0.9fr_1.1fr] md:items-stretch">
