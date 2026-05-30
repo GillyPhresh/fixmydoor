@@ -86,8 +86,8 @@ const workflowExamples = [
   ["Reminder", "When you pick an appointment, a 2-hour-before job reminder is added automatically. You can still change it if needed."],
   ["Quote Amount", "Use a clear amount such as C$250, or a range such as C$180-C$320 when the final parts are not confirmed."],
   ["Staff", "Write who will handle the job, for example Richard, Team A, or Supplier follow-up."],
-  ["Invoice Status", "Use Quote sent after pricing is shared, Invoice sent when the final invoice is ready, and Revised if you update the price."],
-  ["Payment", "Use Deposit requested, Partially paid, Paid, or Not paid so the job status is easy to track."],
+  ["Invoice / Quote Stage", "Choose where the paperwork is: not sent yet, quote sent, final invoice sent, or revised after a change."],
+  ["Payment Progress", "Choose the money status: no payment yet, deposit requested, part payment received, or fully paid."],
   ["Quote / Invoice Notes", "Write customer-facing line items such as labour, hinges, delivery, installation, warranty, and payment terms."],
   ["Private Admin Notes", "Write internal reminders only, such as confirm hinge size, call after 6 PM, or customer prefers WhatsApp."],
 ] as const;
@@ -99,6 +99,22 @@ const reminderWindowOptions = [
   "Within 30 minutes",
   "Within 1 hour",
   "Same day follow-up",
+] as const;
+
+const staffAssignmentOptions = ["Not assigned", "Richard", "Staff"] as const;
+
+const invoiceStatusOptions = [
+  { value: "Not issued", label: "Not sent yet" },
+  { value: "Quote sent", label: "Quote sent to customer" },
+  { value: "Invoice sent", label: "Final invoice sent" },
+  { value: "Revised", label: "Revised quote/invoice sent" },
+] as const;
+
+const paymentStatusOptions = [
+  { value: "Not paid", label: "No payment received" },
+  { value: "Deposit requested", label: "Deposit requested" },
+  { value: "Partially paid", label: "Part payment received" },
+  { value: "Paid", label: "Fully paid" },
 ] as const;
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
@@ -1847,39 +1863,41 @@ export default function Admin() {
                                     />
                                   </div>
                                   <div>
-                                    <Label>Staff</Label>
-                                    <Input
-                                      value={bookingDraft.staffAssigned || ""}
-                                      onChange={(event) => setBookingDraft((draft) => ({ ...draft, staffAssigned: event.target.value }))}
-                                      placeholder="Richard"
-                                      className="bg-white"
-                                    />
+                                    <Label>Staff Assigned</Label>
+                                    <Select value={bookingDraft.staffAssigned || "Not assigned"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, staffAssigned: value }))}>
+                                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                      <SelectContent>
+                                        {staffAssignmentOptions.map((option) => (
+                                          <SelectItem key={option} value={option}>{option}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                   <div>
-                                    <Label>Invoice Status</Label>
+                                    <Label>Invoice / Quote Stage</Label>
                                     <Select value={bookingDraft.invoiceStatus || "Not issued"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, invoiceStatus: value }))}>
                                       <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="Not issued">Not issued</SelectItem>
-                                        <SelectItem value="Quote sent">Quote sent</SelectItem>
-                                        <SelectItem value="Invoice sent">Invoice sent</SelectItem>
-                                        <SelectItem value="Revised">Revised</SelectItem>
+                                        {invoiceStatusOptions.map((option) => (
+                                          <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                        ))}
                                       </SelectContent>
                                     </Select>
+                                    <p className="mt-1 text-[0.66rem] leading-relaxed text-muted-foreground">Shows if paperwork has not been sent, a quote was sent, or the final invoice is ready.</p>
                                   </div>
                                   <div>
-                                    <Label>Payment</Label>
+                                    <Label>Payment Progress</Label>
                                     <Select value={bookingDraft.paymentStatus || "Not paid"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, paymentStatus: value }))}>
                                       <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="Not paid">Not paid</SelectItem>
-                                        <SelectItem value="Deposit requested">Deposit requested</SelectItem>
-                                        <SelectItem value="Partially paid">Partially paid</SelectItem>
-                                        <SelectItem value="Paid">Paid</SelectItem>
+                                        {paymentStatusOptions.map((option) => (
+                                          <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                        ))}
                                       </SelectContent>
                                     </Select>
+                                    <p className="mt-1 text-[0.66rem] leading-relaxed text-muted-foreground">Tracks whether money has not arrived, deposit is needed, part payment came in, or it is fully paid.</p>
                                   </div>
                                 </div>
                                 <div>
@@ -2315,35 +2333,38 @@ export default function Admin() {
                                       </div>
                                       <div>
                                         <Label>Staff Assigned</Label>
-                                        <Input
-                                          value={bookingDraft.staffAssigned || ""}
-                                          onChange={(event) => setBookingDraft((draft) => ({ ...draft, staffAssigned: event.target.value }))}
-                                          placeholder="Richard / Team"
-                                        />
+                                        <Select value={bookingDraft.staffAssigned || "Not assigned"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, staffAssigned: value }))}>
+                                          <SelectTrigger><SelectValue /></SelectTrigger>
+                                          <SelectContent>
+                                            {staffAssignmentOptions.map((option) => (
+                                              <SelectItem key={option} value={option}>{option}</SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
                                       </div>
                                       <div>
-                                        <Label>Invoice Status</Label>
+                                        <Label>Invoice / Quote Stage</Label>
                                         <Select value={bookingDraft.invoiceStatus || "Not issued"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, invoiceStatus: value }))}>
                                           <SelectTrigger><SelectValue /></SelectTrigger>
                                           <SelectContent>
-                                            <SelectItem value="Not issued">Not issued</SelectItem>
-                                            <SelectItem value="Quote sent">Quote sent</SelectItem>
-                                            <SelectItem value="Invoice sent">Invoice sent</SelectItem>
-                                            <SelectItem value="Revised">Revised</SelectItem>
+                                            {invoiceStatusOptions.map((option) => (
+                                              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                            ))}
                                           </SelectContent>
                                         </Select>
+                                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Shows whether nothing was sent, a quote was sent, or the final invoice is ready.</p>
                                       </div>
                                       <div>
-                                        <Label>Payment Status</Label>
+                                        <Label>Payment Progress</Label>
                                         <Select value={bookingDraft.paymentStatus || "Not paid"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, paymentStatus: value }))}>
                                           <SelectTrigger><SelectValue /></SelectTrigger>
                                           <SelectContent>
-                                            <SelectItem value="Not paid">Not paid</SelectItem>
-                                            <SelectItem value="Deposit requested">Deposit requested</SelectItem>
-                                            <SelectItem value="Partially paid">Partially paid</SelectItem>
-                                            <SelectItem value="Paid">Paid</SelectItem>
+                                            {paymentStatusOptions.map((option) => (
+                                              <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                            ))}
                                           </SelectContent>
                                         </Select>
+                                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Shows whether payment is missing, requested, partly received, or fully paid.</p>
                                       </div>
                                       <div className="sm:col-span-3">
                                         <div className="flex items-center justify-between gap-2">
