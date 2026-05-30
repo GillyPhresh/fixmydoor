@@ -1494,7 +1494,7 @@ export default function Admin() {
                           <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{notification.message}</p>
                         </div>
                         <Badge variant={notification.failed > 0 ? "secondary" : "default"} className="shrink-0 text-[0.65rem]">
-                          {notification.delivered} sent
+                          {notification.delivered} devices
                         </Badge>
                       </div>
                       <p className="mt-1.5 text-[0.68rem] text-muted-foreground">

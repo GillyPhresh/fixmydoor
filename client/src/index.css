@@ -132,26 +132,67 @@
   }
 
   @media (max-width: 640px) {
+    html,
+    body,
+    #root {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
     .admin-dashboard-shell,
     .admin-dashboard-shell * {
       box-sizing: border-box;
     }
 
     .admin-dashboard-shell {
+      width: 100vw;
+      max-width: 100vw;
+      overflow-x: hidden;
+      overscroll-behavior-x: none;
+    }
+
+    .admin-dashboard-shell .container {
       width: 100%;
-      overflow-x: clip;
+      max-width: 100%;
+      padding-left: 0.625rem;
+      padding-right: 0.625rem;
     }
 
     .admin-dashboard-shell :where(div, section, article, form, header, main, aside, nav, ul, li) {
       min-width: 0;
+      max-width: 100%;
     }
 
-    .admin-dashboard-shell :where(input, textarea, select, button) {
+    .admin-dashboard-shell :where(input, textarea, select, button, a) {
       max-width: 100%;
+      min-width: 0;
     }
 
     .admin-dashboard-shell :where(p, h1, h2, h3, a) {
       overflow-wrap: anywhere;
+    }
+
+    .admin-dashboard-shell [data-slot="card"],
+    .admin-dashboard-shell [data-slot="card-content"],
+    .admin-dashboard-shell [data-slot="card-header"],
+    .admin-dashboard-shell [data-slot="select-trigger"] {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+    }
+
+    .admin-dashboard-shell img,
+    .admin-dashboard-shell video,
+    .admin-dashboard-shell canvas,
+    .admin-dashboard-shell table {
+      max-width: 100%;
+    }
+
+    .admin-dashboard-shell [role="dialog"] {
+      width: calc(100vw - 1rem);
+      max-width: calc(100vw - 1rem);
+      overflow-x: hidden;
     }
 
     [data-radix-popper-content-wrapper] {

@@ -1331,32 +1331,64 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FixMyDoor Services Quote / Invoice - ${escapeHtml(bookingDisplayId)}</title>
   <style>
-    body { margin: 0; background: #f7efe4; color: #2f241c; font-family: Arial, sans-serif; }
-    .page { max-width: 860px; margin: 24px auto; background: #fffaf2; border: 1px solid #ead8bf; border-radius: 24px; overflow: hidden; box-shadow: 0 18px 60px rgba(47,36,28,.14); }
-    header { display: flex; justify-content: space-between; gap: 24px; align-items: center; background: #2f241c; color: white; padding: 28px; }
-    header img { width: 160px; max-width: 40vw; background: white; border-radius: 16px; padding: 8px 12px; }
-    main { padding: 28px; }
+    @page { size: letter; margin: 10mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f7efe4; color: #2f241c; font-family: Arial, sans-serif; font-size: 13px; }
+    .page { max-width: 820px; margin: 18px auto; background: #fffaf2; border: 1px solid #ead8bf; border-radius: 20px; overflow: hidden; box-shadow: 0 18px 60px rgba(47,36,28,.14); }
+    header { display: flex; justify-content: space-between; gap: 18px; align-items: center; background: #2f241c; color: white; padding: 20px 22px; }
+    header img { width: 138px; max-width: 34vw; background: white; border-radius: 14px; padding: 7px 10px; }
+    header p { margin: 6px 0 0; }
+    main { padding: 20px 22px; }
     h1, h2, h3 { margin: 0; color: #6B4423; }
-    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 18px 0; }
-    .box { background: #f5f1e8; border-radius: 16px; padding: 14px; }
-    .label { color: #7b6758; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
-    .value { margin-top: 6px; font-weight: 700; }
-    .total { margin: 20px 0; padding: 20px; border-radius: 18px; background: #2f241c; color: white; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
-    .total strong { font-size: 28px; }
-    ul { margin: 12px 0 0; padding-left: 20px; line-height: 1.7; }
-    .signature-card { margin-top: 14px; display: flex; justify-content: space-between; gap: 22px; align-items: center; background: linear-gradient(135deg, #fff 0%, #fffaf2 58%, #f5ead8 100%); border: 1px solid #e2c6a6; border-radius: 20px; padding: 18px; box-shadow: inset 0 1px 0 rgba(255,255,255,.9); }
-    .signature-card p { margin: 6px 0 0; color: #7b6758; font-size: 13px; line-height: 1.5; }
+    h1 { font-size: 30px; }
+    h2 { font-size: 18px; }
+    h3 { font-size: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+    .box { background: #f5f1e8; border-radius: 13px; padding: 11px; }
+    .label { color: #7b6758; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+    .value { margin-top: 5px; font-weight: 700; line-height: 1.35; }
+    .total { margin: 14px 0; padding: 15px 16px; border-radius: 15px; background: #2f241c; color: white; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+    .total strong { font-size: 24px; }
+    ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.45; }
+    li { margin-bottom: 2px; }
+    .signature-card { margin-top: 10px; display: flex; justify-content: space-between; gap: 16px; align-items: center; background: linear-gradient(135deg, #fff 0%, #fffaf2 58%, #f5ead8 100%); border: 1px solid #e2c6a6; border-radius: 16px; padding: 13px; box-shadow: inset 0 1px 0 rgba(255,255,255,.9); }
+    .signature-card p { margin: 5px 0 0; color: #7b6758; font-size: 12px; line-height: 1.35; }
     .signature-card h3 { color: #2f241c; }
-    .signature-pill { display: inline-flex; align-items: center; border-radius: 999px; background: #2f241c; color: #fff; padding: 6px 10px; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-    .signature-mark { min-width: 260px; border-radius: 16px; background: rgba(255,255,255,.84); border: 1px solid #ead8bf; padding: 12px 14px; text-align: center; }
-    .signature-mark img { width: 250px; max-width: 100%; height: auto; object-fit: contain; display: block; margin: 0 auto 6px; }
-    .signature-line { height: 1px; background: #8f6a48; margin: 0 auto 8px; max-width: 230px; }
+    .signature-pill { display: inline-flex; align-items: center; border-radius: 999px; background: #2f241c; color: #fff; padding: 5px 8px; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .signature-mark { min-width: 230px; border-radius: 14px; background: rgba(255,255,255,.84); border: 1px solid #ead8bf; padding: 9px 11px; text-align: center; }
+    .signature-mark img { width: 210px; max-width: 100%; height: auto; object-fit: contain; display: block; margin: 0 auto 4px; }
+    .signature-line { height: 1px; background: #8f6a48; margin: 0 auto 6px; max-width: 205px; }
     .signature-name { display: block; font-weight: 800; color: #2f241c; }
     .signature-title { display: block; margin-top: 2px; color: #7b6758; font-size: 12px; }
-    .actions { margin-top: 24px; display: flex; gap: 10px; }
+    .actions { margin-top: 18px; display: flex; gap: 10px; }
     button { border: 0; border-radius: 12px; background: #b46532; color: white; padding: 12px 16px; font-weight: 800; cursor: pointer; }
-    @media print { body { background: white; } .page { margin: 0; box-shadow: none; border: 0; } .signature-card { break-inside: avoid; } .actions { display: none; } }
-    @media (max-width: 640px) { header, .grid, .signature-card { grid-template-columns: 1fr; display: grid; } .signature-mark { min-width: 0; } .signature-mark img { width: 230px; max-width: 100%; } }
+    @media print {
+      body { background: white; font-size: 11px; }
+      .page { width: 100%; max-width: none; margin: 0; box-shadow: none; border-radius: 0; border: 0; }
+      header { padding: 12px 14px; gap: 10px; }
+      header img { width: 106px; border-radius: 10px; padding: 5px 8px; }
+      header p { margin-top: 3px; }
+      main { padding: 12px 14px; }
+      h1 { font-size: 22px; }
+      h2 { font-size: 15px; }
+      h3 { font-size: 13px; }
+      .grid { gap: 7px; margin: 9px 0; }
+      .box { border-radius: 9px; padding: 7px 8px; }
+      .label { font-size: 8px; }
+      .value { margin-top: 3px; line-height: 1.2; }
+      .total { margin: 9px 0; padding: 10px 12px; border-radius: 10px; }
+      .total strong { font-size: 18px; }
+      ul { margin-top: 5px; padding-left: 14px; line-height: 1.28; }
+      .signature-card { margin-top: 7px; padding: 8px; gap: 10px; border-radius: 10px; break-inside: avoid; page-break-inside: avoid; }
+      .signature-card p { font-size: 9px; line-height: 1.2; }
+      .signature-pill { font-size: 7px; padding: 3px 6px; }
+      .signature-mark { min-width: 175px; padding: 6px 8px; border-radius: 8px; }
+      .signature-mark img { width: 155px; margin-bottom: 2px; }
+      .signature-line { max-width: 150px; margin-bottom: 4px; }
+      .signature-title { font-size: 9px; }
+      .actions { display: none; }
+    }
+    @media (max-width: 640px) { header, .grid, .signature-card { grid-template-columns: 1fr; display: grid; } .signature-mark { min-width: 0; } .signature-mark img { width: 210px; max-width: 100%; } }
   </style>
 </head>
 <body>
