@@ -444,8 +444,17 @@ function queuePushNotification(
 }
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+const WEEKEND_PROMOTION_STATE_FILE = "weekend-promotion-state.json";
+const WEEKEND_PROMOTION_CHECK_MS = 60 * 60 * 1000;
+const WEEKEND_PROMOTION_START_HOUR = 9;
 
 let bookingReminderSweepRunning = false;
+let weekendPromotionSweepRunning = false;
+
+type WeekendPromotionState = {
+  lastSentWeekendKey?: string;
+  lastSentAt?: string;
+};
 
 async function sendDueBookingReminders() {
   if (bookingReminderSweepRunning) {
@@ -493,6 +502,94 @@ function startBookingReminderSweep() {
     void sendDueBookingReminders();
   }, 60 * 1000);
   reminderTimer.unref?.();
+}
+
+function getMontrealDateParts(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    weekday: "short",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
+
+  return {
+    weekday: parts.weekday || "",
+    year: parts.year || "",
+    month: parts.month || "",
+    day: parts.day || "",
+    hour: Number(parts.hour || 0),
+  };
+}
+
+function getCurrentMontrealWeekendKey(date = new Date()) {
+  const parts = getMontrealDateParts(date);
+  if (!["Sat", "Sun"].includes(parts.weekday) || parts.hour < WEEKEND_PROMOTION_START_HOUR) {
+    return null;
+  }
+
+  const saturdayDate = parts.weekday === "Sun"
+    ? new Date(date.getTime() - 24 * 60 * 60 * 1000)
+    : date;
+  const saturdayParts = getMontrealDateParts(saturdayDate);
+
+  return `${saturdayParts.year}-${saturdayParts.month}-${saturdayParts.day}`;
+}
+
+async function sendWeekendPromotionIfDue() {
+  if (weekendPromotionSweepRunning) {
+    return;
+  }
+
+  weekendPromotionSweepRunning = true;
+  try {
+    const weekendKey = getCurrentMontrealWeekendKey();
+    if (!weekendKey) {
+      return;
+    }
+
+    const state = loadJsonFile<WeekendPromotionState>(WEEKEND_PROMOTION_STATE_FILE, {});
+    if (state.lastSentWeekendKey === weekendKey) {
+      return;
+    }
+
+    const { visitorSubscriberCount } = getPushSubscriberCounts();
+    if (visitorSubscriberCount <= 0) {
+      return;
+    }
+
+    const payload: PushPayload = {
+      title: "Weekend home fix reminder",
+      message: "It is weekend. A good time to fix loose doors, locks, cabinets, furniture, or source the right hardware. FixMyDoor Services can help.",
+      url: "/#booking-form",
+      icon: "/icons/main-icon-v2-192x192.png",
+      badge: "/icons/main-icon-v2-96x96.png",
+    };
+
+    const logEntry = await sendPushNotificationToSubscribers(payload, { audience: "visitor", log: true });
+    if (logEntry.delivered > 0 || logEntry.failed > 0) {
+      saveJsonFile<WeekendPromotionState>(WEEKEND_PROMOTION_STATE_FILE, {
+        lastSentWeekendKey: weekendKey,
+        lastSentAt: new Date().toISOString(),
+      });
+      broadcastSiteEvent({ type: "notification", title: payload.title, message: payload.message, url: payload.url });
+    }
+  } catch (error) {
+    console.error("Weekend promotion sweep failed:", error);
+  } finally {
+    weekendPromotionSweepRunning = false;
+  }
+}
+
+function startWeekendPromotionSweep() {
+  void sendWeekendPromotionIfDue();
+  const weekendTimer = setInterval(() => {
+    void sendWeekendPromotionIfDue();
+  }, WEEKEND_PROMOTION_CHECK_MS);
+  weekendTimer.unref?.();
 }
 
 const CUSTOMER_EMAIL_BROADCAST_LIMIT = Math.max(1, Math.min(500, Number(process.env.CUSTOMER_EMAIL_BROADCAST_LIMIT || 120)));
@@ -1504,6 +1601,7 @@ async function startServer() {
   // Initialize admin user
   await initializeAdminUser();
   startBookingReminderSweep();
+  startWeekendPromotionSweep();
 
   // Initialize email service
   emailService.initialize();
