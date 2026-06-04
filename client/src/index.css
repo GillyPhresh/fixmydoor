@@ -330,6 +330,25 @@
     will-change: transform;
   }
 
+  .fixmydoor-floating-card {
+    animation: fixmydoor-float-rail 5.5s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .fixmydoor-floating-glow {
+    position: absolute;
+    inset: -42% auto auto -18%;
+    width: 42%;
+    aspect-ratio: 1;
+    border-radius: 999px;
+    background:
+      radial-gradient(circle, rgba(255,255,255,0.86) 0%, rgba(255,255,255,0.38) 38%, rgba(180,101,50,0) 72%);
+    filter: blur(2px);
+    opacity: 0.84;
+    animation: fixmydoor-floating-glow 6.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+
   .fixmydoor-flip-card {
     opacity: 1;
     transform: none;
@@ -370,7 +389,9 @@
 
   @media (prefers-reduced-motion: reduce) {
     .fixmydoor-ad-badge::after,
-    .fixmydoor-ad-bell {
+    .fixmydoor-ad-bell,
+    .fixmydoor-floating-card,
+    .fixmydoor-floating-glow {
       animation: none;
     }
 
@@ -411,5 +432,29 @@
   70%, 100% {
     opacity: 0;
     transform: scale(1.28);
+  }
+}
+
+@keyframes fixmydoor-float-rail {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+
+@keyframes fixmydoor-floating-glow {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(0.95);
+    opacity: 0.62;
+  }
+  45% {
+    transform: translate3d(185%, 18%, 0) scale(1.08);
+    opacity: 0.92;
+  }
+  72% {
+    transform: translate3d(250%, 10%, 0) scale(0.86);
+    opacity: 0.32;
   }
 }

@@ -338,6 +338,8 @@ export default function Home() {
   const [notificationPromptOpen, setNotificationPromptOpen] = useState(false);
   const [notificationPromptLoading, setNotificationPromptLoading] = useState(false);
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+  const [headerFloatVisible, setHeaderFloatVisible] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const advertPauseUntilRef = useRef(0);
   const formReadyAtRef = useRef(Date.now());
   const contentSignatureRef = useRef("");
@@ -596,7 +598,11 @@ export default function Home() {
 
   useEffect(() => {
     const updateHeader = () => {
-      setHeaderCompact(window.scrollY > 18);
+      const scrollTop = window.scrollY;
+      const scrollableHeight = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      setHeaderCompact(scrollTop > 18);
+      setHeaderFloatVisible(scrollTop > 280);
+      setScrollProgress(Math.min(100, Math.max(0, (scrollTop / scrollableHeight) * 100)));
     };
 
     updateHeader();
@@ -1811,6 +1817,47 @@ export default function Home() {
           </div>
         )}
       </nav>
+      <div
+        className={`fixmydoor-floating-header-rail fixed left-2 right-2 top-[5.9rem] z-40 mx-auto max-w-[58rem] transition-all duration-500 min-[430px]:top-[4.7rem] sm:left-4 sm:right-4 sm:top-[5.8rem] md:top-[6.35rem] ${headerFloatVisible && !mobileMenuOpen ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-5 opacity-0"}`}
+        aria-hidden={!headerFloatVisible || mobileMenuOpen}
+      >
+        <div className="fixmydoor-floating-card relative overflow-hidden rounded-[1.35rem] border border-white/70 bg-[#fffaf2]/94 p-2.5 shadow-[0_18px_52px_rgba(47,36,28,0.18)] ring-1 ring-primary/14 backdrop-blur-xl sm:p-3">
+          <div className="absolute inset-x-0 top-0 h-1 bg-secondary/10" aria-hidden="true">
+            <span
+              className="block h-full rounded-r-full bg-[linear-gradient(90deg,#b46532,#6B4423)] transition-[width] duration-200"
+              style={{ width: `${scrollProgress}%` }}
+            />
+          </div>
+          <div className="fixmydoor-floating-glow" aria-hidden="true" />
+          <div className="relative flex items-center gap-2 sm:gap-3">
+            <a href="/" className="group inline-flex shrink-0 items-center justify-center rounded-[1.05rem] border border-primary/12 bg-white/88 p-1.5 shadow-[0_10px_26px_rgba(66,40,18,0.12)]" aria-label="FixMyDoor Services homepage">
+              <img src="/img5150-transparent.png" alt="FixMyDoor logo" decoding="async" className="h-9 w-auto object-contain transition duration-300 group-hover:scale-105 sm:h-11" />
+            </a>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-display text-[0.84rem] font-black leading-tight text-secondary sm:text-base">
+                FixMyDoor Services
+              </p>
+              <p className="truncate text-[0.58rem] font-bold uppercase tracking-[0.1em] text-secondary/68 sm:text-[0.68rem]">
+                Door, furniture, locks & hardware
+              </p>
+            </div>
+            <div className="hidden items-center gap-1.5 text-[0.68rem] font-black text-secondary/78 md:flex">
+              <span className="rounded-full border border-primary/15 bg-white/72 px-2.5 py-1">Montreal</span>
+              <span className="rounded-full border border-primary/15 bg-white/72 px-2.5 py-1">24/7 requests</span>
+              <span className="rounded-full border border-primary/15 bg-white/72 px-2.5 py-1">Fast reply</span>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <a href="tel:+14383471823" className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-secondary text-white shadow-[0_10px_24px_rgba(47,36,28,0.18)] transition hover:-translate-y-0.5 hover:bg-primary sm:w-auto sm:px-3 sm:text-xs sm:font-black" aria-label="Call FixMyDoor Services">
+                <Phone className="h-4 w-4" />
+                <span className="ml-1.5 hidden sm:inline">Call</span>
+              </a>
+              <button type="button" onClick={scrollToContactForm} className="inline-flex h-9 items-center justify-center rounded-2xl bg-primary px-3 text-xs font-black text-white shadow-[0_10px_24px_rgba(180,101,50,0.22)] transition hover:-translate-y-0.5 hover:bg-primary/90">
+                Book
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <section className="relative overflow-hidden bg-[linear-gradient(180deg,_#f8f3ea,_#ffffff)]">
         <div className="container grid max-w-[1180px] items-center gap-4 py-4 sm:py-7 md:grid-cols-[0.9fr_1fr] md:py-8 lg:gap-8">
