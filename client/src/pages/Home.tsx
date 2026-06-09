@@ -1615,8 +1615,10 @@ export default function Home() {
     window.localStorage.setItem("fixmydoor-cookie-choice-v2", preference);
     window.localStorage.setItem("fixmydoor-human-check-v2", "verified");
     setCookieBannerOpen(false);
-    toast.success(preference === "accepted" ? "Cookie preference saved." : "Optional cookies declined.");
-    window.setTimeout(requestNotificationsFromHumanConfirmation, 150);
+    toast.success(preference === "accepted" ? "Terms accepted. Update notifications can now be enabled." : "Terms accepted. Optional updates declined.");
+    if (preference === "accepted") {
+      window.setTimeout(requestNotificationsFromHumanConfirmation, 150);
+    }
   };
 
   const requestNotificationsFromHumanConfirmation = () => {
@@ -1644,7 +1646,6 @@ export default function Home() {
     }
 
     window.localStorage.setItem("fixmydoor-human-check-v2", "verified");
-    requestNotificationsFromHumanConfirmation();
   };
 
   const trackSocialClick = (platform: (typeof SOCIAL_LINKS)[number]["platform"], label: string) => {
