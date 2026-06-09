@@ -1,5 +1,5 @@
 import axios from "axios";
-import { type ChangeEvent, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, useCallback, useEffect, useRef, useState } from "react";
+import { createElement, type ChangeEvent, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, useCallback, useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -99,6 +99,10 @@ const ADVERT_SLIDE_DURATION_MS = 7000;
 const SLIDE_HOLD_PAUSE_MS = 12000;
 const DOT_SELECTION_PAUSE_MS = 9000;
 const SITE_URL = "https://www.fixmydoor.ca";
+const YELLOWPAGES_REVIEW_SCRIPT_SRC = "https://netsync.yellowpages.ca/widgets-assets/website-widgets.bundle.js";
+const YELLOWPAGES_REVIEW_KEY = "SCJnqHOI4KiGuuW2pla2nj9B9bDxhs";
+const YELLOWPAGES_LOCATION_ID = "6286613";
+const YELLOWPAGES_PROFILE_URL = "https://www.yellowpages.ca/bus/Quebec/Montreal/FixMyDoor-Services/105313756.html";
 const SOCIAL_LINKS = [
   {
     platform: "instagram",
@@ -316,6 +320,47 @@ const faqItems = [
     answer: "Yes. Your confirmation email includes a tracking link, and status changes can also be sent by email.",
   },
 ];
+
+function YellowPagesReviewWidget() {
+  useEffect(() => {
+    if (document.querySelector(`script[src="${YELLOWPAGES_REVIEW_SCRIPT_SRC}"]`)) {
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = YELLOWPAGES_REVIEW_SCRIPT_SRC;
+    script.async = true;
+    script.defer = true;
+    script.dataset.fixmydoorReviewWidget = "true";
+    document.body.appendChild(script);
+  }, []);
+
+  return (
+    <div className="mt-5 grid gap-3 rounded-[22px] border border-primary/10 bg-white p-3 shadow-[0_14px_36px_rgba(0,0,0,0.05)] md:grid-cols-[0.42fr_1fr] md:p-4">
+      <div className="rounded-[18px] bg-secondary p-4 text-white">
+        <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-white/70">Verified Reviews</p>
+        <h3 className="mt-2 text-xl font-bold">YellowPages profile feedback</h3>
+        <p className="mt-2 text-sm leading-relaxed text-white/78">
+          Google, Facebook, YellowPages, and first-party reviews can sync here after YellowPages finishes processing the profile.
+        </p>
+        <a
+          href={YELLOWPAGES_PROFILE_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-4 inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-bold text-secondary transition hover:-translate-y-0.5"
+        >
+          View profile
+        </a>
+      </div>
+      <div className="min-h-[170px] overflow-hidden rounded-[18px] border border-primary/10 bg-background/70 p-2 [&_iframe]:max-w-full [&>ub-widget-review]:block">
+        {createElement("ub-widget-review", {
+          "data-key": YELLOWPAGES_REVIEW_KEY,
+          "data-locationId": YELLOWPAGES_LOCATION_ID,
+        } as Record<string, string>)}
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [services, setServices] = useState<ServiceCatalogItem[]>(defaultServiceCatalog);
@@ -2591,6 +2636,7 @@ export default function Home() {
                 </article>
               ))}
               </div>
+              <YellowPagesReviewWidget />
             </div>
 
             {reviewFormOpen && (
