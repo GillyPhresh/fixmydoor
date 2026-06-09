@@ -3259,7 +3259,10 @@ export default function Home() {
               </details>
             </div>
             <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-white/10 pt-2.5">
-              <p className="text-[0.68rem] leading-relaxed text-white/58">&copy; 2017-2026 FixMyDoor Services.</p>
+              <div className="min-w-0 text-[0.68rem] leading-relaxed text-white/58">
+                <p>&copy; 2017-2026 FixMyDoor Services.</p>
+                <a href="/privacy-policy" className="font-bold text-white/78 underline-offset-4 hover:text-primary hover:underline">Privacy Policy</a>
+              </div>
               <div className="flex gap-1.5">
                 {SOCIAL_LINKS.map(({ platform, label, href, Icon }) => (
                   <a
@@ -3368,7 +3371,10 @@ export default function Home() {
 
           <div className="mt-5 hidden flex-col gap-2 border-t border-white/10 pt-4 text-xs text-white/60 md:flex md:flex-row md:items-center md:justify-between">
             <p>&copy; 2017-2026 FixMyDoor Services. Door and furniture repair support from Canada.</p>
-            <p>Canada-based service. International requests welcome.</p>
+            <div className="flex items-center gap-3">
+              <a href="/privacy-policy" className="font-bold text-white/78 underline-offset-4 hover:text-primary hover:underline">Privacy Policy</a>
+              <span>Canada-based service. International requests welcome.</span>
+            </div>
           </div>
         </div>
       </footer>

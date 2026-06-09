@@ -2790,6 +2790,7 @@ async function startServer() {
       normalizedPath === "/" ||
       normalizedPath === "/admin" ||
       normalizedPath === "/admin/notify" ||
+      normalizedPath === "/privacy-policy" ||
       normalizedPath === "/404" ||
       normalizedPath.startsWith("/track/") ||
       Boolean(serviceSeoPages[normalizedPath])

@@ -120,7 +120,7 @@ async function loadLocale(language: "en" | "fr") {
     return cachedLocale;
   }
 
-  const response = await fetch(`/locales/${language}.json?v=3`, { cache: "force-cache" });
+  const response = await fetch(`/locales/${language}.json?v=4`, { cache: "force-cache" });
   if (!response.ok) {
     throw new Error(`Unable to load ${language} language file`);
   }

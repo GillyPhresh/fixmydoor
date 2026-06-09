@@ -19,6 +19,7 @@ const Home = lazy(() => import("./pages/Home"));
 const Admin = lazy(() => import("./pages/Admin"));
 const TrackBooking = lazy(() => import("./pages/TrackBooking"));
 const ServicePage = lazy(() => import("./pages/ServicePage"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 
 function HomeRoute() {
   return <Home />;
@@ -34,6 +35,10 @@ function TrackBookingRoute() {
 
 function ServicePageRoute() {
   return <ServicePage />;
+}
+
+function PrivacyPolicyRoute() {
+  return <PrivacyPolicy />;
 }
 
 function GoogleAnalytics() {
@@ -98,6 +103,7 @@ function Router() {
         <Route path={"/door-hardware"} component={ServicePageRoute} />
         <Route path={"/hardware-sourcing"} component={ServicePageRoute} />
         <Route path={"/international-requests"} component={ServicePageRoute} />
+        <Route path={"/privacy-policy"} component={PrivacyPolicyRoute} />
         <Route path={"/admin"} component={AdminRoute} />
         <Route path={"/admin/notify"} component={AdminRoute} />
         <Route path={"/track/:token"} component={TrackBookingRoute} />
