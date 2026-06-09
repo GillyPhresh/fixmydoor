@@ -1,4 +1,4 @@
-const CACHE_NAME = "fixmydoor-v6";
+const CACHE_NAME = "fixmydoor-v7";
 const URLS_TO_CACHE = [
   "/",
   "/admin",
@@ -7,6 +7,8 @@ const URLS_TO_CACHE = [
   "/entry-door-installation",
   "/furniture-repair",
   "/door-hardware",
+  "/privacy-policy",
+  "/terms-and-conditions",
   "/app-shell.js",
   "/manifest.json",
   "/admin-manifest.json",

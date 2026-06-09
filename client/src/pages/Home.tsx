@@ -3261,7 +3261,10 @@ export default function Home() {
             <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-white/10 pt-2.5">
               <div className="min-w-0 text-[0.68rem] leading-relaxed text-white/58">
                 <p>&copy; 2017-2026 FixMyDoor Services.</p>
-                <a href="/privacy-policy" className="font-bold text-white/78 underline-offset-4 hover:text-primary hover:underline">Privacy Policy</a>
+                <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-1">
+                  <a href="/privacy-policy" className="font-bold text-white/78 underline-offset-4 hover:text-primary hover:underline">Privacy Policy</a>
+                  <a href="/terms-and-conditions" className="font-bold text-white/78 underline-offset-4 hover:text-primary hover:underline">Terms & Conditions</a>
+                </div>
               </div>
               <div className="flex gap-1.5">
                 {SOCIAL_LINKS.map(({ platform, label, href, Icon }) => (
@@ -3373,6 +3376,7 @@ export default function Home() {
             <p>&copy; 2017-2026 FixMyDoor Services. Door and furniture repair support from Canada.</p>
             <div className="flex items-center gap-3">
               <a href="/privacy-policy" className="font-bold text-white/78 underline-offset-4 hover:text-primary hover:underline">Privacy Policy</a>
+              <a href="/terms-and-conditions" className="font-bold text-white/78 underline-offset-4 hover:text-primary hover:underline">Terms & Conditions</a>
               <span>Canada-based service. International requests welcome.</span>
             </div>
           </div>
@@ -3390,7 +3394,7 @@ export default function Home() {
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-primary">Security Check</p>
                 <p className="mt-1 font-display text-2xl font-bold">Before you continue</p>
                 <p className="mt-2 text-sm leading-relaxed text-foreground/70">
-                  This quick check helps protect booking requests from spam. Essential cookies keep the website, booking form, and admin login working properly.
+                  This quick check protects booking requests from spam. Essential cookies keep the website, booking form, notifications, and admin login working properly.
                 </p>
               </div>
             </div>
@@ -3402,9 +3406,13 @@ export default function Home() {
                 className="mt-0.5"
               />
               <span>
-                <span className="block font-bold text-secondary">I am a real visitor, not an automated bot.</span>
+                <span className="block font-bold text-secondary">I am a real visitor and I agree to the website terms.</span>
                 <span className="mt-1 block text-xs leading-relaxed text-foreground/65">
-                  You only need to confirm this once. Your browser may also ask to allow FixMyDoor service updates on this device.
+                  By continuing, you agree to the{" "}
+                  <a href="/terms-and-conditions" className="font-bold text-primary underline-offset-4 hover:underline">Terms & Conditions</a>{" "}
+                  and{" "}
+                  <a href="/privacy-policy" className="font-bold text-primary underline-offset-4 hover:underline">Privacy Policy</a>.
+                  You may receive booking, quote, reminder, review, advert, or service update messages through the contact method you provide. Browser push notifications only start if you click Allow when your device asks for permission.
                 </span>
               </span>
             </label>
@@ -3416,7 +3424,7 @@ export default function Home() {
                 className="rounded-2xl border border-secondary/15 px-4 py-3 text-sm font-bold text-secondary transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!humanCheckConfirmed}
               >
-                Deny optional cookies
+                Necessary only
               </button>
               <button
                 type="button"

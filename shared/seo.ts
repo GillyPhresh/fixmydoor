@@ -37,6 +37,17 @@ export const privacyPolicySeoPage: SeoPage = {
   changeFrequency: "monthly",
 };
 
+export const termsConditionsSeoPage: SeoPage = {
+  path: "/terms-and-conditions",
+  title: "Terms & Conditions | FixMyDoor Services",
+  description:
+    "Review the FixMyDoor Services terms and conditions for service requests, quotes, bookings, payments, uploads, reviews, notifications, and customer responsibilities.",
+  keywords:
+    "FixMyDoor Services terms, FixMyDoor terms and conditions, booking terms Montreal, service terms, quote terms, notification consent, repair service conditions",
+  sitemapPriority: "0.4",
+  changeFrequency: "monthly",
+};
+
 export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/door-repair": {
     path: "/door-repair",
@@ -219,10 +230,11 @@ export const seoRouteAliases: Record<string, string> = {
 export const seoPages: Record<string, SeoPage> = {
   [homeSeoPage.path]: homeSeoPage,
   [privacyPolicySeoPage.path]: privacyPolicySeoPage,
+  [termsConditionsSeoPage.path]: termsConditionsSeoPage,
   ...serviceSeoPages,
 };
 
-export const sitemapRoutes = [homeSeoPage.path, ...Object.keys(serviceSeoPages), privacyPolicySeoPage.path];
+export const sitemapRoutes = [homeSeoPage.path, ...Object.keys(serviceSeoPages), privacyPolicySeoPage.path, termsConditionsSeoPage.path];
 
 export function normalizeSeoPath(pathname = "/") {
   const withoutQuery = pathname.split("?")[0].split("#")[0] || "/";
