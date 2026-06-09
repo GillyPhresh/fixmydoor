@@ -352,7 +352,7 @@ function YellowPagesReviewWidget() {
           View profile
         </a>
       </div>
-      <div className="min-h-[170px] overflow-hidden rounded-[18px] border border-primary/10 bg-background/70 p-2 [&_iframe]:max-w-full [&>ub-widget-review]:block">
+      <div className="max-h-[18rem] min-h-[170px] overflow-y-auto overscroll-contain rounded-[18px] border border-primary/10 bg-background/70 p-2 [scrollbar-width:thin] md:max-h-[22rem] [&_iframe]:max-w-full [&>ub-widget-review]:block">
         {createElement("ub-widget-review", {
           "data-key": YELLOWPAGES_REVIEW_KEY,
           "data-locationId": YELLOWPAGES_LOCATION_ID,
