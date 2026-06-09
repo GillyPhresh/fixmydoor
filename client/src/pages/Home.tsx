@@ -322,6 +322,9 @@ const faqItems = [
 ];
 
 function YellowPagesReviewWidget() {
+  const widgetContainerRef = useRef<HTMLDivElement | null>(null);
+  const [widgetHasContent, setWidgetHasContent] = useState(false);
+
   useEffect(() => {
     if (document.querySelector(`script[src="${YELLOWPAGES_REVIEW_SCRIPT_SRC}"]`)) {
       return;
@@ -335,28 +338,80 @@ function YellowPagesReviewWidget() {
     document.body.appendChild(script);
   }, []);
 
+  useEffect(() => {
+    const container = widgetContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const checkWidgetContent = () => {
+      const widget = container.querySelector("ub-widget-review") as HTMLElement | null;
+      const iframe = container.querySelector("iframe");
+      const text = widget?.textContent?.trim() || "";
+      const height = widget?.getBoundingClientRect().height || 0;
+      setWidgetHasContent(Boolean(iframe || text.length > 24 || height > 80));
+    };
+
+    checkWidgetContent();
+    const timeout = window.setTimeout(checkWidgetContent, 1800);
+    const observer = new MutationObserver(checkWidgetContent);
+    observer.observe(container, { childList: true, subtree: true });
+
+    return () => {
+      window.clearTimeout(timeout);
+      observer.disconnect();
+    };
+  }, []);
+
   return (
-    <div className="mt-5 grid gap-3 rounded-[22px] border border-primary/10 bg-white p-3 shadow-[0_14px_36px_rgba(0,0,0,0.05)] md:grid-cols-[0.42fr_1fr] md:p-4">
-      <div className="rounded-[18px] bg-secondary p-4 text-white">
-        <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-white/70">Verified Reviews</p>
-        <h3 className="mt-2 text-xl font-bold">YellowPages profile feedback</h3>
-        <p className="mt-2 text-sm leading-relaxed text-white/78">
-          Google, Facebook, YellowPages, and first-party reviews can sync here after YellowPages finishes processing the profile.
-        </p>
+    <div className="mt-5 overflow-hidden rounded-[24px] border border-primary/10 bg-white p-4 shadow-[0_16px_40px_rgba(47,36,28,0.06)] md:p-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-[0.68rem] font-bold uppercase tracking-[0.24em] text-primary">Verified Review Sources</p>
+          <h3 className="mt-2 text-2xl font-bold text-secondary">Reviews from trusted public profiles</h3>
+          <p className="mt-2 text-sm leading-relaxed text-foreground/68">
+            When YellowPages finishes syncing the business profile, public reviews from connected sources can appear here in the same review area.
+          </p>
+        </div>
         <a
           href={YELLOWPAGES_PROFILE_URL}
           target="_blank"
           rel="noreferrer"
-          className="mt-4 inline-flex items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-bold text-secondary transition hover:-translate-y-0.5"
+          className="inline-flex items-center justify-center rounded-full bg-secondary px-4 py-2 text-xs font-bold text-white shadow-[0_10px_24px_rgba(47,36,28,0.12)] transition hover:-translate-y-0.5 hover:bg-secondary/90"
         >
           View profile
         </a>
       </div>
-      <div className="max-h-[18rem] min-h-[170px] overflow-y-auto overscroll-contain rounded-[18px] border border-primary/10 bg-background/70 p-2 [scrollbar-width:thin] md:max-h-[22rem] [&_iframe]:max-w-full [&>ub-widget-review]:block">
-        {createElement("ub-widget-review", {
-          "data-key": YELLOWPAGES_REVIEW_KEY,
-          "data-locationId": YELLOWPAGES_LOCATION_ID,
-        } as Record<string, string>)}
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        {["Google reviews", "YellowPages reviews", "Facebook feedback"].map((source) => (
+          <div key={source} className="flex items-center gap-2 rounded-2xl border border-primary/10 bg-background px-3 py-2 text-sm font-semibold text-secondary">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+            <span>{source}</span>
+          </div>
+        ))}
+      </div>
+
+      <div ref={widgetContainerRef} className="relative mt-4 max-h-[16rem] min-h-[8.5rem] overflow-y-auto overscroll-contain rounded-[20px] border border-primary/10 bg-background/70 p-3 [scrollbar-width:thin] md:max-h-[18rem] [&_iframe]:max-w-full [&>ub-widget-review]:block">
+        {!widgetHasContent && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-5 text-center">
+            <div className="mb-2 flex gap-1 text-primary">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Star key={index} className="h-4 w-4 fill-primary" />
+              ))}
+            </div>
+            <p className="text-sm font-bold text-secondary">Verified reviews will appear here after YellowPages completes the profile sync.</p>
+            <p className="mt-1 max-w-lg text-xs leading-relaxed text-foreground/60">
+              Until then, customers can still read the FixMyDoor Services review cards above or open the public YellowPages profile.
+            </p>
+          </div>
+        )}
+        <div className={widgetHasContent ? "opacity-100" : "opacity-0"}>
+          {createElement("ub-widget-review", {
+            "data-key": YELLOWPAGES_REVIEW_KEY,
+            "data-locationId": YELLOWPAGES_LOCATION_ID,
+          } as Record<string, string>)}
+        </div>
       </div>
     </div>
   );
