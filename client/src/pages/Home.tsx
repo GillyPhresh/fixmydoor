@@ -466,6 +466,7 @@ export default function Home() {
   const [activeAdvertIndex, setActiveAdvertIndex] = useState(0);
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [advertDismissed, setAdvertDismissed] = useState(false);
+  const [advertPreviewVideoEnabled, setAdvertPreviewVideoEnabled] = useState(false);
   const [lightboxAdvert, setLightboxAdvert] = useState<DisplayAdvert | null>(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [lightboxPan, setLightboxPan] = useState({ x: 0, y: 0 });
@@ -1343,6 +1344,16 @@ export default function Home() {
   }, [displayedAdvertsSignature]);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setAdvertPreviewVideoEnabled(true);
+    }, 1800);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!lightboxAdvert) {
       return;
     }
@@ -2102,7 +2113,16 @@ export default function Home() {
                       aria-label={`Open ${advert.title} promotion fullscreen`}
                     >
                       {advert.isVideo ? (
-                        <video src={advert.image} className="h-full w-full object-cover" preload="metadata" muted playsInline>
+                        <video
+                          key={advertPreviewVideoEnabled ? "promotion-video-playing" : "promotion-video-preview"}
+                          src={advert.image}
+                          className="h-full w-full object-cover"
+                          preload={advertPreviewVideoEnabled ? "auto" : "metadata"}
+                          autoPlay={advertPreviewVideoEnabled}
+                          loop={advertPreviewVideoEnabled}
+                          muted
+                          playsInline
+                        >
                           <track kind="captions" src="/captions/fixmydoor-advert-en.vtt" srcLang="en" label="English captions" />
                         </video>
                       ) : (
@@ -3538,44 +3558,44 @@ export default function Home() {
       </footer>
 
       {cookieBannerOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#1f1712]/72 px-4 py-6 backdrop-blur-sm">
-          <div className="w-full max-w-[560px] rounded-[28px] border border-primary/20 bg-white p-5 text-secondary shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:p-6">
-            <div className="flex items-start gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+        <aside className="fixed inset-x-3 bottom-3 z-[70] mx-auto max-w-[760px] sm:bottom-5" aria-live="polite" aria-label="Security and website terms notice">
+          <div className="rounded-[24px] border border-primary/20 bg-white/96 p-3 text-secondary shadow-[0_20px_60px_rgba(47,36,28,0.22)] ring-1 ring-white/70 backdrop-blur-md sm:p-4">
+            <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-start">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                 <ShieldCheck className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-primary">Security Check</p>
-                <p className="mt-1 font-display text-2xl font-bold">Before you continue</p>
-                <p className="mt-2 text-sm leading-relaxed text-foreground/70">
-                  This quick check protects booking requests from spam. Essential cookies keep the website, booking form, notifications, and admin login working properly.
+                <p className="text-[0.68rem] font-bold uppercase tracking-[0.22em] text-primary">Security Check</p>
+                <p className="mt-1 font-display text-lg font-bold leading-tight sm:text-xl">Before you continue</p>
+                <p className="mt-1.5 text-xs leading-relaxed text-foreground/70 sm:text-sm">
+                  Confirm you are a real visitor. Essential cookies keep booking, notifications, and admin access working properly.
                 </p>
               </div>
             </div>
 
-            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-[20px] border border-primary/12 bg-[#fffaf2] p-4">
+            <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-[18px] border border-primary/12 bg-[#fffaf2] p-3">
               <Checkbox
                 checked={humanCheckConfirmed}
                 onCheckedChange={handleHumanCheckChange}
                 className="mt-0.5"
               />
               <span>
-                <span className="block font-bold text-secondary">I am a real visitor and I agree to the website terms.</span>
-                <span className="mt-1 block text-xs leading-relaxed text-foreground/65">
+                <span className="block text-sm font-bold text-secondary">I agree to the website terms.</span>
+                <span className="mt-1 block text-[0.72rem] leading-relaxed text-foreground/65 sm:text-xs">
                   By continuing, you agree to the{" "}
                   <a href="/terms-and-conditions" className="font-bold text-primary underline-offset-4 hover:underline">Terms & Conditions</a>{" "}
                   and{" "}
                   <a href="/privacy-policy" className="font-bold text-primary underline-offset-4 hover:underline">Privacy Policy</a>.
-                  You may receive booking, quote, reminder, review, advert, or service update messages through the contact method you provide. Browser push notifications only start if you click Allow when your device asks for permission.
+                  Service updates can be sent through the contact method you provide. Browser push only starts when your device asks and you click Allow.
                 </span>
               </span>
             </label>
 
-            <div className="mt-5 grid gap-2 sm:grid-cols-2">
+            <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => saveCookiePreference("denied")}
-                className="rounded-2xl border border-secondary/15 px-4 py-3 text-sm font-bold text-secondary transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-2xl border border-secondary/15 px-3 py-2.5 text-xs font-bold text-secondary transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
                 disabled={!humanCheckConfirmed}
               >
                 Necessary only
@@ -3583,14 +3603,14 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => saveCookiePreference("accepted")}
-                className="rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-2xl bg-primary px-3 py-2.5 text-xs font-bold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
                 disabled={!humanCheckConfirmed}
               >
                 Accept and continue
               </button>
             </div>
           </div>
-        </div>
+        </aside>
       )}
     </div>
   );
