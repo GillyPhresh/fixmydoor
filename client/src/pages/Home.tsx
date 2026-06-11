@@ -49,6 +49,7 @@ import {
   featuredServiceCollage,
   hardwareProducts,
   heroImage,
+  heroImageMobile,
   productCategories,
   projectGallery,
   quickHighlights,
@@ -323,9 +324,39 @@ const faqItems = [
 
 function YellowPagesReviewWidget() {
   const widgetContainerRef = useRef<HTMLDivElement | null>(null);
+  const [shouldLoadWidget, setShouldLoadWidget] = useState(false);
   const [widgetHasContent, setWidgetHasContent] = useState(false);
 
   useEffect(() => {
+    const container = widgetContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    if (!("IntersectionObserver" in window)) {
+      const fallbackTimer = setTimeout(() => setShouldLoadWidget(true), 3500);
+      return () => clearTimeout(fallbackTimer);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoadWidget(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "500px 0px" },
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!shouldLoadWidget) {
+      return;
+    }
+
     if (document.querySelector(`script[src="${YELLOWPAGES_REVIEW_SCRIPT_SRC}"]`)) {
       return;
     }
@@ -336,9 +367,13 @@ function YellowPagesReviewWidget() {
     script.defer = true;
     script.dataset.fixmydoorReviewWidget = "true";
     document.body.appendChild(script);
-  }, []);
+  }, [shouldLoadWidget]);
 
   useEffect(() => {
+    if (!shouldLoadWidget) {
+      return;
+    }
+
     const container = widgetContainerRef.current;
     if (!container) {
       return;
@@ -361,7 +396,7 @@ function YellowPagesReviewWidget() {
       window.clearTimeout(timeout);
       observer.disconnect();
     };
-  }, []);
+  }, [shouldLoadWidget]);
 
   return (
     <div className="mt-5 overflow-hidden rounded-[24px] border border-primary/10 bg-white p-4 shadow-[0_16px_40px_rgba(47,36,28,0.06)] md:p-5">
@@ -406,12 +441,14 @@ function YellowPagesReviewWidget() {
             </p>
           </div>
         )}
-        <div className={widgetHasContent ? "opacity-100" : "opacity-0"}>
-          {createElement("ub-widget-review", {
-            "data-key": YELLOWPAGES_REVIEW_KEY,
-            "data-locationId": YELLOWPAGES_LOCATION_ID,
-          } as Record<string, string>)}
-        </div>
+        {shouldLoadWidget && (
+          <div className={widgetHasContent ? "opacity-100" : "opacity-0"}>
+            {createElement("ub-widget-review", {
+              "data-key": YELLOWPAGES_REVIEW_KEY,
+              "data-locationId": YELLOWPAGES_LOCATION_ID,
+            } as Record<string, string>)}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1970,7 +2007,18 @@ export default function Home() {
 
           <div className="relative">
             <div className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white p-2 shadow-[0_24px_70px_rgba(66,40,18,0.16)] md:rounded-[32px] md:p-3 md:shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
-              <img src={heroImage} alt="Front door lock rekeying service" loading="eager" decoding="async" className="h-[235px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]" />
+              <picture>
+                <source media="(max-width: 640px)" srcSet={heroImageMobile} />
+                <img
+                  src={heroImage}
+                  alt="Front door lock rekeying service"
+                  loading="eager"
+                  fetchPriority="high"
+                  decoding="async"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 520px"
+                  className="h-[235px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]"
+                />
+              </picture>
               <div className="absolute bottom-4 left-4 right-4 rounded-[20px] border border-white/70 bg-white/94 p-3 shadow-[0_14px_30px_rgba(47,36,28,0.16)] md:bottom-7 md:left-7 md:right-7 md:max-w-sm md:rounded-[24px] md:p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
                 <h2 className="mt-1 text-lg font-bold text-secondary md:mt-2 md:text-2xl">Rekeying & Entry Security</h2>
@@ -2054,7 +2102,9 @@ export default function Home() {
                       aria-label={`Open ${advert.title} promotion fullscreen`}
                     >
                       {advert.isVideo ? (
-                        <video src={advert.image} className="h-full w-full object-cover" autoPlay muted loop playsInline />
+                        <video src={advert.image} className="h-full w-full object-cover" preload="metadata" muted playsInline>
+                          <track kind="captions" src="/captions/fixmydoor-advert-en.vtt" srcLang="en" label="English captions" />
+                        </video>
                       ) : (
                         <img src={advert.image} alt={advert.alt} loading={index === 0 ? "eager" : "lazy"} decoding="async" className="h-full w-full object-cover" />
                       )}
@@ -2224,7 +2274,9 @@ export default function Home() {
                     controls
                     autoPlay
                     playsInline
-                  />
+                  >
+                    <track kind="captions" src="/captions/fixmydoor-advert-en.vtt" srcLang="en" label="English captions" />
+                  </video>
                 ) : (
                   <img
                     src={lightboxAdvert.image}

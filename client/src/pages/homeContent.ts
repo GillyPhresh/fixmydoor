@@ -1,4 +1,5 @@
 import heroImage from "./Images/Why Rekeying Your Locks in Columbus, Ohio Is Essential for Your Home's Security.jpg";
+import heroImageMobile from "./Images/hero-rekeying-mobile.jpg";
 import technicianImage from "./Images/richard-ampofo.jpg";
 import frontDoorLocksmithImage from "./Images/real/front-door-locksmith-rekeying.jpg";
 import fixmydoorDoorShowroomImage from "./Images/real/fixmydoor-door-showroom.png";
@@ -42,7 +43,7 @@ import cylindricalKnobLockImage from "./Images/catalog/cylindrical-knob-lock.jpg
 import brassMortiseHandleLockImage from "./Images/catalog/brass-mortise-handle-lock.jpg";
 import doorHandleStyleGridImage from "./Images/catalog/door-handle-style-grid.jpg";
 
-export { heroImage, technicianImage };
+export { heroImage, heroImageMobile, technicianImage };
 
 export const featuredService = {
   tag: "Security Upgrade",

@@ -27,6 +27,21 @@ function validateOptionalMedia(value: unknown) {
   );
 }
 
+function cleanStoredMedia(value: unknown) {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length <= 1000 && CONTENT_MEDIA_PATTERN.test(trimmed) ? trimmed : undefined;
+}
+
+function cleanStoredText(value: unknown, maxLength: number) {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim().slice(0, maxLength)
+    : undefined;
+}
+
 export function validateContentCategory(category: unknown): category is ContentCategory {
   return typeof category === "string" && VALID_CATEGORIES.includes(category as ContentCategory);
 }
@@ -55,12 +70,12 @@ function toContentItem(item: any): ContentItem {
     id: item.id,
     category: item.category,
     title: item.title,
-    description: item.description ?? undefined,
-    tag: item.tag ?? undefined,
-    image: item.image ?? undefined,
-    accentImage: item.accentImage ?? undefined,
-    items: item.items ?? undefined,
-    bookingValue: item.bookingValue ?? undefined,
+    description: cleanStoredText(item.description, 1000),
+    tag: cleanStoredText(item.tag, 80),
+    image: cleanStoredMedia(item.image),
+    accentImage: cleanStoredMedia(item.accentImage),
+    items: cleanStoredText(item.items, 500),
+    bookingValue: cleanStoredText(item.bookingValue, 100),
     sortOrder: item.sortOrder,
     active: item.active,
     createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt,
