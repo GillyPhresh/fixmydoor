@@ -5,6 +5,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import YellowPagesWebChat from "./components/YellowPagesWebChat";
 
 declare global {
   interface Window {
@@ -87,6 +88,7 @@ function Router() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-background p-8 text-center font-semibold text-secondary">Loading FixMyDoor Services...</div>}>
       <GoogleAnalytics />
+      <YellowPagesWebChat />
       <Switch>
         <Route path={"/"} component={HomeRoute} />
         <Route path={"/door-repair"} component={ServicePageRoute} />
