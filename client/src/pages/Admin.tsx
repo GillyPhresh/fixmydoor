@@ -19,10 +19,24 @@ import { serviceCatalog } from "@shared/services";
 
 const ADMIN_NOTIFICATION_CHOICE_KEY = "fixmydoor-admin-push-choice-v1";
 const ADMIN_REMINDER_WATCH_DISMISS_KEY = "fixmydoor-admin-reminder-watch-dismissed-v1";
+const SECURITY_AUTH_DRAFT_KEY = "fixmydoor-security-authorization-draft-v1";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
+
+type SecurityAuthorizationDraft = {
+  bookingId: string;
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  serviceAddress: string;
+  serviceType: string;
+  authorityType: string;
+  authorizationText: string;
+  clientSignature: string;
+  signedDate: string;
 };
 
 const statusColors = {
@@ -61,6 +75,20 @@ const emptyManualBookingDraft: ManualBookingRequest = {
   message: "",
   adminNotes: "",
   customerConsent: false,
+};
+
+const emptySecurityAuthorizationDraft: SecurityAuthorizationDraft = {
+  bookingId: "",
+  clientName: "",
+  clientEmail: "",
+  clientPhone: "",
+  serviceAddress: "",
+  serviceType: "Door unlocking / lock service",
+  authorityType: "Owner, tenant, occupant, property manager, or authorized representative",
+  authorizationText:
+    "I confirm that I am authorized to request this security-related service for the property listed above. I give FixMyDoor Services permission to inspect, unlock, repair, rekey, replace, adjust, or work on the door, lock, hardware, or related item described in this request.",
+  clientSignature: "",
+  signedDate: new Date().toISOString().slice(0, 10),
 };
 
 const contentCategories: { value: ContentItem["category"]; label: string }[] = [
@@ -566,6 +594,19 @@ export default function Admin() {
   const [smsDraftLoading, setSmsDraftLoading] = useState(false);
   const [smsDraftSaving, setSmsDraftSaving] = useState(false);
   const [smsPanelOpen, setSmsPanelOpen] = useState(false);
+  const [securityAuthorizationOpen, setSecurityAuthorizationOpen] = useState(false);
+  const [securityAuthorizationDraft, setSecurityAuthorizationDraft] = useState<SecurityAuthorizationDraft>(() => {
+    if (typeof window === "undefined") {
+      return emptySecurityAuthorizationDraft;
+    }
+
+    try {
+      const savedDraft = window.localStorage.getItem(SECURITY_AUTH_DRAFT_KEY);
+      return savedDraft ? { ...emptySecurityAuthorizationDraft, ...JSON.parse(savedDraft) } : emptySecurityAuthorizationDraft;
+    } catch {
+      return emptySecurityAuthorizationDraft;
+    }
+  });
   const [adminNotificationSupported, setAdminNotificationSupported] = useState(false);
   const [adminNotificationsEnabled, setAdminNotificationsEnabled] = useState(false);
   const [adminNotificationLoading, setAdminNotificationLoading] = useState(false);
@@ -624,6 +665,10 @@ export default function Admin() {
       }
     }
   }, [authenticated, adminNotificationSupported]);
+
+  useEffect(() => {
+    window.localStorage.setItem(SECURITY_AUTH_DRAFT_KEY, JSON.stringify(securityAuthorizationDraft));
+  }, [securityAuthorizationDraft]);
 
   // Debounced search
   useEffect(() => {
@@ -1163,6 +1208,115 @@ export default function Admin() {
       reminderWindow: booking.reminderWindow || "At selected time",
       reminderNote: booking.reminderNote || "",
     });
+  };
+
+  const fillSecurityAuthorizationFromBooking = (bookingId: string) => {
+    const booking = bookings.find((item) => item.id === bookingId);
+    if (!booking) {
+      return;
+    }
+
+    setSecurityAuthorizationDraft((draft) => ({
+      ...draft,
+      bookingId: booking.id,
+      clientName: booking.name || "",
+      clientEmail: booking.email || "",
+      clientPhone: normalizePhoneForMessaging(booking.phone, booking.country || booking.address) || booking.phone || "",
+      serviceAddress: [booking.address, booking.city, booking.country].filter(Boolean).join(", "),
+      serviceType: booking.repairType || draft.serviceType,
+      signedDate: draft.signedDate || new Date().toISOString().slice(0, 10),
+    }));
+  };
+
+  const resetSecurityAuthorizationDraft = () => {
+    setSecurityAuthorizationDraft(emptySecurityAuthorizationDraft);
+    window.localStorage.removeItem(SECURITY_AUTH_DRAFT_KEY);
+  };
+
+  const getSecurityAuthorizationText = () => {
+    const draft = securityAuthorizationDraft;
+    return [
+      "FixMyDoor Services - Security Service Authorization Agreement",
+      "",
+      `Client: ${draft.clientName || "[Client name]"}`,
+      `Phone: ${draft.clientPhone || "[Phone]"}`,
+      `Email: ${draft.clientEmail || "[Email]"}`,
+      `Service address: ${draft.serviceAddress || "[Service address]"}`,
+      `Service requested: ${draft.serviceType || "[Service]"}`,
+      `Authorization type: ${draft.authorityType}`,
+      "",
+      draft.authorizationText,
+      "",
+      "For security-related work, FixMyDoor Services may ask reasonable questions or request simple confirmation that the customer is authorized to request the service. The purpose is to protect the customer, the property, and the business.",
+      "",
+      `Client digital signature: ${draft.clientSignature || "[Client must type full name]"}`,
+      `Date: ${draft.signedDate || new Date().toISOString().slice(0, 10)}`,
+      "",
+      "Authorized by FixMyDoor Services",
+      "Richard Ampofo",
+    ].join("\n");
+  };
+
+  const emailSecurityAuthorization = () => {
+    if (!securityAuthorizationDraft.clientEmail) {
+      toast.error("Add the client's email before sending the authorization agreement.");
+      return;
+    }
+
+    const subject = encodeURIComponent("FixMyDoor Services security service authorization");
+    const body = encodeURIComponent(getSecurityAuthorizationText());
+    window.location.href = `mailto:${securityAuthorizationDraft.clientEmail}?subject=${subject}&body=${body}`;
+  };
+
+  const openSecurityAuthorizationPrint = () => {
+    const htmlEscape = (value: string) =>
+      value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+    const draft = securityAuthorizationDraft;
+    const printableWindow = window.open("", "_blank", "noopener,noreferrer,width=900,height=1100");
+    if (!printableWindow) {
+      toast.error("Allow pop-ups so the authorization document can open.");
+      return;
+    }
+
+    printableWindow.document.write(`<!doctype html><html><head><title>FixMyDoor Security Authorization</title><style>
+      @page { size: Letter; margin: 0.38in; }
+      body { margin:0; font-family: Arial, Helvetica, sans-serif; color:#241813; background:#fffdf9; font-size:12px; line-height:1.35; }
+      .top { border-bottom:2px solid #dcc7b2; padding:14px 0 12px; display:grid; grid-template-columns:86px 1fr; gap:16px; align-items:center; }
+      .logo { width:78px; height:78px; border-radius:18px; border:1px solid #ead8bf; object-fit:contain; padding:6px; background:#fff; }
+      h1 { margin:0; color:#71170f; font-size:23px; } .tag { color:#6b4423; font-weight:700; margin-top:2px; }
+      h2 { color:#71170f; text-align:center; margin:18px 0 4px; font-size:17px; text-transform:uppercase; letter-spacing:.06em; }
+      .sub { text-align:center; color:#6b5a50; margin:0 0 14px; }
+      .box { border:1px solid #dcc7b2; border-radius:12px; margin-top:10px; overflow:hidden; background:#fff; }
+      .box h3 { margin:0; background:#faf6f0; color:#71170f; padding:7px 10px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+      .body { padding:10px; } .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; }
+      .full { grid-column:1/-1; } .label { display:block; font-size:9px; color:#6b5a50; font-weight:800; text-transform:uppercase; }
+      .value { border-bottom:1px solid #bca48d; min-height:18px; padding-top:3px; font-weight:700; }
+      .notice { margin-top:10px; padding:9px 11px; border-left:4px solid #71170f; background:#fff6ef; border-radius:10px; }
+      .signatures { display:grid; grid-template-columns:1fr 1fr; gap:28px; margin-top:18px; align-items:end; }
+      .typed { min-height:38px; border-bottom:1.5px solid #8f6a48; font-family:"Brush Script MT","Segoe Script",cursive; font-size:24px; color:#111; }
+      .official { width:112px; height:auto; display:block; margin-bottom:2px; mix-blend-mode:multiply; }
+      .line { border-bottom:1.5px solid #8f6a48; height:1px; margin-bottom:4px; }
+      footer { margin-top:14px; border-top:1px solid #ead8bf; padding-top:7px; color:#6b5a50; font-size:9.5px; display:flex; justify-content:space-between; gap:12px; }
+      @media print { button { display:none; } }
+    </style></head><body>
+      <button onclick="window.print()" style="position:fixed;right:16px;top:16px;background:#71170f;color:#fff;border:0;border-radius:999px;padding:10px 16px;font-weight:800;">Print / Save PDF</button>
+      <header class="top"><img class="logo" src="/fixmydoor-logo-transparent.png" /><div><h1>FixMyDoor Services</h1><div class="tag">Door & Furniture Repair Services</div><div>10158 Rue Berri, Montreal, QC H3L 2G6, Canada<br>+1 (438) 347-1823 | info.fixmydoor@gmail.com | www.fixmydoor.ca</div></div></header>
+      <h2>Security Service Authorization Agreement</h2><p class="sub">For unlocking, rekeying, lock replacement, entry repair, and related security services.</p>
+      <section class="box"><h3>Client and Service Details</h3><div class="body grid">
+        <div><span class="label">Client name</span><div class="value">${htmlEscape(draft.clientName)}</div></div>
+        <div><span class="label">Date</span><div class="value">${htmlEscape(draft.signedDate)}</div></div>
+        <div><span class="label">Phone</span><div class="value">${htmlEscape(draft.clientPhone)}</div></div>
+        <div><span class="label">Email</span><div class="value">${htmlEscape(draft.clientEmail)}</div></div>
+        <div class="full"><span class="label">Service address</span><div class="value">${htmlEscape(draft.serviceAddress)}</div></div>
+        <div><span class="label">Service requested</span><div class="value">${htmlEscape(draft.serviceType)}</div></div>
+        <div><span class="label">Authorization type</span><div class="value">${htmlEscape(draft.authorityType)}</div></div>
+      </div></section>
+      <section class="box"><h3>Authorization Statement</h3><div class="body">${htmlEscape(draft.authorizationText).replaceAll("\n", "<br>")}</div></section>
+      <div class="notice">For security-sensitive requests, FixMyDoor Services may ask reasonable questions or request simple confirmation that the customer is authorized to request the work. This protects the customer, the property, and the business.</div>
+      <section class="signatures"><div><div class="typed">${htmlEscape(draft.clientSignature || draft.clientName)}</div><strong>${htmlEscape(draft.clientName || "Client")}</strong><br><span>Client digital signature</span></div><div><img class="official" src="/fixmydoor-richard-ampofo-signature.jpg" /><div class="line"></div><strong>Richard Ampofo</strong><br><span>Authorized Representative, FixMyDoor Services</span></div></section>
+      <footer><span>FixMyDoor Services - Official Authorization Document</span><span>Door repairs, installations, locks, furniture, and hardware sourcing</span></footer>
+    </body></html>`);
+    printableWindow.document.close();
   };
 
   const saveBookingWorkflow = async () => {
@@ -2100,6 +2254,104 @@ export default function Admin() {
               </div>
             )}
           </CardContent>
+        </Card>
+
+        <Card id="security-authorization-manager" className="mb-4 scroll-mt-8 border-[#ead8bf] bg-white shadow-sm md:mb-6">
+          <CardHeader className="p-4 md:p-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a5a2d]">Client Authorization</p>
+                <CardTitle className="mt-1 text-xl font-display text-secondary md:text-2xl">Security service agreement</CardTitle>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">
+                  Prepare an editable authorization for unlocking, rekeying, lock replacement, and other security-sensitive work.
+                </p>
+              </div>
+              <Button type="button" variant="outline" className="h-10 bg-white" onClick={() => setSecurityAuthorizationOpen((open) => !open)}>
+                <KeyRound className="mr-2 h-4 w-4" />
+                {securityAuthorizationOpen ? "Close Form" : "Open Agreement"}
+              </Button>
+            </div>
+          </CardHeader>
+          {securityAuthorizationOpen && (
+            <CardContent className="grid gap-3 p-4 pt-0 md:p-6 md:pt-0">
+              <div className="rounded-2xl border border-primary/10 bg-[#fffaf2] p-3 text-xs leading-relaxed text-muted-foreground md:text-sm">
+                Use this only when a customer asks for unlocking, rekeying, lock replacement, or access-related work. The client can type their full name as a digital signature. We use simple authorization wording instead of asking for ID upfront.
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <Label>Fill From Existing Booking</Label>
+                  <Select value={securityAuthorizationDraft.bookingId || "manual"} onValueChange={(value) => {
+                    if (value === "manual") {
+                      setSecurityAuthorizationDraft((draft) => ({ ...draft, bookingId: "" }));
+                      return;
+                    }
+                    fillSecurityAuthorizationFromBooking(value);
+                  }}>
+                    <SelectTrigger className="mt-1 bg-white"><SelectValue placeholder="Choose booking or type manually" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual">Type manually</SelectItem>
+                      {bookings.slice(0, 30).map((booking) => (
+                        <SelectItem key={booking.id} value={booking.id}>
+                          {formatBookingDisplayId(booking)} - {booking.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Service Type</Label>
+                  <Input className="mt-1 bg-white" value={securityAuthorizationDraft.serviceType} onChange={(event) => setSecurityAuthorizationDraft((draft) => ({ ...draft, serviceType: event.target.value }))} />
+                </div>
+                <div>
+                  <Label>Client Name</Label>
+                  <Input className="mt-1 bg-white" value={securityAuthorizationDraft.clientName} onChange={(event) => setSecurityAuthorizationDraft((draft) => ({ ...draft, clientName: event.target.value }))} placeholder="Client full name" />
+                </div>
+                <div>
+                  <Label>Client Email</Label>
+                  <Input className="mt-1 bg-white" type="email" value={securityAuthorizationDraft.clientEmail} onChange={(event) => setSecurityAuthorizationDraft((draft) => ({ ...draft, clientEmail: event.target.value }))} placeholder="client@email.com" />
+                </div>
+                <div>
+                  <Label>Client Phone</Label>
+                  <Input className="mt-1 bg-white" value={securityAuthorizationDraft.clientPhone} onChange={(event) => setSecurityAuthorizationDraft((draft) => ({ ...draft, clientPhone: event.target.value }))} placeholder="+1..." />
+                </div>
+                <div>
+                  <Label>Date</Label>
+                  <Input className="mt-1 bg-white" type="date" value={securityAuthorizationDraft.signedDate} onChange={(event) => setSecurityAuthorizationDraft((draft) => ({ ...draft, signedDate: event.target.value }))} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Service Address</Label>
+                  <Input className="mt-1 bg-white" value={securityAuthorizationDraft.serviceAddress} onChange={(event) => setSecurityAuthorizationDraft((draft) => ({ ...draft, serviceAddress: event.target.value }))} placeholder="Full service address" />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Authorization Statement</Label>
+                  <Textarea className="mt-1 min-h-24 bg-white" value={securityAuthorizationDraft.authorizationText} onChange={(event) => setSecurityAuthorizationDraft((draft) => ({ ...draft, authorizationText: event.target.value }))} />
+                  <p className="mt-1 text-xs text-muted-foreground">Keep this simple and calm. If needed, Richard can ask reasonable questions or request confirmation before starting security-sensitive work.</p>
+                </div>
+                <div>
+                  <Label>Client Digital Signature</Label>
+                  <Input className="mt-1 bg-white font-serif text-lg" value={securityAuthorizationDraft.clientSignature} onChange={(event) => setSecurityAuthorizationDraft((draft) => ({ ...draft, clientSignature: event.target.value }))} placeholder="Client types full name here" />
+                </div>
+                <div>
+                  <Label>Authorization Role</Label>
+                  <Input className="mt-1 bg-white" value={securityAuthorizationDraft.authorityType} onChange={(event) => setSecurityAuthorizationDraft((draft) => ({ ...draft, authorityType: event.target.value }))} />
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Button type="button" onClick={openSecurityAuthorizationPrint}>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Open / Print
+                </Button>
+                <Button type="button" variant="outline" className="bg-white" onClick={emailSecurityAuthorization}>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Email Client
+                </Button>
+                <Button type="button" variant="outline" className="bg-white" onClick={resetSecurityAuthorizationDraft}>
+                  <X className="mr-2 h-4 w-4" />
+                  Clear Draft
+                </Button>
+              </div>
+            </CardContent>
+          )}
         </Card>
 
         <Card id="push-notification-manager" className="mb-4 scroll-mt-8 border-[#ead8bf] bg-white shadow-sm md:mb-6">
