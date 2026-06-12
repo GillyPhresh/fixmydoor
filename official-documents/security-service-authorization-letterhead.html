@@ -21,14 +21,14 @@
       margin: 0;
       background: #ede6dd;
       color: var(--ink);
-      font-family: Arial, Helvetica, sans-serif;
-      font-size: 13px;
-      line-height: 1.42;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 12px;
+      line-height: 1.36;
     }
 
     .page {
-      width: 8.5in;
-      min-height: 11in;
+      width: 210mm;
+      min-height: 297mm;
       margin: 24px auto;
       background: #fffdf9;
       border: 1px solid #ead9c8;
@@ -44,10 +44,10 @@
 
     .letterhead {
       display: grid;
-      grid-template-columns: 110px 1fr;
-      gap: 18px;
+      grid-template-columns: 128px 1fr;
+      gap: 20px;
       align-items: center;
-      padding: 24px 42px 18px;
+      padding: 22px 36px 16px;
       border-bottom: 2px solid var(--line);
       background:
         linear-gradient(135deg, rgba(250, 246, 240, 0.96), rgba(255, 253, 249, 0.92)),
@@ -55,19 +55,19 @@
     }
 
     .logo-card {
-      width: 96px;
-      height: 96px;
-      border-radius: 22px;
+      width: 116px;
+      height: 116px;
+      border-radius: 24px;
       background: #fff;
       border: 1px solid #ead9c8;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 8px;
+      padding: 7px;
     }
 
     .logo-card img {
-      width: 82px;
+      width: 102px;
       height: auto;
       display: block;
     }
@@ -75,8 +75,8 @@
     .brand h1 {
       margin: 0;
       color: var(--deep);
-      font-size: 27px;
-      letter-spacing: 0;
+      font-size: 29px;
+      letter-spacing: 0.01em;
     }
 
     .brand .tagline {
@@ -84,6 +84,7 @@
       color: var(--brown);
       font-weight: 700;
       font-size: 14px;
+      font-family: Arial, Helvetica, sans-serif;
     }
 
     .contact {
@@ -229,11 +230,11 @@
 
     .footer {
       position: absolute;
-      left: 42px;
-      right: 42px;
+      left: 36px;
+      right: 36px;
       bottom: 18px;
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 16px;
       border-top: 1px solid var(--line);
       padding-top: 9px;
@@ -247,15 +248,15 @@
       }
 
       .page {
-        width: 8.5in;
-        min-height: 11in;
+        width: 210mm;
+        min-height: 297mm;
         margin: 0;
         border: 0;
         box-shadow: none;
       }
 
       @page {
-        size: Letter;
+        size: A4;
         margin: 0;
       }
     }
@@ -334,8 +335,9 @@
       <section class="section authorization">
         <h2>Client Authorization</h2>
         <div class="section-body">
-          <p>I, the undersigned client, confirm that I am the legal owner, tenant, authorized occupant, property manager, or authorized representative of the property listed above.</p>
-          <p>I give FixMyDoor Services permission to inspect, unlock, repair, rekey, replace, adjust, or work on the door, lock, hardware, furniture, cabinet, or related item described in this request.</p>
+          <p>I, the undersigned client, confirm that I have the right and authority to request this security-related service at the property listed above.</p>
+          <p>I voluntarily authorize FixMyDoor Services, represented by Richard Ampofo or an assigned staff member, to inspect, unlock, repair, rekey, replace, adjust, or work on the door, lock, hardware, furniture, cabinet, or related item described in this request.</p>
+          <p>I understand that this authorization is given before work begins and that FixMyDoor Services may rely on this agreement as my written permission to proceed with the requested service.</p>
           <p>I understand that security-related work may require reasonable confirmation that I am authorized to request the service before work begins.</p>
           <p>I confirm that the information I provided is true and accurate. I accept full responsibility for requesting this service and confirm that FixMyDoor Services is acting based on my authorization.</p>
           <p>FixMyDoor Services reserves the right to refuse or stop any service if ownership, occupancy, authorization, or safety cannot be reasonably confirmed.</p>
@@ -363,8 +365,8 @@
     </main>
 
     <footer class="footer">
-      <span>FixMyDoor Services - Official Authorization Document</span>
-      <span>Door repairs, installations, locks, furniture, and hardware sourcing</span>
+      <span>FixMyDoor Services - Official Authorization Document<br />Door repairs, installations, locks, furniture, and hardware sourcing</span>
+      <span>Business visibility supported through Google Business Profile and Yellow Pages Canada advertising/profile services.</span>
     </footer>
   </div>
 </body>

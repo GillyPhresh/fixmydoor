@@ -86,7 +86,7 @@ const emptySecurityAuthorizationDraft: SecurityAuthorizationDraft = {
   serviceType: "Door unlocking",
   authorityType: "Owner, tenant, occupant, property manager, or authorized representative",
   authorizationText:
-    "I confirm that I am authorized to request this security-related service for the property listed above. I give FixMyDoor Services permission to inspect, unlock, repair, rekey, replace, adjust, or work on the door, lock, hardware, or related item described in this request.",
+    "I, the client named in this agreement, confirm that I have the right and authority to request this security-related service at the property listed above. I voluntarily authorize FixMyDoor Services, represented by Richard Ampofo or an assigned staff member, to inspect, unlock, repair, rekey, replace, adjust, or work on the door, lock, hardware, or related item described in this request. I understand that this authorization is given before work begins and that FixMyDoor Services may rely on this agreement as my written permission to proceed with the requested service.",
   clientSignature: "",
   signedDate: new Date().toISOString().slice(0, 10),
 };
@@ -1278,6 +1278,7 @@ export default function Admin() {
       draft.authorizationText,
       "",
       "For security-related work, FixMyDoor Services may ask reasonable questions or request simple confirmation that the customer is authorized to request the service. The purpose is to protect the customer, the property, and the business.",
+      "FixMyDoor Services maintains a public business presence through Google Business Profile and Yellow Pages Canada advertising/profile services for customer visibility and trust.",
       "",
       `Client digital signature: ${draft.clientSignature || "[Client must type full name]"}`,
       `Date: ${draft.signedDate || new Date().toISOString().slice(0, 10)}`,
@@ -1309,12 +1310,12 @@ export default function Admin() {
     }
 
     printableWindow.document.write(`<!doctype html><html><head><title>FixMyDoor Security Authorization</title><style>
-      @page { size: Letter; margin: 0.38in; }
-      body { margin:0; font-family: Arial, Helvetica, sans-serif; color:#241813; background:#fffdf9; font-size:12px; line-height:1.35; }
-      .top { border-bottom:2px solid #dcc7b2; padding:14px 0 12px; display:grid; grid-template-columns:86px 1fr; gap:16px; align-items:center; }
-      .logo { width:78px; height:78px; border-radius:18px; border:1px solid #ead8bf; object-fit:contain; padding:6px; background:#fff; }
-      h1 { margin:0; color:#71170f; font-size:23px; } .tag { color:#6b4423; font-weight:700; margin-top:2px; }
-      h2 { color:#71170f; text-align:center; margin:18px 0 4px; font-size:17px; text-transform:uppercase; letter-spacing:.06em; }
+      @page { size: A4; margin: 10mm; }
+      body { margin:0; font-family: Georgia, "Times New Roman", serif; color:#241813; background:#fffdf9; font-size:11.5px; line-height:1.34; }
+      .top { border-bottom:2px solid #dcc7b2; padding:12px 0 11px; display:grid; grid-template-columns:112px 1fr; gap:18px; align-items:center; }
+      .logo { width:102px; height:102px; border-radius:22px; border:1px solid #ead8bf; object-fit:contain; padding:7px; background:#fff; }
+      h1 { margin:0; color:#71170f; font-size:25px; letter-spacing:.01em; } .tag { color:#6b4423; font-weight:700; margin-top:2px; font-family:Arial, Helvetica, sans-serif; }
+      h2 { color:#71170f; text-align:center; margin:15px 0 4px; font-size:17px; text-transform:uppercase; letter-spacing:.07em; }
       .sub { text-align:center; color:#6b5a50; margin:0 0 14px; }
       .box { border:1px solid #dcc7b2; border-radius:12px; margin-top:10px; overflow:hidden; background:#fff; }
       .box h3 { margin:0; background:#faf6f0; color:#71170f; padding:7px 10px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
@@ -1326,7 +1327,7 @@ export default function Admin() {
       .typed { min-height:38px; border-bottom:1.5px solid #8f6a48; font-family:"Brush Script MT","Segoe Script",cursive; font-size:24px; color:#111; }
       .official { width:112px; height:auto; display:block; margin-bottom:2px; mix-blend-mode:multiply; }
       .line { border-bottom:1.5px solid #8f6a48; height:1px; margin-bottom:4px; }
-      footer { margin-top:14px; border-top:1px solid #ead8bf; padding-top:7px; color:#6b5a50; font-size:9.5px; display:flex; justify-content:space-between; gap:12px; }
+      footer { margin-top:14px; border-top:1px solid #ead8bf; padding-top:7px; color:#6b5a50; font-size:9.2px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
       @media print { button { display:none; } }
     </style></head><body>
       <button onclick="window.print()" style="position:fixed;right:16px;top:16px;background:#71170f;color:#fff;border:0;border-radius:999px;padding:10px 16px;font-weight:800;">Print / Save PDF</button>
@@ -1341,10 +1342,10 @@ export default function Admin() {
         <div><span class="label">Service requested</span><div class="value">${htmlEscape(draft.serviceType)}</div></div>
         <div><span class="label">Authorization type</span><div class="value">${htmlEscape(draft.authorityType)}</div></div>
       </div></section>
-      <section class="box"><h3>Authorization Statement</h3><div class="body">${htmlEscape(draft.authorizationText).replaceAll("\n", "<br>")}</div></section>
+      <section class="box"><h3>Official Client Agreement Statement</h3><div class="body">${htmlEscape(draft.authorizationText).replaceAll("\n", "<br>")}</div></section>
       <div class="notice">For security-sensitive requests, FixMyDoor Services may ask reasonable questions or request simple confirmation that the customer is authorized to request the work. This protects the customer, the property, and the business.</div>
       <section class="signatures"><div><div class="typed">${htmlEscape(draft.clientSignature || draft.clientName)}</div><strong>${htmlEscape(draft.clientName || "Client")}</strong><br><span>Client digital signature</span></div><div><img class="official" src="/fixmydoor-richard-ampofo-signature.jpg" /><div class="line"></div><strong>Richard Ampofo</strong><br><span>Authorized Representative, FixMyDoor Services</span></div></section>
-      <footer><span>FixMyDoor Services - Official Authorization Document</span><span>Door repairs, installations, locks, furniture, and hardware sourcing</span></footer>
+      <footer><span>FixMyDoor Services - Official Authorization Document<br>Door repairs, installations, locks, furniture, and hardware sourcing</span><span>Business visibility supported through Google Business Profile and Yellow Pages Canada advertising/profile services.</span></footer>
     </body></html>`);
     printableWindow.document.close();
   };
