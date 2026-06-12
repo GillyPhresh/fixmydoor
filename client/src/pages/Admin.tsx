@@ -83,13 +83,33 @@ const emptySecurityAuthorizationDraft: SecurityAuthorizationDraft = {
   clientEmail: "",
   clientPhone: "",
   serviceAddress: "",
-  serviceType: "Door unlocking / lock service",
+  serviceType: "Door unlocking",
   authorityType: "Owner, tenant, occupant, property manager, or authorized representative",
   authorizationText:
     "I confirm that I am authorized to request this security-related service for the property listed above. I give FixMyDoor Services permission to inspect, unlock, repair, rekey, replace, adjust, or work on the door, lock, hardware, or related item described in this request.",
   clientSignature: "",
   signedDate: new Date().toISOString().slice(0, 10),
 };
+
+const securityAuthorizationServiceOptions = [
+  "Door unlocking",
+  "Lock rekeying",
+  "Lock replacement",
+  "Door or lock repair after damage",
+  "Entry hardware replacement",
+  "Door closer or access hardware service",
+  "Other security-related door service",
+];
+
+const securityAuthorizationRoleOptions = [
+  "Property owner",
+  "Tenant or authorized occupant",
+  "Property manager",
+  "Business manager",
+  "Landlord representative",
+  "Authorized family member",
+  "Authorized company representative",
+];
 
 const contentCategories: { value: ContentItem["category"]; label: string }[] = [
   { value: "advert", label: "Advert / Promotion" },
@@ -538,6 +558,16 @@ function getReminderCardMessage(booking: Pick<Booking, "appointmentTime" | "remi
   }
 
   return booking.reminderNote || booking.repairType;
+}
+
+function getSecurityAuthorizationService(repairType?: string) {
+  const normalized = (repairType || "").toLowerCase();
+  if (normalized.includes("rekey")) return "Lock rekeying";
+  if (normalized.includes("lock")) return "Lock replacement";
+  if (normalized.includes("hardware")) return "Entry hardware replacement";
+  if (normalized.includes("closer")) return "Door closer or access hardware service";
+  if (normalized.includes("repair")) return "Door or lock repair after damage";
+  return "Door unlocking";
 }
 
 export default function Admin() {
@@ -1223,7 +1253,7 @@ export default function Admin() {
       clientEmail: booking.email || "",
       clientPhone: normalizePhoneForMessaging(booking.phone, booking.country || booking.address) || booking.phone || "",
       serviceAddress: [booking.address, booking.city, booking.country].filter(Boolean).join(", "),
-      serviceType: booking.repairType || draft.serviceType,
+      serviceType: getSecurityAuthorizationService(booking.repairType || draft.serviceType),
       signedDate: draft.signedDate || new Date().toISOString().slice(0, 10),
     }));
   };
@@ -1272,7 +1302,7 @@ export default function Admin() {
     const htmlEscape = (value: string) =>
       value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
     const draft = securityAuthorizationDraft;
-    const printableWindow = window.open("", "_blank", "noopener,noreferrer,width=900,height=1100");
+    const printableWindow = window.open("", "_blank", "width=900,height=1100");
     if (!printableWindow) {
       toast.error("Allow pop-ups so the authorization document can open.");
       return;
@@ -2300,7 +2330,14 @@ export default function Admin() {
                 </div>
                 <div>
                   <Label>Service Type</Label>
-                  <Input className="mt-1 bg-white" value={securityAuthorizationDraft.serviceType} onChange={(event) => setSecurityAuthorizationDraft((draft) => ({ ...draft, serviceType: event.target.value }))} />
+                  <Select value={securityAuthorizationDraft.serviceType} onValueChange={(value) => setSecurityAuthorizationDraft((draft) => ({ ...draft, serviceType: value }))}>
+                    <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {securityAuthorizationServiceOptions.map((service) => (
+                        <SelectItem key={service} value={service}>{service}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label>Client Name</Label>
@@ -2333,7 +2370,34 @@ export default function Admin() {
                 </div>
                 <div>
                   <Label>Authorization Role</Label>
-                  <Input className="mt-1 bg-white" value={securityAuthorizationDraft.authorityType} onChange={(event) => setSecurityAuthorizationDraft((draft) => ({ ...draft, authorityType: event.target.value }))} />
+                  <div className="mt-1 grid gap-1.5 rounded-xl border border-[#ead8bf] bg-white p-2">
+                    {securityAuthorizationRoleOptions.map((role) => {
+                      const selectedRoles = securityAuthorizationDraft.authorityType
+                        .split(",")
+                        .map((item) => item.trim())
+                        .filter((item) => securityAuthorizationRoleOptions.includes(item));
+                      const checked = selectedRoles.includes(role);
+                      return (
+                        <label key={role} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold text-secondary hover:bg-[#fffaf2]">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 accent-[#6B4423]"
+                            checked={checked}
+                            onChange={(event) => {
+                              const nextRoles = event.target.checked
+                                ? Array.from(new Set([...selectedRoles, role]))
+                                : selectedRoles.filter((item) => item !== role);
+                              setSecurityAuthorizationDraft((draft) => ({
+                                ...draft,
+                                authorityType: nextRoles.length ? nextRoles.join(", ") : emptySecurityAuthorizationDraft.authorityType,
+                              }));
+                            }}
+                          />
+                          {role}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-3">
