@@ -482,6 +482,7 @@ export default function Home() {
   const contentFetchInFlightRef = useRef(false);
   const notificationRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const logoPulseRef = useRef<HTMLSpanElement | null>(null);
+  const advertPreviewVideoRef = useRef<HTMLVideoElement | null>(null);
   const advertNotificationKeysRef = useRef<Set<string> | null>(null);
   const reviewNotificationKeysRef = useRef<Set<string> | null>(null);
   const lightboxPointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
@@ -1346,12 +1347,35 @@ export default function Home() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setAdvertPreviewVideoEnabled(true);
-    }, 1800);
+    }, 900);
 
     return () => {
       window.clearTimeout(timer);
     };
   }, []);
+
+  useEffect(() => {
+    if (!advertPreviewVideoEnabled) {
+      return;
+    }
+
+    const video = advertPreviewVideoRef.current;
+    if (!video) {
+      return;
+    }
+
+    video.muted = true;
+    video.playsInline = true;
+    const playRequest = video.play();
+
+    if (playRequest) {
+      playRequest.catch(() => {
+        window.setTimeout(() => {
+          advertPreviewVideoRef.current?.play().catch(() => undefined);
+        }, 350);
+      });
+    }
+  }, [activeAdvertIndex, advertPreviewVideoEnabled, displayedAdvertsSignature]);
 
   useEffect(() => {
     if (!lightboxAdvert) {
@@ -2114,12 +2138,13 @@ export default function Home() {
                     >
                       {advert.isVideo ? (
                         <video
-                          key={advertPreviewVideoEnabled ? "promotion-video-playing" : "promotion-video-preview"}
+                          ref={index === activeAdvertIndex ? advertPreviewVideoRef : null}
+                          key={`${advert.id || index}-${advertPreviewVideoEnabled ? "promotion-video-playing" : "promotion-video-preview"}`}
                           src={advert.image}
                           className="h-full w-full object-cover"
                           preload={advertPreviewVideoEnabled ? "auto" : "metadata"}
-                          autoPlay={advertPreviewVideoEnabled}
-                          loop={advertPreviewVideoEnabled}
+                          autoPlay={index === activeAdvertIndex && advertPreviewVideoEnabled}
+                          loop
                           muted
                           playsInline
                         >
