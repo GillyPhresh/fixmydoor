@@ -988,9 +988,24 @@ export default function Admin() {
       return;
     }
 
-    const smsUrl = `sms:${numbers.join(",")}?&body=${encodeURIComponent(message)}`;
+    const smsUrl = `sms:${numbers.join(",")}?body=${encodeURIComponent(message)}`;
     window.location.href = smsUrl;
-    toast.message(`Opening SMS app for ${numbers.length} contact${numbers.length === 1 ? "" : "s"}. Review and tap Send on your phone.`);
+    toast.message(`Opening SMS app for ${numbers.length} contact${numbers.length === 1 ? "" : "s"}. Use the Canadian company phone if the message must come from that line.`);
+  };
+
+  const copyBulkSmsMessage = async () => {
+    const message = smsMessage.trim();
+    if (!message) {
+      toast.error("Write the SMS message before copying.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(message);
+      toast.success("SMS message copied");
+    } catch {
+      toast.error("Could not copy the SMS message on this device.");
+    }
   };
 
   const saveManualBooking = async (event: React.FormEvent) => {
@@ -2082,40 +2097,43 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        <Card id="sms-message-manager" className="mb-4 scroll-mt-8 border-[#ead8bf] bg-white shadow-sm md:mb-6">
-          <CardHeader className="p-4 md:p-6">
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <Card id="sms-message-manager" className="mb-4 scroll-mt-8 overflow-hidden border-[#ead8bf] bg-white shadow-sm md:mb-6">
+          <CardHeader className="bg-gradient-to-r from-[#fff8ec] to-white p-3 md:p-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8a5a2d]">SMS Messages</p>
-                <CardTitle className="mt-1 text-xl font-display text-secondary md:text-2xl">Text clients from your phone</CardTitle>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground md:text-sm">
-                  Free SMS uses your phone or computer messaging app. Select clients, write one message, then review and tap Send in your SMS app.
+                <p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[#8a5a2d]">SMS Messages</p>
+                <CardTitle className="mt-1 text-lg font-display text-secondary md:text-xl">Send client texts</CardTitle>
+                <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground md:text-sm">
+                  To send from the company line, open this dashboard on the Canadian company phone. The free option opens the phone SMS app with the message ready for final sending.
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" className="h-9 bg-white px-3 text-xs" onClick={selectVisibleSmsContacts}>
+              <div className="grid grid-cols-2 gap-2 sm:flex">
+                <Button type="button" variant="outline" className="h-9 bg-white px-3 text-xs font-bold" onClick={selectVisibleSmsContacts}>
                   Select All
                 </Button>
-                <Button type="button" variant="outline" className="h-9 bg-white px-3 text-xs" onClick={clearSmsContacts}>
+                <Button type="button" variant="outline" className="h-9 bg-white px-3 text-xs font-bold" onClick={clearSmsContacts}>
                   Clear
                 </Button>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-4 p-4 pt-0 md:p-6 md:pt-0 lg:grid-cols-[0.9fr_1.1fr]">
+          <CardContent className="grid gap-3 p-3 md:grid-cols-[0.9fr_1.1fr] md:p-5">
             <div className="rounded-2xl border border-primary/10 bg-[#fffaf2] p-3">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-bold text-secondary">Booking contacts</h3>
-                <Badge variant="secondary" className="text-[0.65rem]">
-                  {smsSelectedBookingIds.length} selected
+                <div>
+                  <h3 className="text-sm font-bold text-secondary">Client contacts</h3>
+                  <p className="text-[0.7rem] text-muted-foreground">Pick from saved bookings.</p>
+                </div>
+                <Badge variant="secondary" className="shrink-0 text-[0.65rem]">
+                  {smsSelectedBookingIds.length} picked
                 </Badge>
               </div>
               {smsBookingContacts.length === 0 ? (
                 <p className="mt-3 text-sm text-muted-foreground">No valid client phone numbers found yet.</p>
               ) : (
-                <div className="mt-3 max-h-56 space-y-2 overflow-y-auto pr-1">
+                <div className="mt-3 max-h-44 space-y-2 overflow-y-auto pr-1 md:max-h-52">
                   {smsBookingContacts.slice(0, 80).map((contact) => (
-                    <label key={contact.id} className="flex cursor-pointer items-start gap-3 rounded-xl bg-white p-2.5 shadow-sm">
+                    <label key={contact.id} className="flex cursor-pointer items-start gap-2 rounded-xl bg-white p-2 shadow-sm transition hover:bg-[#fff8ec]">
                       <input
                         type="checkbox"
                         checked={smsSelectedBookingIds.includes(contact.id)}
@@ -2123,7 +2141,7 @@ export default function Admin() {
                         className="mt-1 h-4 w-4 rounded border-primary/30 accent-[#6B4423]"
                       />
                       <span className="min-w-0">
-                        <span className="block truncate text-sm font-bold text-secondary">{contact.label}</span>
+                        <span className="block truncate text-[0.82rem] font-bold text-secondary">{contact.label}</span>
                         <span className="mt-0.5 block truncate text-xs text-muted-foreground">{contact.phone} | {contact.service}</span>
                       </span>
                     </label>
@@ -2133,18 +2151,18 @@ export default function Admin() {
             </div>
 
             <div className="space-y-3 rounded-2xl border border-primary/10 bg-background p-3">
-              <div>
-                <Label htmlFor="manual-sms-numbers">Add phone numbers manually</Label>
+              <details className="rounded-xl border border-primary/10 bg-white p-3">
+                <summary className="cursor-pointer text-sm font-bold text-secondary">Add a number not in bookings</summary>
                 <Textarea
                   id="manual-sms-numbers"
                   value={smsManualNumbers}
                   onChange={(event) => setSmsManualNumbers(event.target.value)}
-                  rows={3}
-                  className="mt-1 resize-y bg-white"
+                  rows={2}
+                  className="mt-2 resize-y bg-white"
                   placeholder="+1 438 000 0000, +1 514 000 0000"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">Separate numbers with commas, semicolons, or new lines.</p>
-              </div>
+              </details>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   "Hello, this is FixMyDoor Services. We are available to help with your door, furniture, or hardware request. Please reply when convenient.",
@@ -2164,22 +2182,32 @@ export default function Admin() {
                 ))}
               </div>
               <div>
-                <Label htmlFor="bulk-sms-message">SMS message</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="bulk-sms-message">Message</Label>
+                  <span className="text-[0.68rem] font-bold text-[#8a5a2d]">{smsMessage.length}/480</span>
+                </div>
                 <Textarea
                   id="bulk-sms-message"
                   value={smsMessage}
                   onChange={(event) => setSmsMessage(event.target.value)}
-                  rows={5}
+                  rows={4}
                   maxLength={480}
                   className="mt-1 resize-y bg-white"
                   placeholder="Write the SMS message here..."
                 />
-                <p className="mt-1 text-xs text-muted-foreground">{getBulkSmsNumbers().length} contact{getBulkSmsNumbers().length === 1 ? "" : "s"} ready. SMS is opened on your device for final sending.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {getBulkSmsNumbers().length} contact{getBulkSmsNumbers().length === 1 ? "" : "s"} ready. The device that opens this must be the company phone if you want the company number to send it.
+                </p>
               </div>
-              <Button type="button" className="w-full bg-[#6B4423] text-white hover:bg-[#543218]" onClick={openBulkSmsComposer}>
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Open SMS App
-              </Button>
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                <Button type="button" className="h-11 bg-[#6B4423] text-white hover:bg-[#543218]" onClick={openBulkSmsComposer}>
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Open SMS on this device
+                </Button>
+                <Button type="button" variant="outline" className="h-11 bg-white px-4" onClick={copyBulkSmsMessage}>
+                  Copy
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
