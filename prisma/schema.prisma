@@ -9,6 +9,7 @@ datasource db {
 
 model Booking {
   id                 String      @id @default(cuid())
+  clientId           String?
   name               String
   phone              String
   email              String
@@ -56,7 +57,25 @@ model Booking {
   @@index([name])
   @@index([email])
   @@index([phone])
+  @@index([clientId])
   @@index([customerToken])
+}
+
+model SmsDraft {
+  id         String   @id @default(cuid())
+  clientId   String?
+  bookingId  String?
+  clientName String
+  phone      String
+  message    String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  sentAt     DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([clientId])
+  @@index([bookingId])
 }
 
 model Admin {

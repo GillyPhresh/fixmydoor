@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Bell, Calendar, Download, Phone, User, MapPin, Mail, Filter, LogOut, Trash2, Eye, Save, Star, KeyRound, MessageCircle, Upload, FileText, Send, RefreshCw, X, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
-import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, ManualBookingRequest, Review, ReviewStatus } from "@shared/types";
+import type { Booking, BookingStatus, BookingUpdateRequest, ContentItem, ContentItemRequest, ManualBookingRequest, Review, ReviewStatus, SmsDraft } from "@shared/types";
 import { formatBookingDisplayId } from "@shared/booking-code";
 import { getSmsUrl, getWhatsAppUrl, normalizePhoneForMessaging } from "@shared/phone";
 import { serviceCatalog } from "@shared/services";
@@ -562,6 +562,9 @@ export default function Admin() {
   const [smsSelectedBookingIds, setSmsSelectedBookingIds] = useState<string[]>([]);
   const [smsManualNumbers, setSmsManualNumbers] = useState("");
   const [smsMessage, setSmsMessage] = useState("Hello, this is FixMyDoor Services. We are contacting you about your door, furniture, or hardware request.");
+  const [smsDrafts, setSmsDrafts] = useState<SmsDraft[]>([]);
+  const [smsDraftLoading, setSmsDraftLoading] = useState(false);
+  const [smsDraftSaving, setSmsDraftSaving] = useState(false);
   const [adminNotificationSupported, setAdminNotificationSupported] = useState(false);
   const [adminNotificationsEnabled, setAdminNotificationsEnabled] = useState(false);
   const [adminNotificationLoading, setAdminNotificationLoading] = useState(false);
@@ -607,6 +610,7 @@ export default function Admin() {
       fetchContentItems();
       fetchEmailStatus();
       fetchPushNotifications();
+      fetchSmsDrafts();
       if (adminNotificationSupported && Notification.permission === "granted") {
         subscribeAdminAlerts().catch((error) => {
           console.error("Admin push re-subscribe error:", error);
@@ -745,6 +749,7 @@ export default function Admin() {
         fetchContentItems(),
         fetchEmailStatus(),
         fetchPushNotifications(),
+        fetchSmsDrafts(),
       ]);
       toast.success("Admin dashboard refreshed");
     } catch {
@@ -936,11 +941,31 @@ export default function Admin() {
     }
   };
 
+  const fetchSmsDrafts = async (showToast = false) => {
+    setSmsDraftLoading(true);
+    try {
+      const response = await axios.get<{ drafts: SmsDraft[] }>("/api/admin/sms-drafts");
+      setSmsDrafts(response.data.drafts || []);
+      if (showToast) {
+        toast.success("Saved SMS messages refreshed");
+      }
+    } catch (err) {
+      console.error("Failed to fetch SMS drafts:", err);
+      if (showToast) {
+        toast.error("Unable to refresh saved SMS messages");
+      }
+    } finally {
+      setSmsDraftLoading(false);
+    }
+  };
+
   const smsBookingContacts = bookings
     .map((booking) => ({
       id: booking.id,
+      bookingId: booking.id,
+      clientId: booking.clientId,
       name: booking.name,
-      label: `${booking.name} - ${formatBookingDisplayId(booking)}`,
+      label: `${booking.name} - ${booking.clientId || formatBookingDisplayId(booking)}`,
       phone: normalizePhoneForMessaging(booking.phone, booking.country || booking.address),
       service: booking.repairType,
     }))
@@ -963,16 +988,36 @@ export default function Admin() {
     setSmsManualNumbers("");
   };
 
-  const getBulkSmsNumbers = () => {
-    const selectedNumbers = smsBookingContacts
+  const getBulkSmsContacts = () => {
+    const selectedContacts = smsBookingContacts
       .filter((contact) => smsSelectedBookingIds.includes(contact.id))
-      .map((contact) => contact.phone);
-    const manualNumbers = smsManualNumbers
+      .map((contact) => ({
+        bookingId: contact.bookingId,
+        clientId: contact.clientId,
+        clientName: contact.name,
+        phone: contact.phone,
+      }));
+    const manualContacts = smsManualNumbers
       .split(/[\n,;]+/)
       .map((phone) => normalizePhoneForMessaging(phone, "Canada"))
-      .filter(Boolean);
+      .filter(Boolean)
+      .map((phone) => ({
+        clientName: "Manual contact",
+        phone,
+      }));
 
-    return Array.from(new Set([...selectedNumbers, ...manualNumbers]));
+    const uniqueContacts = new Map<string, { bookingId?: string; clientId?: string; clientName: string; phone: string }>();
+    [...selectedContacts, ...manualContacts].forEach((contact) => {
+      if (contact.phone && !uniqueContacts.has(contact.phone)) {
+        uniqueContacts.set(contact.phone, contact);
+      }
+    });
+
+    return Array.from(uniqueContacts.values());
+  };
+
+  const getBulkSmsNumbers = () => {
+    return getBulkSmsContacts().map((contact) => contact.phone);
   };
 
   const openBulkSmsComposer = () => {
@@ -991,6 +1036,67 @@ export default function Admin() {
     const smsUrl = `sms:${numbers.join(",")}?body=${encodeURIComponent(message)}`;
     window.location.href = smsUrl;
     toast.message(`Opening SMS app for ${numbers.length} contact${numbers.length === 1 ? "" : "s"}. Use the Canadian company phone if the message must come from that line.`);
+  };
+
+  const saveSmsDraftsForRichard = async () => {
+    const message = smsMessage.trim();
+    if (!message) {
+      toast.error("Write the SMS message before saving it for Richard.");
+      return;
+    }
+
+    const contacts = getBulkSmsContacts();
+    if (contacts.length === 0) {
+      toast.error("Select at least one client or type a phone number.");
+      return;
+    }
+
+    setSmsDraftSaving(true);
+    try {
+      const response = await axios.post<{ drafts: SmsDraft[] }>("/api/admin/sms-drafts", {
+        contacts,
+        message,
+      });
+      setSmsDrafts((currentDrafts) => [...(response.data.drafts || []), ...currentDrafts]);
+      setSmsSelectedBookingIds([]);
+      setSmsManualNumbers("");
+      toast.success(`Saved ${response.data.drafts?.length || contacts.length} SMS message${contacts.length === 1 ? "" : "s"} for Richard to send.`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Failed to save SMS message");
+    } finally {
+      setSmsDraftSaving(false);
+    }
+  };
+
+  const openSavedSmsDraft = (draft: SmsDraft) => {
+    const normalizedPhone = normalizePhoneForMessaging(draft.phone, "Canada");
+    if (!normalizedPhone) {
+      toast.error("This saved SMS does not have a valid phone number.");
+      return;
+    }
+
+    window.location.href = `sms:${normalizedPhone}?body=${encodeURIComponent(draft.message)}`;
+    toast.message("Opening this saved SMS. Richard should tap Send from the Canadian company phone.");
+  };
+
+  const markSmsDraftSent = async (draftId: string) => {
+    try {
+      await axios.patch(`/api/admin/sms-drafts/${draftId}/sent`);
+      setSmsDrafts((currentDrafts) => currentDrafts.filter((draft) => draft.id !== draftId));
+      toast.success("SMS marked as sent");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Failed to mark SMS as sent");
+    }
+  };
+
+  const deleteSmsDraft = async (draftId: string) => {
+    try {
+      await axios.delete(`/api/admin/sms-drafts/${draftId}`);
+      setSmsDrafts((currentDrafts) => currentDrafts.filter((draft) => draft.id !== draftId));
+      toast.success("Saved SMS removed");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Failed to delete SMS message");
+    }
   };
 
   const copyBulkSmsMessage = async () => {
@@ -2199,14 +2305,60 @@ export default function Admin() {
                   {getBulkSmsNumbers().length} contact{getBulkSmsNumbers().length === 1 ? "" : "s"} ready. The device that opens this must be the company phone if you want the company number to send it.
                 </p>
               </div>
-              <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+              <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
                 <Button type="button" className="h-11 bg-[#6B4423] text-white hover:bg-[#543218]" onClick={openBulkSmsComposer}>
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Open SMS on this device
                 </Button>
+                <Button type="button" variant="outline" className="h-11 bg-white px-4 font-bold" onClick={saveSmsDraftsForRichard} disabled={smsDraftSaving}>
+                  {smsDraftSaving ? "Saving..." : "Save for Richard"}
+                </Button>
                 <Button type="button" variant="outline" className="h-11 bg-white px-4" onClick={copyBulkSmsMessage}>
                   Copy
                 </Button>
+              </div>
+              <div className="rounded-xl border border-[#ead8bf] bg-white p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-sm font-black text-secondary">Saved for Richard</h4>
+                    <p className="text-[0.7rem] text-muted-foreground">These stay here until the Canadian phone sends them.</p>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" className="h-8 bg-white px-2 text-xs" onClick={() => fetchSmsDrafts(true)} disabled={smsDraftLoading}>
+                    <RefreshCw className={`mr-1 h-3 w-3 ${smsDraftLoading ? "animate-spin" : ""}`} />
+                    Refresh
+                  </Button>
+                </div>
+                {smsDrafts.length === 0 ? (
+                  <p className="mt-3 rounded-lg bg-[#fff8ec] p-2 text-xs text-muted-foreground">No saved SMS messages waiting.</p>
+                ) : (
+                  <div className="mt-3 max-h-52 space-y-2 overflow-y-auto pr-1">
+                    {smsDrafts.map((draft) => (
+                      <div key={draft.id} className="rounded-xl border border-primary/10 bg-[#fffaf2] p-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-secondary">{draft.clientName}</p>
+                            <p className="truncate text-[0.68rem] text-muted-foreground">
+                              {draft.clientId || "Client ID pending"} | {draft.phone}
+                            </p>
+                          </div>
+                          <Badge className="shrink-0 bg-[#6B4423] text-[0.62rem] text-white">Pending</Badge>
+                        </div>
+                        <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{draft.message}</p>
+                        <div className="mt-2 grid grid-cols-3 gap-2">
+                          <Button type="button" size="sm" className="h-8 bg-[#6B4423] px-2 text-xs text-white hover:bg-[#543218]" onClick={() => openSavedSmsDraft(draft)}>
+                            Send
+                          </Button>
+                          <Button type="button" size="sm" variant="outline" className="h-8 bg-white px-2 text-xs" onClick={() => markSmsDraftSent(draft.id)}>
+                            Sent
+                          </Button>
+                          <Button type="button" size="sm" variant="outline" className="h-8 bg-white px-2 text-xs text-red-700" onClick={() => deleteSmsDraft(draft.id)}>
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

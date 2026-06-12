@@ -9,7 +9,7 @@ import { createCipheriv, createECDH, createHmac, createPrivateKey, createSign, g
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { parseStatusHistory, saveBooking, saveManualBooking, serializeStatusHistory, toBooking, validateBooking, validateBookingStatus, validateManualBooking } from "./bookings";
+import { getClientIdForContact, parseStatusHistory, saveBooking, saveManualBooking, serializeStatusHistory, toBooking, validateBooking, validateBookingStatus, validateManualBooking } from "./bookings";
 import { listAdminReviews, listReviews, saveReview, validateReview, validateReviewStatus } from "./reviews";
 import { createContentItem, listAdminContent, listPublicContent, updateContentItem, validateContentItem } from "./content";
 import { prisma } from "./prisma";
@@ -811,6 +811,7 @@ async function ensureDatabaseCompatibility() {
   const statements = [
     `CREATE TABLE IF NOT EXISTS "Booking" (
       "id" TEXT NOT NULL PRIMARY KEY,
+      "clientId" TEXT,
       "name" TEXT NOT NULL,
       "phone" TEXT NOT NULL,
       "email" TEXT NOT NULL DEFAULT '',
@@ -853,6 +854,7 @@ async function ensureDatabaseCompatibility() {
       "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
     `ALTER TABLE "Booking" ADD COLUMN "email" TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE "Booking" ADD COLUMN "clientId" TEXT`,
     `ALTER TABLE "Booking" ADD COLUMN "status" TEXT NOT NULL DEFAULT 'PENDING'`,
     `ALTER TABLE "Booking" ADD COLUMN "updatedAt" DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00'`,
     `ALTER TABLE "Booking" ADD COLUMN "customerToken" TEXT`,
@@ -927,6 +929,17 @@ async function ensureDatabaseCompatibility() {
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
+    `CREATE TABLE IF NOT EXISTS "SmsDraft" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "clientId" TEXT,
+      "bookingId" TEXT,
+      "clientName" TEXT NOT NULL,
+      "phone" TEXT NOT NULL,
+      "message" TEXT NOT NULL,
+      "status" TEXT NOT NULL DEFAULT 'PENDING',
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "sentAt" DATETIME
+    )`,
     `ALTER TABLE "ContentItem" ADD COLUMN "updatedAt" DATETIME NOT NULL DEFAULT '1970-01-01 00:00:00'`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "Admin_username_key" ON "Admin"("username")`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "Booking_customerToken_key" ON "Booking"("customerToken")`,
@@ -935,6 +948,7 @@ async function ensureDatabaseCompatibility() {
     `CREATE INDEX IF NOT EXISTS "Booking_name_idx" ON "Booking"("name")`,
     `CREATE INDEX IF NOT EXISTS "Booking_email_idx" ON "Booking"("email")`,
     `CREATE INDEX IF NOT EXISTS "Booking_phone_idx" ON "Booking"("phone")`,
+    `CREATE INDEX IF NOT EXISTS "Booking_clientId_idx" ON "Booking"("clientId")`,
     `CREATE INDEX IF NOT EXISTS "Booking_customerToken_idx" ON "Booking"("customerToken")`,
     `CREATE INDEX IF NOT EXISTS "Booking_reminderAt_idx" ON "Booking"("reminderAt")`,
     `CREATE INDEX IF NOT EXISTS "Booking_country_idx" ON "Booking"("country")`,
@@ -948,6 +962,10 @@ async function ensureDatabaseCompatibility() {
     `CREATE INDEX IF NOT EXISTS "ContentItem_category_idx" ON "ContentItem"("category")`,
     `CREATE INDEX IF NOT EXISTS "ContentItem_active_idx" ON "ContentItem"("active")`,
     `CREATE INDEX IF NOT EXISTS "ContentItem_sortOrder_idx" ON "ContentItem"("sortOrder")`,
+    `CREATE INDEX IF NOT EXISTS "SmsDraft_status_idx" ON "SmsDraft"("status")`,
+    `CREATE INDEX IF NOT EXISTS "SmsDraft_createdAt_idx" ON "SmsDraft"("createdAt")`,
+    `CREATE INDEX IF NOT EXISTS "SmsDraft_clientId_idx" ON "SmsDraft"("clientId")`,
+    `CREATE INDEX IF NOT EXISTS "SmsDraft_bookingId_idx" ON "SmsDraft"("bookingId")`,
   ];
 
   for (const statement of statements) {
@@ -1505,6 +1523,7 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
       <div>
         <h1 style="color:white;">Quote / Invoice</h1>
         <p>Booking ID: ${escapeHtml(bookingDisplayId)}</p>
+        <p>Client ID: ${escapeHtml(booking.clientId || "New client")}</p>
         <p>Date: ${escapeHtml(issuedDate)}</p>
       </div>
     </header>
@@ -1608,6 +1627,7 @@ async function startServer() {
   try {
     console.log("Checking database compatibility...");
     await ensureDatabaseCompatibility();
+    await backfillMissingClientIds();
     console.log("Database compatibility check completed.");
   } catch (error) {
     console.error("Database compatibility check failed:", error);
@@ -1810,6 +1830,34 @@ async function startServer() {
   function csvValue(value: unknown) {
     const safeValue = String(value ?? "").replace(/"/g, '""');
     return `"${safeValue}"`;
+  }
+
+  function normalizeSmsDraft(record: any) {
+    return {
+      id: String(record.id),
+      clientId: record.clientId || undefined,
+      bookingId: record.bookingId || undefined,
+      clientName: String(record.clientName || ""),
+      phone: String(record.phone || ""),
+      message: String(record.message || ""),
+      status: record.status === "SENT" ? "SENT" : "PENDING",
+      createdAt: record.createdAt instanceof Date ? record.createdAt.toISOString() : String(record.createdAt || ""),
+      sentAt: record.sentAt ? (record.sentAt instanceof Date ? record.sentAt.toISOString() : String(record.sentAt)) : undefined,
+    };
+  }
+
+  async function backfillMissingClientIds() {
+    const records = await prisma.$queryRawUnsafe<Array<{ id: string; phone: string; email: string | null }>>(
+      `SELECT "id", "phone", "email" FROM "Booking" WHERE "clientId" IS NULL OR "clientId" = '' LIMIT 250`,
+    );
+
+    for (const record of records) {
+      await prisma.$executeRawUnsafe(
+        `UPDATE "Booking" SET "clientId" = ? WHERE "id" = ?`,
+        getClientIdForContact({ phone: record.phone || "", email: record.email || "" }),
+        record.id,
+      );
+    }
   }
 
   // Health check endpoint
@@ -2073,6 +2121,116 @@ async function startServer() {
       subscriberCount: logEntry.subscriberCount,
       notification: logEntry,
     });
+  });
+
+  app.get("/api/admin/sms-drafts", requireAuth, async (req, res) => {
+    const status = req.query.status === "SENT" ? "SENT" : req.query.status === "ALL" ? "ALL" : "PENDING";
+    const whereClause = status === "ALL" ? "" : `WHERE "status" = ?`;
+    const params = status === "ALL" ? [] : [status];
+
+    try {
+      const rows = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT "id", "clientId", "bookingId", "clientName", "phone", "message", "status", "createdAt", "sentAt"
+         FROM "SmsDraft"
+         ${whereClause}
+         ORDER BY CASE WHEN "status" = 'PENDING' THEN 0 ELSE 1 END, "createdAt" DESC
+         LIMIT 100`,
+        ...params,
+      );
+      return res.json({ drafts: rows.map(normalizeSmsDraft) });
+    } catch (error) {
+      console.error("SMS draft fetch error:", error);
+      return res.status(500).json({ success: false, error: "Failed to load saved SMS messages" });
+    }
+  });
+
+  app.post("/api/admin/sms-drafts", requireAuth, async (req, res) => {
+    const contacts = Array.isArray(req.body?.contacts) ? req.body.contacts : [];
+    const message = cleanOptionalText(req.body?.message, 480);
+
+    if (!message) {
+      return res.status(400).json({ success: false, error: "SMS message is required" });
+    }
+
+    const cleanContacts = contacts
+      .map((contact: any) => ({
+        bookingId: cleanOptionalText(contact?.bookingId, 80),
+        clientId: cleanOptionalText(contact?.clientId, 40),
+        clientName: cleanOptionalText(contact?.clientName, 100) || "Client",
+        phone: cleanOptionalText(contact?.phone, 35),
+      }))
+      .filter((contact: any) => contact.phone)
+      .slice(0, 80);
+
+    if (cleanContacts.length === 0) {
+      return res.status(400).json({ success: false, error: "Add at least one client phone number" });
+    }
+
+    try {
+      const createdDrafts = [];
+      for (const contact of cleanContacts) {
+        const id = randomUUID();
+        const clientId = contact.clientId || getClientIdForContact({ phone: contact.phone, email: "" });
+        await prisma.$executeRawUnsafe(
+          `INSERT INTO "SmsDraft" ("id", "clientId", "bookingId", "clientName", "phone", "message", "status", "createdAt")
+           VALUES (?, ?, ?, ?, ?, ?, 'PENDING', CURRENT_TIMESTAMP)`,
+          id,
+          clientId,
+          contact.bookingId,
+          contact.clientName,
+          contact.phone,
+          message,
+        );
+        createdDrafts.push({
+          id,
+          clientId,
+          bookingId: contact.bookingId || undefined,
+          clientName: contact.clientName,
+          phone: contact.phone,
+          message,
+          status: "PENDING",
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      return res.status(201).json({ success: true, drafts: createdDrafts });
+    } catch (error) {
+      console.error("SMS draft create error:", error);
+      return res.status(500).json({ success: false, error: "Failed to save SMS message" });
+    }
+  });
+
+  app.patch("/api/admin/sms-drafts/:id/sent", requireAuth, async (req, res) => {
+    const { id } = req.params;
+    if (!id || id.length > 80) {
+      return res.status(400).json({ success: false, error: "Invalid SMS message ID" });
+    }
+
+    try {
+      await prisma.$executeRawUnsafe(
+        `UPDATE "SmsDraft" SET "status" = 'SENT', "sentAt" = CURRENT_TIMESTAMP WHERE "id" = ?`,
+        id,
+      );
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("SMS draft sent update error:", error);
+      return res.status(500).json({ success: false, error: "Failed to mark SMS as sent" });
+    }
+  });
+
+  app.delete("/api/admin/sms-drafts/:id", requireAuth, async (req, res) => {
+    const { id } = req.params;
+    if (!id || id.length > 80) {
+      return res.status(400).json({ success: false, error: "Invalid SMS message ID" });
+    }
+
+    try {
+      await prisma.$executeRawUnsafe(`DELETE FROM "SmsDraft" WHERE "id" = ?`, id);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("SMS draft delete error:", error);
+      return res.status(500).json({ success: false, error: "Failed to delete SMS message" });
+    }
   });
 
   app.post("/api/social-click", (req, res) => {
@@ -2359,6 +2517,7 @@ async function startServer() {
       return res.json({
         booking: {
           id: safeBooking.id,
+          clientId: safeBooking.clientId,
           name: safeBooking.name,
           repairType: safeBooking.repairType,
           preferredDate: safeBooking.preferredDate,
@@ -2452,6 +2611,7 @@ async function startServer() {
 
       const headers = [
         "Booking Code",
+        "Client ID",
         "Internal ID",
         "Name",
         "Phone",
@@ -2486,6 +2646,7 @@ async function startServer() {
       ];
       const rows = bookings.map((booking) => [
         formatBookingDisplayId(booking),
+        booking.clientId,
         booking.id,
         booking.name,
         booking.phone,

@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { BookingRequest, Booking, BookingStatus, BookingStatusHistoryEntry, ManualBookingRequest } from "../shared/types";
 import { prisma } from "./prisma";
 
@@ -75,6 +75,7 @@ export function parseStatusHistory(value: string | null | undefined) {
 export function toBooking(record: any): Booking {
   return {
     ...record,
+    clientId: record.clientId ?? undefined,
     preferredDate: record.preferredDate ?? undefined,
     message: record.message ?? undefined,
     customerToken: record.customerToken ?? undefined,
@@ -200,6 +201,17 @@ function getManualReminderAt(appointmentTime?: string) {
   return new Date(Math.max(Date.now(), appointmentMs - TWO_HOURS_MS)).toISOString();
 }
 
+function normalizeClientKey(booking: Pick<BookingRequest, "phone" | "email">) {
+  const phoneDigits = booking.phone?.replace(/\D/g, "") || "";
+  const email = booking.email?.trim().toLowerCase() || "";
+  return phoneDigits || email || randomUUID();
+}
+
+export function getClientIdForContact(booking: Pick<BookingRequest, "phone" | "email">) {
+  const digest = createHash("sha1").update(normalizeClientKey(booking)).digest("hex").slice(0, 8).toUpperCase();
+  return `FMD-C${digest}`;
+}
+
 export async function saveBooking(booking: BookingRequest): Promise<Booking> {
   const statusHistory: BookingStatusHistoryEntry[] = [
     {
@@ -211,6 +223,7 @@ export async function saveBooking(booking: BookingRequest): Promise<Booking> {
 
   // Sanitize inputs
   const sanitizedBooking = {
+    clientId: getClientIdForContact(booking),
     name: booking.name.trim(),
     phone: booking.phone.trim(),
     email: booking.email.trim().toLowerCase(),
@@ -240,7 +253,7 @@ export async function saveBooking(booking: BookingRequest): Promise<Booking> {
   };
 
   const result = await prisma.booking.create({
-    data: sanitizedBooking,
+    data: sanitizedBooking as any,
   });
 
   return toBooking(result);
@@ -260,6 +273,7 @@ export async function saveManualBooking(booking: ManualBookingRequest): Promise<
   const result = await prisma.booking.create({
     data: {
       name: booking.name.trim(),
+      clientId: getClientIdForContact({ phone: booking.phone, email: booking.email || "" }),
       phone: booking.phone.trim(),
       email: booking.email?.trim().toLowerCase() || "",
       address: booking.address?.trim() || "Phone request - address not confirmed",
@@ -279,7 +293,7 @@ export async function saveManualBooking(booking: ManualBookingRequest): Promise<
       reminderWindow: reminderAt ? "2 hours before appointment" : null,
       reminderNote: reminderAt ? `About 2 hours left to go and do the ${booking.repairType.trim()} job. Check the customer details, route, tools, and parts before leaving.` : null,
       statusHistory: serializeStatusHistory(statusHistory),
-    },
+    } as any,
   });
 
   return toBooking(result);

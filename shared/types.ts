@@ -47,6 +47,7 @@ export interface ManualBookingRequest {
 
 export interface Booking extends BookingRequest {
   id: string;
+  clientId?: string;
   status: "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   customerToken?: string;
   appointmentTime?: string;
@@ -130,3 +131,15 @@ export type ContentCategory =
   | "ownerProfile";
 
 export type ContentItemRequest = Omit<ContentItem, "id" | "createdAt" | "updatedAt">;
+
+export interface SmsDraft {
+  id: string;
+  clientId?: string;
+  bookingId?: string;
+  clientName: string;
+  phone: string;
+  message: string;
+  status: "PENDING" | "SENT";
+  createdAt: string;
+  sentAt?: string;
+}
