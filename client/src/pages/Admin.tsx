@@ -565,6 +565,7 @@ export default function Admin() {
   const [smsDrafts, setSmsDrafts] = useState<SmsDraft[]>([]);
   const [smsDraftLoading, setSmsDraftLoading] = useState(false);
   const [smsDraftSaving, setSmsDraftSaving] = useState(false);
+  const [smsPanelOpen, setSmsPanelOpen] = useState(false);
   const [adminNotificationSupported, setAdminNotificationSupported] = useState(false);
   const [adminNotificationsEnabled, setAdminNotificationsEnabled] = useState(false);
   const [adminNotificationLoading, setAdminNotificationLoading] = useState(false);
@@ -986,6 +987,7 @@ export default function Admin() {
   const clearSmsContacts = () => {
     setSmsSelectedBookingIds([]);
     setSmsManualNumbers("");
+    setSmsMessage("");
   };
 
   const getBulkSmsContacts = () => {
@@ -2042,7 +2044,12 @@ export default function Admin() {
                   type="button"
                   variant="outline"
                   className="h-10 bg-white px-2 text-xs md:text-sm"
-                  onClick={() => document.getElementById("sms-message-manager")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  onClick={() => {
+                    setSmsPanelOpen(true);
+                    window.setTimeout(() => {
+                      document.getElementById("sms-message-manager")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }, 50);
+                  }}
                 >
                   <MessageCircle className="mr-1.5 h-4 w-4" />
                   SMS
@@ -2212,18 +2219,29 @@ export default function Admin() {
                 <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground md:text-sm">
                   To send from the company line, open this dashboard on the Canadian company phone. The free option opens the phone SMS app with the message ready for final sending.
                 </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Badge variant="secondary" className="text-[0.65rem]">{smsDrafts.length} saved for Richard</Badge>
+                  <Badge variant="outline" className="bg-white text-[0.65rem]">{smsSelectedBookingIds.length} selected</Badge>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:flex">
-                <Button type="button" variant="outline" className="h-9 bg-white px-3 text-xs font-bold" onClick={selectVisibleSmsContacts}>
+                <Button
+                  type="button"
+                  className="h-9 bg-[#6B4423] px-3 text-xs font-bold text-white hover:bg-[#543218]"
+                  onClick={() => setSmsPanelOpen((open) => !open)}
+                >
+                  {smsPanelOpen ? "Close" : "Open SMS Tools"}
+                </Button>
+                <Button type="button" variant="outline" className={`${smsPanelOpen ? "" : "hidden sm:inline-flex"} h-9 bg-white px-3 text-xs font-bold`} onClick={selectVisibleSmsContacts}>
                   Select All
                 </Button>
-                <Button type="button" variant="outline" className="h-9 bg-white px-3 text-xs font-bold" onClick={clearSmsContacts}>
+                <Button type="button" variant="outline" className={`${smsPanelOpen ? "" : "hidden sm:inline-flex"} h-9 bg-white px-3 text-xs font-bold`} onClick={clearSmsContacts}>
                   Clear
                 </Button>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-3 p-3 md:grid-cols-[0.9fr_1.1fr] md:p-5">
+          <CardContent className={`${smsPanelOpen ? "grid" : "hidden"} gap-3 p-3 md:grid-cols-[0.9fr_1.1fr] md:p-5`}>
             <div className="rounded-2xl border border-primary/10 bg-[#fffaf2] p-3">
               <div className="flex items-center justify-between gap-2">
                 <div>
@@ -2290,7 +2308,16 @@ export default function Admin() {
               <div>
                 <div className="flex items-center justify-between gap-2">
                   <Label htmlFor="bulk-sms-message">Message</Label>
-                  <span className="text-[0.68rem] font-bold text-[#8a5a2d]">{smsMessage.length}/480</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="text-[0.68rem] font-bold text-red-700 underline-offset-2 hover:underline"
+                      onClick={() => setSmsMessage("")}
+                    >
+                      Clear message
+                    </button>
+                    <span className="text-[0.68rem] font-bold text-[#8a5a2d]">{smsMessage.length}/480</span>
+                  </div>
                 </div>
                 <Textarea
                   id="bulk-sms-message"
