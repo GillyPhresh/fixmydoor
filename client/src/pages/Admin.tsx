@@ -1277,7 +1277,7 @@ export default function Admin() {
       "",
       draft.authorizationText,
       "",
-      "For security-related work, FixMyDoor Services may ask reasonable questions or request simple confirmation that the customer is authorized to request the service. The purpose is to protect the customer, the property, and the business.",
+      "Verification and consent clause: The client agrees that, where the requested work involves access, unlocking, rekeying, lock replacement, or any other security-sensitive service, FixMyDoor Services may reasonably confirm that the client is authorized to request the work before service begins. This confirmation is required to protect the client, the property, FixMyDoor Services, and all parties connected to the request.",
       "FixMyDoor Services maintains a public business presence through Google Business Profile and Yellow Pages Canada advertising/profile services for customer visibility and trust.",
       "",
       `Client digital signature: ${draft.clientSignature || "[Client must type full name]"}`,
@@ -1311,10 +1311,10 @@ export default function Admin() {
 
     printableWindow.document.write(`<!doctype html><html><head><title>FixMyDoor Security Authorization</title><style>
       @page { size: A4; margin: 10mm; }
-      body { margin:0; font-family: Georgia, "Times New Roman", serif; color:#241813; background:#fffdf9; font-size:11.5px; line-height:1.34; }
+      body { margin:0; font-family:"Times New Roman", Times, Georgia, serif; color:#241813; background:#fffdf9; font-size:11.8px; line-height:1.36; }
       .top { border-bottom:2px solid #dcc7b2; padding:12px 0 11px; display:grid; grid-template-columns:112px 1fr; gap:18px; align-items:center; }
       .logo { width:102px; height:102px; border-radius:22px; border:1px solid #ead8bf; object-fit:contain; padding:7px; background:#fff; }
-      h1 { margin:0; color:#71170f; font-size:25px; letter-spacing:.01em; } .tag { color:#6b4423; font-weight:700; margin-top:2px; font-family:Arial, Helvetica, sans-serif; }
+      h1 { margin:0; color:#71170f; font-size:25px; letter-spacing:.01em; } .tag { color:#6b4423; font-weight:700; margin-top:2px; font-family:"Times New Roman", Times, Georgia, serif; }
       h2 { color:#71170f; text-align:center; margin:15px 0 4px; font-size:17px; text-transform:uppercase; letter-spacing:.07em; }
       .sub { text-align:center; color:#6b5a50; margin:0 0 14px; }
       .box { border:1px solid #dcc7b2; border-radius:12px; margin-top:10px; overflow:hidden; background:#fff; }
@@ -1322,7 +1322,8 @@ export default function Admin() {
       .body { padding:10px; } .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 14px; }
       .full { grid-column:1/-1; } .label { display:block; font-size:9px; color:#6b5a50; font-weight:800; text-transform:uppercase; }
       .value { border-bottom:1px solid #bca48d; min-height:18px; padding-top:3px; font-weight:700; }
-      .notice { margin-top:10px; padding:9px 11px; border-left:4px solid #71170f; background:#fff6ef; border-radius:10px; }
+      .notice { margin-top:10px; padding:10px 12px; border:1px solid #dcc7b2; border-left:5px solid #71170f; background:#fffaf2; border-radius:10px; }
+      .notice strong { display:block; margin-bottom:3px; color:#71170f; text-transform:uppercase; letter-spacing:.06em; font-size:10px; }
       .signatures { display:grid; grid-template-columns:1fr 1fr; gap:28px; margin-top:18px; align-items:end; }
       .typed { min-height:38px; border-bottom:1.5px solid #8f6a48; font-family:"Brush Script MT","Segoe Script",cursive; font-size:24px; color:#111; }
       .official { width:112px; height:auto; display:block; margin-bottom:2px; mix-blend-mode:multiply; }
@@ -1343,7 +1344,7 @@ export default function Admin() {
         <div><span class="label">Authorization type</span><div class="value">${htmlEscape(draft.authorityType)}</div></div>
       </div></section>
       <section class="box"><h3>Official Client Agreement Statement</h3><div class="body">${htmlEscape(draft.authorizationText).replaceAll("\n", "<br>")}</div></section>
-      <div class="notice">For security-sensitive requests, FixMyDoor Services may ask reasonable questions or request simple confirmation that the customer is authorized to request the work. This protects the customer, the property, and the business.</div>
+      <div class="notice"><strong>Verification and Consent Clause</strong>The client agrees that, where the requested work involves access, unlocking, rekeying, lock replacement, or any other security-sensitive service, FixMyDoor Services may reasonably confirm that the client is authorized to request the work before service begins. This confirmation is required to protect the client, the property, FixMyDoor Services, and all parties connected to the request.</div>
       <section class="signatures"><div><div class="typed">${htmlEscape(draft.clientSignature || draft.clientName)}</div><strong>${htmlEscape(draft.clientName || "Client")}</strong><br><span>Client digital signature</span></div><div><img class="official" src="/fixmydoor-richard-ampofo-signature.jpg" /><div class="line"></div><strong>Richard Ampofo</strong><br><span>Authorized Representative, FixMyDoor Services</span></div></section>
       <footer><span>FixMyDoor Services - Official Authorization Document<br>Door repairs, installations, locks, furniture, and hardware sourcing</span><span>Business visibility supported through Google Business Profile and Yellow Pages Canada advertising/profile services.</span></footer>
     </body></html>`);

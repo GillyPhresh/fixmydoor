@@ -21,7 +21,7 @@
       margin: 0;
       background: #ede6dd;
       color: var(--ink);
-      font-family: Georgia, "Times New Roman", serif;
+      font-family: "Times New Roman", Times, Georgia, serif;
       font-size: 12px;
       line-height: 1.36;
     }
@@ -84,7 +84,7 @@
       color: var(--brown);
       font-weight: 700;
       font-size: 14px;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: "Times New Roman", Times, Georgia, serif;
     }
 
     .contact {
@@ -191,10 +191,20 @@
     .notice {
       margin-top: 14px;
       padding: 12px 14px;
+      border: 1px solid var(--line);
       border-left: 5px solid var(--deep);
-      background: #fff6ef;
+      background: #fffaf2;
       border-radius: 12px;
       color: #3d2a21;
+    }
+
+    .notice strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--deep);
+      font-size: 10.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .authorization p {
@@ -345,7 +355,8 @@
       </section>
 
       <div class="notice">
-        For security-sensitive requests, FixMyDoor Services may ask reasonable questions or request simple confirmation that the customer is authorized to request the work. This protects the customer, the property, and the business.
+        <strong>Verification and Consent Clause</strong>
+        The client agrees that, where the requested work involves access, unlocking, rekeying, lock replacement, or any other security-sensitive service, FixMyDoor Services may reasonably confirm that the client is authorized to request the work before service begins. This confirmation is required to protect the client, the property, FixMyDoor Services, and all parties connected to the request.
       </div>
 
       <section class="signature-grid">
