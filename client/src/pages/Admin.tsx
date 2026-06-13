@@ -1277,7 +1277,7 @@ export default function Admin() {
       "",
       draft.authorizationText,
       "",
-      "Verification and consent clause: The client agrees that, where the requested work involves access, unlocking, rekeying, lock replacement, or any other security-sensitive service, FixMyDoor Services may reasonably confirm that the client is authorized to request the work before service begins. This confirmation is required to protect the client, the property, FixMyDoor Services, and all parties connected to the request.",
+      "Authorization confirmation: The client confirms that they are authorized to request the security-related service described in this agreement. For services involving access, unlocking, rekeying, lock replacement, or secured property, FixMyDoor Services may confirm the client's authority before work begins. This confirmation helps protect the client, the property, and FixMyDoor Services.",
       "FixMyDoor Services maintains a public business presence through Google Business Profile and Yellow Pages Canada advertising/profile services for customer visibility and trust.",
       "",
       `Client digital signature: ${draft.clientSignature || "[Client must type full name]"}`,
@@ -1344,8 +1344,8 @@ export default function Admin() {
         <div><span class="label">Authorization type</span><div class="value">${htmlEscape(draft.authorityType)}</div></div>
       </div></section>
       <section class="box"><h3>Official Client Agreement Statement</h3><div class="body">${htmlEscape(draft.authorizationText).replaceAll("\n", "<br>")}</div></section>
-      <div class="notice"><strong>Verification and Consent Clause</strong>The client agrees that, where the requested work involves access, unlocking, rekeying, lock replacement, or any other security-sensitive service, FixMyDoor Services may reasonably confirm that the client is authorized to request the work before service begins. This confirmation is required to protect the client, the property, FixMyDoor Services, and all parties connected to the request.</div>
-      <section class="signatures"><div><div class="typed">${htmlEscape(draft.clientSignature || draft.clientName)}</div><strong>${htmlEscape(draft.clientName || "Client")}</strong><br><span>Client digital signature</span></div><div><img class="official" src="/fixmydoor-richard-ampofo-signature.jpg" /><div class="line"></div><strong>Richard Ampofo</strong><br><span>Authorized Representative, FixMyDoor Services</span></div></section>
+      <div class="notice"><strong>Authorization Confirmation</strong>The client confirms that they are authorized to request the security-related service described in this agreement. For services involving access, unlocking, rekeying, lock replacement, or secured property, FixMyDoor Services may confirm the client's authority before work begins. This confirmation helps protect the client, the property, and FixMyDoor Services.</div>
+      <section class="signatures"><div><div class="typed">${htmlEscape(draft.clientSignature || draft.clientName)}</div><strong>${htmlEscape(draft.clientName || "Authorized Client")}</strong><br><span>Authorized Client Approval</span></div><div><img class="official" src="/fixmydoor-richard-ampofo-signature.jpg" /><div class="line"></div><strong>Richard Ampofo</strong><br><span>Authorized Representative, FixMyDoor Services</span></div></section>
       <footer><span>FixMyDoor Services - Official Authorization Document<br>Door repairs, installations, locks, furniture, and hardware sourcing</span><span>Business visibility supported through Google Business Profile and Yellow Pages Canada advertising/profile services.</span></footer>
     </body></html>`);
     printableWindow.document.close();
