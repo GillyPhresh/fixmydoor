@@ -1303,13 +1303,30 @@ export default function Admin() {
     const htmlEscape = (value: string) =>
       value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
     const draft = securityAuthorizationDraft;
-    const printableWindow = window.open("", "_blank", "width=900,height=1100");
-    if (!printableWindow) {
-      toast.error("Allow pop-ups so the authorization document can open.");
+    const existingFrame = document.getElementById("security-authorization-print-frame");
+    existingFrame?.remove();
+    const printableFrame = document.createElement("iframe");
+    printableFrame.id = "security-authorization-print-frame";
+    printableFrame.title = "FixMyDoor security authorization print document";
+    printableFrame.style.position = "fixed";
+    printableFrame.style.right = "0";
+    printableFrame.style.bottom = "0";
+    printableFrame.style.width = "1px";
+    printableFrame.style.height = "1px";
+    printableFrame.style.border = "0";
+    printableFrame.style.opacity = "0";
+    printableFrame.style.pointerEvents = "none";
+    document.body.appendChild(printableFrame);
+    const printableWindow = printableFrame.contentWindow;
+    const printableDocument = printableFrame.contentDocument || printableWindow?.document;
+    if (!printableWindow || !printableDocument) {
+      printableFrame.remove();
+      toast.error("Unable to prepare the print document. Please try again.");
       return;
     }
 
-    printableWindow.document.write(`<!doctype html><html><head><title>FixMyDoor Security Authorization</title><style>
+    printableDocument.open();
+    printableDocument.write(`<!doctype html><html><head><title>FixMyDoor Security Authorization</title><style>
       @page { size: A4; margin: 10mm; }
       body { margin:0; font-family:"Times New Roman", Times, Georgia, serif; color:#241813; background:#fffdf9; font-size:11.8px; line-height:1.36; }
       .top { border-bottom:2px solid #dcc7b2; padding:12px 0 11px; display:grid; grid-template-columns:112px 1fr; gap:18px; align-items:center; }
@@ -1329,15 +1346,8 @@ export default function Admin() {
       .official { width:112px; height:auto; display:block; margin-bottom:2px; mix-blend-mode:multiply; }
       .line { border-bottom:1.5px solid #8f6a48; height:1px; margin-bottom:4px; }
       footer { margin-top:14px; border-top:1px solid #ead8bf; padding-top:7px; color:#6b5a50; font-size:9.2px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-      .print-actions { position:fixed; right:16px; top:16px; z-index:20; display:flex; gap:8px; }
-      .print-actions button { background:#71170f; color:#fff; border:0; border-radius:999px; padding:10px 16px; font-weight:800; cursor:pointer; box-shadow:0 10px 24px rgba(36,24,19,.18); }
-      .print-actions .close { background:#6b4423; }
-      @media print { .print-actions { display:none; } }
+      @media print { body { background:#fff; } }
     </style></head><body>
-      <div class="print-actions">
-        <button id="print-security-authorization" type="button">Print / Save PDF</button>
-        <button id="close-security-authorization" class="close" type="button">Close</button>
-      </div>
       <header class="top"><img class="logo" src="/fixmydoor-logo-transparent.png" /><div><h1>FixMyDoor Services</h1><div class="tag">Door & Furniture Repair Services</div><div>10158 Rue Berri, Montreal, QC H3L 2G6, Canada<br>+1 (438) 347-1823 | info.fixmydoor@gmail.com | www.fixmydoor.ca</div></div></header>
       <h2>Security Service Authorization Agreement</h2><p class="sub">For unlocking, rekeying, lock replacement, entry repair, and related security services.</p>
       <section class="box"><h3>Client and Service Details</h3><div class="body grid">
@@ -1353,34 +1363,18 @@ export default function Admin() {
       <div class="notice"><strong>Authorization Confirmation</strong>The client confirms that they are authorized to request the security-related service described in this agreement. For services involving access, unlocking, rekeying, lock replacement, or secured property, FixMyDoor Services may confirm the client's authority before work begins. This confirmation helps protect the client, the property, and FixMyDoor Services.</div>
       <section class="signatures"><div><div class="typed">${htmlEscape(draft.clientSignature || draft.clientName)}</div><strong>${htmlEscape(draft.clientName || "Authorized Client")}</strong><br><span>Authorized Client Approval</span></div><div><img class="official" src="/fixmydoor-richard-ampofo-signature.jpg" /><div class="line"></div><strong>Richard Ampofo</strong><br><span>Authorized Representative, FixMyDoor Services</span></div></section>
       <footer><span>FixMyDoor Services - Official Authorization Document<br>Door repairs, installations, locks, furniture, and hardware sourcing</span><span>Business visibility supported through Google Business Profile and Yellow Pages Canada advertising/profile services.</span></footer>
-      <script>
-        (function () {
-          var printButton = document.getElementById("print-security-authorization");
-          var closeButton = document.getElementById("close-security-authorization");
-          function printDocument() {
-            try {
-              window.focus();
-              setTimeout(function () {
-                if (typeof window.print === "function") {
-                  window.print();
-                }
-              }, 120);
-            } catch (error) {
-              alert("Please use your browser menu to print or save this document as PDF.");
-            }
-          }
-          if (printButton) {
-            printButton.addEventListener("click", printDocument);
-          }
-          if (closeButton) {
-            closeButton.addEventListener("click", function () {
-              window.close();
-            });
-          }
-        })();
-      </script>
     </body></html>`);
-    printableWindow.document.close();
+    printableDocument.close();
+    window.setTimeout(() => {
+      try {
+        printableWindow.focus();
+        printableWindow.print();
+        window.setTimeout(() => printableFrame.remove(), 1500);
+      } catch {
+        printableFrame.remove();
+        toast.error("Print did not open. Use your browser menu and choose Print or Save as PDF.");
+      }
+    }, 350);
   };
 
   const saveBookingWorkflow = async () => {
