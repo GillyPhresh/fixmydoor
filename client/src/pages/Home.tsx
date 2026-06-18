@@ -2788,7 +2788,7 @@ export default function Home() {
                 </article>
               ))}
               </div>
-              <YellowPagesReviewWidget />
+              {false && <YellowPagesReviewWidget />}
             </div>
 
             {reviewFormOpen && (
