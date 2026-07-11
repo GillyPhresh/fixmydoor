@@ -17,11 +17,11 @@ export interface ServiceSeoPage extends SeoPage {
 
 export const homeSeoPage: SeoPage = {
   path: "/",
-  title: "FixMyDoor Services | Door Repair, Furniture Repair & Hardware Sourcing",
+  title: "FixMyDoor Services | Door, Lock & Furniture Help in Montreal",
   description:
-    "FixMyDoor Services helps Montreal and Quebec customers with door repair, lock rekeying, entry door installation, furniture repair, furniture installation, and hardware sourcing.",
+    "Need door repair, lock rekeying, furniture repair, installation, or hardware sourcing in Montreal? Send photos and get clear help from FixMyDoor Services.",
   keywords:
-    "FixMyDoor Services, Montreal door repair, door repair Montreal, door repairs near me Montreal, Quebec door installation, entry door installation Montreal, lock rekeying Montreal, furniture repair Montreal, furniture installation Montreal, door hardware Montreal, Laval door repair, Longueuil door repair, Brossard door repair, Canada door repair",
+    "FixMyDoor Services, door repair Montreal, serrurier Montreal, locksmith Montreal, door hardware repair, lock rekeying Montreal, furniture repair Montreal, hardware sourcing Montreal, entry door installation Montreal, Laval door repair, Longueuil door repair",
   sitemapPriority: "1.0",
   changeFrequency: "weekly",
 };
@@ -52,11 +52,11 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/door-repair": {
     path: "/door-repair",
     eyebrow: "Door Repair",
-    title: "Door Repair Services in Montreal - Sticking, Sagging & Damaged Doors Fixed",
+    title: "Door Repair Montreal | Sticking, Sagging & Damaged Doors",
     description:
-      "Book help for sticking doors, damaged frames, loose handles, hinge problems, poor sealing, and doors that no longer close properly.",
+      "Door not closing, dragging, rubbing, or damaged? FixMyDoor Services helps Montreal customers with door repair, hinges, frames, handles, and clear photo review.",
     keywords:
-      "door repair Montreal, Montreal door repair, fixing doors Montreal, sticking door repair, damaged door frame Montreal, door hinge repair, door handle repair, door repairs Quebec, door repair near me",
+      "door repair Montreal, Montreal door repair, fixing doors Montreal, sticking door repair, damaged door frame Montreal, door hinge repair, door handle repair, door repairs Quebec, door repair near me, reparation de porte Montreal",
     bullets: ["Sticking, dragging, sagging, or scraping doors", "Frame, latch, hinge, and handle repairs", "Photo-based review before follow-up"],
     cta: "Book Door Repair",
     bookingValue: "door-repair",
@@ -67,11 +67,11 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/lock-rekeying": {
     path: "/lock-rekeying",
     eyebrow: "Lock Rekeying",
-    title: "Lock Rekeying & Door Lock Replacement | FixMyDoor Services",
+    title: "Lock Rekeying Montreal | Door Lock & Handle Help",
     description:
-      "Request lock rekeying, lock replacement, handle changes, cylinder support, and safer entry hardware for homes, rentals, offices, and business spaces.",
+      "Need lock rekeying, cylinder replacement, handle repair, or safer entry hardware in Montreal? Send photos and get clear guidance from FixMyDoor Services.",
     keywords:
-      "lock rekeying Montreal, door lock replacement Montreal, rekey front door, lock repair, door cylinder replacement, handle replacement Montreal, safer door lock, Quebec door hardware",
+      "lock rekeying Montreal, serrurier Montreal, locksmith Montreal, door lock replacement Montreal, rekey front door, lock repair Montreal, door cylinder replacement, handle replacement Montreal, safer door lock, Quebec door hardware",
     bullets: ["Rekeying after missing keys or tenant changes", "Cylinder, latch, handle, and hinge support", "Security-focused recommendations"],
     cta: "Request Lock Help",
     bookingValue: "lock-rekeying",
@@ -82,9 +82,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/furniture-repair": {
     path: "/furniture-repair",
     eyebrow: "Furniture Repair",
-    title: "Furniture Repair Services - Sofa Frames, Cabinets, Drawers & More",
+    title: "Furniture Repair Montreal | Cabinets, Drawers, Sofas & Chairs",
     description:
-      "Send photos for sofa frame repairs, loose joints, cabinet hinges, drawer slides, chair repairs, and furniture parts that need practical repair or replacement.",
+      "Furniture problem in Montreal? FixMyDoor Services helps with cabinets, drawer slides, sofa frames, loose chairs, hardware replacement, and photo-based guidance.",
     keywords:
       "furniture repair Montreal, sofa repair Montreal, cabinet repair, drawer slide repair, chair repair Montreal, furniture restoration, furniture parts, furniture repair Quebec",
     bullets: ["Sofa, cabinet, drawer, chair, and table support", "Loose joints, broken parts, and hardware replacement", "Clear next steps from photos and measurements"],
@@ -97,9 +97,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/furniture-installation": {
     path: "/furniture-installation",
     eyebrow: "Furniture Installation",
-    title: "Furniture Installation Services | Setup, Fitting & Hardware Help",
+    title: "Furniture Installation Montreal | Setup, Fitting & Hardware",
     description:
-      "Request help with furniture installation, setup, fitting, alignment, cabinet hardware, drawer slides, shelves, desks, and practical furniture assembly support.",
+      "Need furniture installation in Montreal? Get help with setup, fitting, cabinets, drawer slides, shelves, desks, office furniture, and hardware support.",
     keywords:
       "furniture installation Montreal, furniture setup Montreal, cabinet installation, drawer slide installation, furniture assembly Montreal, cabinet hardware installation, furniture fitting Quebec",
     bullets: ["Furniture setup, fitting, and alignment", "Cabinet, drawer, desk, shelf, and hardware installation", "Photos and measurements reviewed before follow-up"],
@@ -112,9 +112,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/entry-door-installation": {
     path: "/entry-door-installation",
     eyebrow: "Entry Door Installation",
-    title: "Entry Door Installation in Montreal - Front Door Replacement & Fitting",
+    title: "Entry Door Installation Montreal | Front Door Fitting",
     description:
-      "Request help with front door replacement, entry door fitting, hardware matching, swing direction, measurements, delivery, and installation planning.",
+      "Planning an entry door installation in Montreal? Get help with measurements, swing direction, front door fitting, hardware matching, and clear next steps.",
     keywords:
       "entry door installation Montreal, front door replacement Montreal, install exterior door, door fitting Montreal, front door installation Quebec, replacement doors, door measurement",
     bullets: ["Front, entry, interior, steel, wood-look, and glass-panel doors", "Measurements, swing direction, hardware, and finish guidance", "Delivery and installation planning when needed"],
@@ -127,9 +127,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/door-alignment": {
     path: "/door-alignment",
     eyebrow: "Door Alignment",
-    title: "Door Alignment & Hinge Adjustment | Fix Doors That Rub or Drag",
+    title: "Door Alignment Montreal | Hinge Adjustment & Door Gaps",
     description:
-      "Get help with doors that rub, drag, leave gaps, swing open, fail to latch, or need hinge adjustment for a cleaner close.",
+      "Door rubbing, dragging, swinging open, or failing to latch? FixMyDoor Services helps Montreal customers with alignment, hinges, gaps, and strike plates.",
     keywords:
       "door alignment, hinge adjustment, door rubbing frame, door dragging floor, door not closing, door gap repair, fix sagging door",
     bullets: ["Doors that rub, scrape, drag, or swing badly", "Hinge, latch, strike plate, and gap checks", "Cleaner closing without replacing the full door when possible"],
@@ -142,9 +142,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/door-purchase": {
     path: "/door-purchase",
     eyebrow: "Buy Doors",
-    title: "Buy Doors | Entry, Interior, Steel, Wood & Glass Door Sourcing",
+    title: "Buy Doors Montreal | Entry, Interior, Steel & Glass Options",
     description:
-      "Ask FixMyDoor Services to help source entry doors, interior doors, heavy doors, Paladin doors, SED doors, wood-look doors, glass-panel doors, and custom-size options.",
+      "Need help buying the right door? FixMyDoor Services can review measurements, style, hardware, and sourcing options for entry, interior, steel, and glass doors.",
     keywords:
       "buy doors, purchase doors, entry doors for sale, interior doors, heavy doors, Paladin doors, SED doors, glass doors, steel doors, door supplier Canada",
     bullets: ["Entry, interior, heavy-duty, glass-panel, steel, and wood-look options", "Paladin doors, SED doors, heavy doors, and many sizes", "Size, quantity, finish, and hardware guidance before buying"],
@@ -157,9 +157,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/buy-door-hardware": {
     path: "/buy-door-hardware",
     eyebrow: "Buy Door Hardware",
-    title: "Buy Door Hardware | Locks, Handles, Hinges, Cylinders & Door Kits",
+    title: "Buy Door Hardware Montreal | Locks, Handles, Hinges & Kits",
     description:
-      "Source door handles, locks, cylinders, hinges, backplates, mortise kits, bathroom locks, entry hardware, and full door hardware sets.",
+      "Need door hardware in Montreal? Get help sourcing locks, handles, hinges, cylinders, backplates, mortise kits, bathroom locks, and entry hardware.",
     keywords:
       "buy door hardware, door handles, door locks, hinges, lock cylinders, mortise lock, bathroom door lock, door hardware Canada, door equipment",
     bullets: ["Handles, locks, cylinders, hinges, backplates, and full kits", "Bathroom, entry, interior, and security hardware options", "Help matching finish, size, and door type"],
@@ -172,9 +172,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/furniture-hardware-purchase": {
     path: "/furniture-hardware-purchase",
     eyebrow: "Buy Furniture Hardware",
-    title: "Buy Furniture Hardware | Drawer Slides, Cabinet Hinges & Parts",
+    title: "Furniture Hardware Montreal | Drawer Slides, Hinges & Parts",
     description:
-      "Request drawer slides, soft-close runners, cabinet hinges, furniture repair hardware, replacement fittings, and parts for practical furniture fixes.",
+      "Need furniture replacement parts? FixMyDoor Services helps source drawer slides, cabinet hinges, soft-close runners, fittings, and repair hardware.",
     keywords:
       "buy furniture hardware, drawer slides, cabinet hinges, soft close runners, furniture parts, furniture repair hardware, cabinet hardware Canada",
     bullets: ["Drawer slides, soft-close runners, cabinet hinges, and repair parts", "Practical matching support from photos and measurements", "Useful for repairs, replacement, or new furniture setup"],
@@ -187,9 +187,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/door-hardware": {
     path: "/door-hardware",
     eyebrow: "Hardware Sourcing",
-    title: "Door & Furniture Hardware Sourcing - Locks, Hinges, Handles & Parts",
+    title: "Hardware Sourcing Montreal | Door & Furniture Parts",
     description:
-      "Send measurements, photos, quantity, finish, and budget so FixMyDoor Services can help source the right door equipment, furniture parts, locks, hinges, and hardware.",
+      "Looking for door or furniture parts in Montreal? Send photos and measurements for help sourcing locks, hinges, handles, cabinet hardware, and fittings.",
     keywords:
       "hardware sourcing, door equipment, source door parts, source furniture parts, door hardware sourcing, repair parts, locks hinges handles",
     bullets: ["Door equipment, locks, hinges, handles, and furniture hardware", "Photos, measurements, quantity, finish, and budget review", "Canada-based coordination with international request support"],
@@ -202,9 +202,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/international-requests": {
     path: "/international-requests",
     eyebrow: "International Requests",
-    title: "International Door, Furniture & Hardware Requests | FixMyDoor Services",
+    title: "International Door, Furniture & Hardware Requests",
     description:
-      "FixMyDoor Services is Canada-based and supports international requests for door buying, repair guidance, furniture parts, hardware sourcing, measurements, and quote preparation.",
+      "Outside Montreal or Canada? Send door, furniture, or hardware details for Canada-based sourcing guidance, measurements, repair planning, and quote preparation.",
     keywords:
       "international door requests, international furniture repair support, buy doors internationally, hardware sourcing worldwide, Canada door service international",
     bullets: ["Country, city, time zone, and currency-aware requests", "WhatsApp, email, and phone follow-up", "Door, furniture, and hardware sourcing support"],
