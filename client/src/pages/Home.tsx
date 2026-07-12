@@ -41,6 +41,7 @@ import LanguageTranslator from "@/components/LanguageTranslator";
 import type { BookingRequest, ContentItem, Review, ReviewRequest } from "@shared/types";
 import { serviceCatalog as defaultServiceCatalog, type ServiceCatalogItem } from "@shared/services";
 import { formatPhoneForCountry, getPhoneCountryMeta, getPhonePlaceholder } from "@shared/phone";
+import { normalizeSeoPath, seoRouteAliases, serviceSeoPages } from "@shared/seo";
 import {
   customerPaths,
   customerReviews,
@@ -95,6 +96,12 @@ const reviewSchema = z.object({
 
 type ReviewFormData = z.infer<typeof reviewSchema>;
 type CookiePreference = "accepted" | "denied";
+type BookingContext = {
+  bookingValue: string;
+  title: string;
+  message: string;
+  image: string;
+};
 
 const ADVERT_SLIDE_DURATION_MS = 7000;
 const SLIDE_HOLD_PAUSE_MS = 12000;
@@ -217,6 +224,79 @@ const NON_CANADIAN_LOCATION_PATTERN = /\b(united states|usa|u\.s\.a\.|america|gh
 function isCanadaLocation(value?: string) {
   const normalized = (value || "").trim().toLowerCase();
   return !normalized || ["canada", "ca", "can"].includes(normalized);
+}
+
+const bookingContextPresets: Record<string, BookingContext> = {
+  "door-repair": {
+    bookingValue: "door-repair",
+    title: "Door Repair",
+    image: projectGallery[0]?.src || heroImage,
+    message: "I need help with a door repair. Please review the door, frame, hinges, latch, and alignment, then advise the best repair option.",
+  },
+  "lock-rekeying": {
+    bookingValue: "lock-rekeying",
+    title: "Lock Rekeying & Hardware",
+    image: hardwareProducts[0]?.image || heroImage,
+    message: "I need help with lock rekeying or door hardware. Please advise the safest next step, pricing, and what photos or measurements you need.",
+  },
+  "furniture-repair": {
+    bookingValue: "furniture-repair",
+    title: "Furniture Repair",
+    image: projectGallery[12]?.src || heroImage,
+    message: "I need help with furniture repair. Please review the damaged or loose part and tell me the repair option, parts needed, and next step.",
+  },
+  "furniture-installation": {
+    bookingValue: "furniture-installation",
+    title: "Furniture Installation",
+    image: projectGallery[13]?.src || heroImage,
+    message: "I need help with furniture installation. Please review the item, space, measurements, and installation details, then advise availability and pricing.",
+  },
+  "entry-door-installation": {
+    bookingValue: "entry-door-installation",
+    title: "Entry Door Installation",
+    image: doorProducts[2]?.image || heroImage,
+    message: "I need help with entry door installation. Please advise on measuring, fitting, swing direction, hardware, delivery, and installation pricing.",
+  },
+  "door-alignment": {
+    bookingValue: "door-alignment",
+    title: "Door Alignment",
+    image: projectGallery[7]?.src || heroImage,
+    message: "I need help with door alignment. Please check the rubbing, sagging, gaps, hinges, latch, and closing problem.",
+  },
+  "door-purchase": {
+    bookingValue: "door-purchase",
+    title: "Door Buying Support",
+    image: doorProducts[1]?.image || heroImage,
+    message: "I want help buying the right door. Please review my size, style, color, quantity, delivery, and installation needs.",
+  },
+  "door-hardware-purchase": {
+    bookingValue: "door-hardware-purchase",
+    title: "Door Hardware Sourcing",
+    image: hardwareProducts[3]?.image || heroImage,
+    message: "I want help sourcing door hardware. Please review the lock, handle, hinge, cylinder, finish, size, and quantity I need.",
+  },
+  "furniture-hardware-purchase": {
+    bookingValue: "furniture-hardware-purchase",
+    title: "Furniture Hardware Sourcing",
+    image: hardwareProducts[8]?.image || heroImage,
+    message: "I want help sourcing furniture hardware. Please review the drawer slides, cabinet hinges, runners, fittings, size, and quantity I need.",
+  },
+  "international-request": {
+    bookingValue: "international-request",
+    title: "International Request",
+    image: projectGallery[3]?.src || heroImage,
+    message: "I am outside Montreal or Canada and need door, furniture, or hardware support. Please review my location, time zone, photos, and measurements.",
+  },
+};
+
+function getBookingContext(bookingValue: string, fallbackTitle?: string, fallbackImage?: string, customMessage?: string): BookingContext {
+  const preset = bookingContextPresets[bookingValue];
+  return {
+    bookingValue,
+    title: fallbackTitle || preset?.title || "FixMyDoor Services Request",
+    image: fallbackImage || preset?.image || heroImage,
+    message: customMessage || preset?.message || "I need help with a FixMyDoor Services request. Please review my details and contact me with the best next step.",
+  };
 }
 
 const isVideoMedia = (media?: string) =>
@@ -462,6 +542,7 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [headerCompact, setHeaderCompact] = useState(false);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [bookingContext, setBookingContext] = useState<BookingContext | null>(null);
   const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
   const [humanCheckConfirmed, setHumanCheckConfirmed] = useState(false);
   const [activeAdvertIndex, setActiveAdvertIndex] = useState(0);
@@ -1631,12 +1712,72 @@ export default function Home() {
     };
   }, [displayedServiceShowcase.length, displayedProductCategories.length, displayedDoorProducts.length, displayedHardwareProducts.length, displayedProjectGallery.length, featuredReviews.length]);
 
-  const scrollToContactForm = () => {
+  const scrollToContactForm = useCallback(() => {
     document.getElementById("booking-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
     window.setTimeout(() => {
       document.querySelector<HTMLInputElement>("#booking-form input[name='name']")?.focus({ preventScroll: true });
     }, 500);
-  };
+  }, []);
+
+  const applyBookingContext = useCallback((
+    bookingValue: string,
+    options: {
+      label?: string;
+      image?: string;
+      message?: string;
+      replaceMessage?: boolean;
+      scroll?: boolean;
+      showToast?: boolean;
+    } = {},
+  ) => {
+    const context = getBookingContext(bookingValue, options.label, options.image, options.message);
+    setBookingContext(context);
+    form.setValue("repairType", context.bookingValue, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+
+    const currentMessage = form.getValues("message")?.trim();
+    const canReplaceMessage = options.replaceMessage || !currentMessage || /^i('| a)m interested in|^i need help with|^i want help/i.test(currentMessage);
+    if (canReplaceMessage) {
+      form.setValue("message", context.message, {
+        shouldDirty: true,
+        shouldTouch: true,
+      });
+    }
+
+    if (options.scroll !== false) {
+      scrollToContactForm();
+    }
+
+    if (options.showToast) {
+      toast.success(`${context.title} selected. Add your details and we'll follow up.`);
+    }
+  }, [form, scrollToContactForm]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedService = params.get("book") || params.get("service") || params.get("repairType");
+    const normalizedPath = normalizeSeoPath(window.location.pathname);
+    const canonicalPath = seoRouteAliases[normalizedPath] || normalizedPath;
+    const servicePage = serviceSeoPages[canonicalPath];
+    const bookingValue = requestedService || servicePage?.bookingValue;
+
+    if (!bookingValue) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      applyBookingContext(bookingValue, {
+        label: servicePage?.eyebrow || servicePage?.cta,
+        replaceMessage: false,
+        scroll: Boolean(requestedService || servicePage),
+      });
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [applyBookingContext]);
 
   const compressBookingPhoto = (file: File) =>
     new Promise<string>((resolve, reject) => {
@@ -1734,37 +1875,21 @@ export default function Home() {
   };
 
   const handleServicePick = (service: ServiceCatalogItem) => {
-    form.setValue("repairType", service.bookingValue, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
+    applyBookingContext(service.bookingValue, {
+      label: service.title,
+      showToast: true,
     });
-
-    scrollToContactForm();
-
-    toast.success(`${service.title} selected. Add your details and we'll follow up.`);
   };
 
   const handleCatalogPick = (bookingValue: string, label: string) => {
-    form.setValue("repairType", bookingValue, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
+    applyBookingContext(bookingValue, {
+      label,
+      message: `I'm interested in ${label}. Please contact me with availability, sizing, and pricing.`,
+      showToast: true,
     });
-
-    const currentMessage = form.getValues("message")?.trim();
-    if (!currentMessage) {
-      form.setValue("message", `I'm interested in ${label}. Please contact me with availability, sizing, and pricing.`, {
-        shouldDirty: true,
-      });
-    }
-
-    scrollToContactForm();
-
-    toast.success(`${label} selected. Add your details and we'll follow up.`);
   };
 
-  const handleProblemImagePick = (title: string, tag?: string) => {
+  const handleProblemImagePick = (title: string, tag?: string, image?: string) => {
     const text = `${title} ${tag || ""}`.toLowerCase();
     let bookingValue = "door-repair";
     let message = `I need help with ${title}. Please review the problem and tell me the best repair option.`;
@@ -1783,23 +1908,12 @@ export default function Home() {
       message = `I need help with ${title}. Please check the door fitting, alignment, and closing problem.`;
     }
 
-    form.setValue("repairType", bookingValue, {
-      shouldDirty: true,
-      shouldTouch: true,
-      shouldValidate: true,
+    applyBookingContext(bookingValue, {
+      label: title,
+      image,
+      message,
+      showToast: true,
     });
-
-    const currentMessage = form.getValues("message")?.trim();
-    const canReplaceMessage = !currentMessage || /^i('| a)m interested in|^i need help with/i.test(currentMessage);
-    if (canReplaceMessage) {
-      form.setValue("message", message, {
-        shouldDirty: true,
-        shouldTouch: true,
-      });
-    }
-
-    scrollToContactForm();
-    toast.success(`${title} selected. Add your contact details and we'll follow up.`);
   };
 
   const openReviewForm = () => {
@@ -2720,7 +2834,22 @@ export default function Home() {
           <div className="overflow-hidden md:hidden">
             <div id="project-gallery-mobile-carousel" className={`${mobileScrollTrackClass} md:grid md:grid-cols-2 md:gap-6 xl:grid-cols-3`}>
             {projectGalleryLoopItems.map(({ item: project, loopKey, isClone, loopEdge }, index) => (
-              <article key={loopKey} data-loop-clone={isClone || undefined} data-loop-edge={loopEdge} aria-hidden={isClone || undefined} className={`${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px]`}>
+              <article
+                key={loopKey}
+                data-loop-clone={isClone || undefined}
+                data-loop-edge={loopEdge}
+                aria-hidden={isClone || undefined}
+                role="button"
+                tabIndex={isClone ? -1 : 0}
+                onClick={() => handleProblemImagePick(project.title, project.category, project.src)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleProblemImagePick(project.title, project.category, project.src);
+                  }
+                }}
+                className={`${mobileScrollItemClass} ${isClone ? "md:hidden" : ""} cursor-pointer overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-primary/45 md:rounded-[30px]`}
+              >
                 <img src={project.src} alt={project.title} loading="lazy" decoding="async" className="h-56 w-full object-cover md:h-[300px]" />
                 <div className="p-5 md:p-6">
                   <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{project.category}</span>
@@ -2735,7 +2864,19 @@ export default function Home() {
 
           <div className="hidden md:grid md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-6">
             {desktopProjectGallery.map((project) => (
-              <article key={project.title} className="overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 md:rounded-[30px]">
+              <article
+                key={project.title}
+                role="button"
+                tabIndex={0}
+                onClick={() => handleProblemImagePick(project.title, project.category, project.src)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleProblemImagePick(project.title, project.category, project.src);
+                  }
+                }}
+                className="cursor-pointer overflow-hidden rounded-[26px] bg-white shadow-[0_18px_48px_rgba(0,0,0,0.08)] transition duration-300 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-primary/45 md:rounded-[30px]"
+              >
                 <img src={project.src} alt={project.title} loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover" />
                 <div className="p-5 md:p-6">
                   <span className="text-[0.72rem] font-bold uppercase tracking-[0.28em] text-primary">{project.category}</span>
@@ -3192,6 +3333,24 @@ export default function Home() {
                   aria-hidden="true"
                   className="hidden"
                 />
+                {bookingContext && (
+                  <div className="sm:col-span-2 overflow-hidden rounded-[22px] border border-primary/12 bg-[#fffaf2] p-3 shadow-sm">
+                    <div className="flex gap-3">
+                      <img
+                        src={bookingContext.image}
+                        alt={`${bookingContext.title} booking preview`}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-20 w-20 shrink-0 rounded-2xl object-cover sm:h-24 sm:w-28"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-[0.7rem] font-black uppercase tracking-[0.24em] text-primary">Ready to book</p>
+                        <h4 className="mt-1 text-base font-black text-secondary sm:text-lg">{bookingContext.title}</h4>
+                        <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-foreground/68 sm:text-sm">{bookingContext.message}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Name *</FormLabel><FormControl><Input placeholder="Your full name" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="phone" render={({ field }) => (
                   <FormItem>
@@ -3298,7 +3457,7 @@ export default function Home() {
                 <FormField control={form.control} name="repairType" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="font-semibold text-foreground">What Do You Need? *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || undefined}>
+                    <Select onValueChange={(value) => applyBookingContext(value, { scroll: false })} value={field.value || undefined}>
                       <FormControl><SelectTrigger id="repair-type-trigger"><SelectValue placeholder="Choose what you need help with" /></SelectTrigger></FormControl>
                       <SelectContent>
                         {bookingServices.map((service) => (

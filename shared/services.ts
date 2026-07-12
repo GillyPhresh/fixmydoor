@@ -90,4 +90,13 @@ export const serviceCatalog: ServiceCatalogItem[] = [
     showInFooter: true,
     showInBooking: true,
   },
+  {
+    slug: "international-request",
+    title: "International Requests",
+    summary: "Door, furniture, and hardware request support for customers outside Montreal or Canada.",
+    bookingValue: "international-request",
+    showOnHome: false,
+    showInFooter: true,
+    showInBooking: true,
+  },
 ];
