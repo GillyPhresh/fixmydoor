@@ -3051,10 +3051,32 @@ export default function Admin() {
                             </div>
                             {booking.photos && booking.photos.length > 0 && (
                               <div>
-                                <Label>Customer Photos</Label>
+                                <div className="flex items-center justify-between gap-2">
+                                  <Label>Customer Photos</Label>
+                                  <span className="text-[0.68rem] font-semibold text-muted-foreground">{booking.photos.length} attached</span>
+                                </div>
                                 <div className="mt-2 grid grid-cols-2 gap-2">
                                   {booking.photos.map((photo, index) => (
-                                    <img key={`${booking.id}-mobile-photo-${index}`} src={photo} alt={`Booking photo ${index + 1}`} className="h-28 w-full rounded-xl object-cover" />
+                                    <a
+                                      key={`${booking.id}-mobile-photo-${index}`}
+                                      href={photo}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="group overflow-hidden rounded-xl border bg-white"
+                                      title={`Open customer photo ${index + 1}`}
+                                    >
+                                      <img
+                                        src={photo}
+                                        alt={`Customer uploaded photo ${index + 1}`}
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="h-24 w-full object-cover transition duration-200 group-hover:scale-105"
+                                      />
+                                      <span className="flex items-center justify-center gap-1 px-2 py-1 text-[0.65rem] font-bold text-secondary">
+                                        <ImageIcon className="h-3 w-3" />
+                                        Open photo
+                                      </span>
+                                    </a>
                                   ))}
                                 </div>
                               </div>
@@ -3561,10 +3583,32 @@ export default function Admin() {
                                   )}
                                   {selectedBooking.photos && selectedBooking.photos.length > 0 && (
                                     <div>
-                                      <Label>Customer Photos</Label>
-                                      <div className="mt-2 grid gap-3 sm:grid-cols-3">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <Label>Customer Photos</Label>
+                                        <span className="text-xs font-semibold text-muted-foreground">{selectedBooking.photos.length} attached</span>
+                                      </div>
+                                      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                                         {selectedBooking.photos.map((photo, index) => (
-                                          <img key={`${selectedBooking.id}-photo-${index}`} src={photo} alt={`Booking photo ${index + 1}`} className="h-36 w-full rounded-xl object-cover" />
+                                          <a
+                                            key={`${selectedBooking.id}-photo-${index}`}
+                                            href={photo}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="group overflow-hidden rounded-xl border bg-white shadow-sm"
+                                            title={`Open customer photo ${index + 1}`}
+                                          >
+                                            <img
+                                              src={photo}
+                                              alt={`Customer uploaded photo ${index + 1}`}
+                                              loading="lazy"
+                                              decoding="async"
+                                              className="h-28 w-full object-cover transition duration-200 group-hover:scale-105 sm:h-32"
+                                            />
+                                            <span className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-bold text-secondary">
+                                              <ImageIcon className="h-3.5 w-3.5" />
+                                              Open full photo
+                                            </span>
+                                          </a>
                                         ))}
                                       </div>
                                     </div>
@@ -3596,7 +3640,7 @@ export default function Admin() {
                                         ))}
                                       </div>
                                     </details>
-                                    <div className="grid gap-3 xl:grid-cols-[0.8fr_1.4fr]">
+                                    <div className="grid gap-3 md:grid-cols-2">
                                       <div className="min-w-0">
                                         <Label>Appointment Date & Time</Label>
                                         <Input
@@ -3605,16 +3649,16 @@ export default function Admin() {
                                           onChange={(event) => setBookingDraft((draft) => applyAppointmentToDraft(draft, event.target.value, selectedBooking.repairType))}
                                         />
                                       </div>
-                                      <div className="min-w-0 rounded-2xl border border-rose-100 bg-[#fff7f0] p-3">
-                                        <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-start">
+                                      <div className="min-w-0 rounded-2xl border border-rose-100 bg-[#fff7f0] p-3 md:col-span-2">
+                                        <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
                                           <div className="min-w-0">
                                             <Label>Admin Job Reminder</Label>
                                             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                                              Choose the appointment first. The dashboard recalculates the reminder for 2 hours before that visit.
+                                              Choose the appointment first, then select the reminder type. The dashboard updates the reminder time and message for you.
                                             </p>
                                           </div>
                                           {bookingDraft.reminderAt && (
-                                            <Button type="button" variant="outline" size="sm" className="h-8 bg-white text-xs" onClick={() => setBookingDraft((draft) => ({ ...draft, reminderAt: "", reminderNote: "", reminderWindow: "At selected time" }))}>
+                                            <Button type="button" variant="outline" size="sm" className="h-9 bg-white text-xs" onClick={() => setBookingDraft((draft) => ({ ...draft, reminderAt: "", reminderNote: "", reminderWindow: "At selected time" }))}>
                                               Clear Reminder
                                             </Button>
                                           )}
@@ -3633,7 +3677,7 @@ export default function Admin() {
                                             ))}
                                           </div>
                                         </details>
-                                        <div className="mt-3 grid gap-2 md:grid-cols-[1fr_0.8fr]">
+                                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
                                           <div>
                                             <Label className="text-xs">Reminder Time</Label>
                                             <Input
@@ -3654,7 +3698,7 @@ export default function Admin() {
                                               </SelectContent>
                                             </Select>
                                           </div>
-                                          <div className="md:col-span-2">
+                                          <div className="sm:col-span-2">
                                             <Label className="text-xs">Reminder Message</Label>
                                             <Textarea
                                               value={bookingDraft.reminderNote || ""}

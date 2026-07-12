@@ -1637,6 +1637,36 @@ export default function Home() {
     }, 500);
   };
 
+  const compressBookingPhoto = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        const image = new Image();
+        image.onerror = reject;
+        image.onload = () => {
+          const maxSide = 1280;
+          const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+          const width = Math.max(1, Math.round(image.width * scale));
+          const height = Math.max(1, Math.round(image.height * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const context = canvas.getContext("2d");
+
+          if (!context) {
+            resolve(String(reader.result));
+            return;
+          }
+
+          context.drawImage(image, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.78));
+        };
+        image.src = String(reader.result);
+      };
+      reader.readAsDataURL(file);
+    });
+
   const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
     const files = selectedFiles.slice(0, 3);
@@ -1669,7 +1699,7 @@ export default function Home() {
 
     try {
       const previews = await Promise.all(validFiles.map(async (file) => {
-        const dataUrl = await readFile(file);
+        const dataUrl = await compressBookingPhoto(file).catch(() => readFile(file));
         const response = await axios.post<{ url: string }>("/api/media", { dataUrl, fileName: file.name });
         return response.data.url;
       }));
