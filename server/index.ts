@@ -454,6 +454,7 @@ let weekendPromotionSweepRunning = false;
 type WeekendPromotionState = {
   lastSentWeekendKey?: string;
   lastSentAt?: string;
+  sentHolidayKeys?: Record<string, string>;
 };
 
 async function sendDueBookingReminders() {
@@ -539,6 +540,126 @@ function getCurrentMontrealWeekendKey(date = new Date()) {
   return `${saturdayParts.year}-${saturdayParts.month}-${saturdayParts.day}`;
 }
 
+function getYmdFromUtcDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getFixedHolidayKey(year: number, month: number, day: number) {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function getNthWeekdayOfMonth(year: number, month: number, weekday: number, occurrence: number) {
+  const firstDay = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+  const offset = (weekday - firstDay + 7) % 7;
+  return getFixedHolidayKey(year, month, 1 + offset + (occurrence - 1) * 7);
+}
+
+function getLastWeekdayBefore(year: number, month: number, day: number, weekday: number) {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  while (date.getUTCDay() !== weekday) {
+    date.setUTCDate(date.getUTCDate() - 1);
+  }
+  return getYmdFromUtcDate(date);
+}
+
+function getEasterSundayKey(year: number) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return getFixedHolidayKey(year, month, day);
+}
+
+function getCanadianHolidayForMontrealDate(parts: ReturnType<typeof getMontrealDateParts>) {
+  const year = Number(parts.year);
+  if (!Number.isFinite(year)) {
+    return null;
+  }
+
+  const easterSunday = new Date(`${getEasterSundayKey(year)}T12:00:00.000Z`);
+  const goodFriday = new Date(easterSunday);
+  goodFriday.setUTCDate(easterSunday.getUTCDate() - 2);
+  const easterMonday = new Date(easterSunday);
+  easterMonday.setUTCDate(easterSunday.getUTCDate() + 1);
+
+  const holidays: Record<string, { name: string; message: string }> = {
+    [getFixedHolidayKey(year, 1, 1)]: {
+      name: "New Year's Day",
+      message: "Happy New Year from FixMyDoor Services. If your home or office needs door, lock, furniture, or hardware help this season, send us photos and details.",
+    },
+    [getYmdFromUtcDate(goodFriday)]: {
+      name: "Good Friday",
+      message: "Wishing you a peaceful Good Friday. If the long weekend is a good time to fix a door, lock, cabinet, or furniture issue, FixMyDoor Services can help.",
+    },
+    [getYmdFromUtcDate(easterMonday)]: {
+      name: "Easter Monday",
+      message: "Happy Easter Monday from FixMyDoor Services. Use the holiday break to plan door repairs, furniture fixes, installations, or hardware sourcing.",
+    },
+    [getLastWeekdayBefore(year, 5, 25, 1)]: {
+      name: "Victoria Day",
+      message: "Happy Victoria Day. If you are using the long weekend to improve your home, FixMyDoor Services can help with doors, locks, furniture, and hardware.",
+    },
+    [getFixedHolidayKey(year, 6, 24)]: {
+      name: "Saint-Jean-Baptiste Day",
+      message: "Bonne Saint-Jean-Baptiste. FixMyDoor Services is available for Montreal door repairs, lock help, furniture installation, and hardware sourcing.",
+    },
+    [getFixedHolidayKey(year, 7, 1)]: {
+      name: "Canada Day",
+      message: "Happy Canada Day from FixMyDoor Services. If the holiday gives you time to fix your door, lock, cabinet, or furniture, send us the details.",
+    },
+    [getNthWeekdayOfMonth(year, 8, 1, 1)]: {
+      name: "Civic Holiday",
+      message: "Happy long weekend from FixMyDoor Services. It is a good time to handle loose doors, cabinet hardware, furniture setup, or repair planning.",
+    },
+    [getNthWeekdayOfMonth(year, 9, 1, 1)]: {
+      name: "Labour Day",
+      message: "Happy Labour Day. FixMyDoor Services is ready to help Montreal customers with door repairs, hardware, lock work, and furniture service.",
+    },
+    [getFixedHolidayKey(year, 9, 30)]: {
+      name: "National Day for Truth and Reconciliation",
+      message: "On this day of reflection, FixMyDoor Services remains available for respectful, practical door, lock, furniture, and hardware support.",
+    },
+    [getNthWeekdayOfMonth(year, 10, 1, 2)]: {
+      name: "Thanksgiving",
+      message: "Happy Thanksgiving from FixMyDoor Services. If family visits reveal a door, lock, cabinet, or furniture issue, we can help you plan the fix.",
+    },
+    [getFixedHolidayKey(year, 11, 11)]: {
+      name: "Remembrance Day",
+      message: "On Remembrance Day, FixMyDoor Services sends respectful greetings and remains available for door, lock, furniture, and hardware requests.",
+    },
+    [getFixedHolidayKey(year, 12, 25)]: {
+      name: "Christmas Day",
+      message: "Merry Christmas from FixMyDoor Services. Wishing you a safe home, strong doors, secure locks, and a peaceful holiday season.",
+    },
+    [getFixedHolidayKey(year, 12, 26)]: {
+      name: "Boxing Day",
+      message: "Happy Boxing Day. If you are planning home repairs, furniture setup, door work, or hardware replacement, FixMyDoor Services can help.",
+    },
+  };
+
+  return holidays[`${parts.year}-${parts.month}-${parts.day}`] || null;
+}
+
+async function sendCustomerEngagementCampaign(payload: PushPayload) {
+  const { visitorSubscriberCount } = getPushSubscriberCounts();
+  if (visitorSubscriberCount > 0) {
+    await sendPushNotificationToSubscribers(payload, { audience: "visitor", log: true });
+    broadcastSiteEvent({ type: "notification", title: payload.title, message: payload.message, url: payload.url });
+  }
+
+  await sendCustomerEmailBroadcast(payload, "notification");
+}
+
 async function sendWeekendPromotionIfDue() {
   if (weekendPromotionSweepRunning) {
     return;
@@ -546,37 +667,56 @@ async function sendWeekendPromotionIfDue() {
 
   weekendPromotionSweepRunning = true;
   try {
+    const todayParts = getMontrealDateParts();
+    const state = loadJsonFile<WeekendPromotionState>(WEEKEND_PROMOTION_STATE_FILE, {});
+    const holiday = todayParts.hour >= WEEKEND_PROMOTION_START_HOUR ? getCanadianHolidayForMontrealDate(todayParts) : null;
+
+    if (holiday) {
+      const holidayKey = `${todayParts.year}-${todayParts.month}-${todayParts.day}-${holiday.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+      if (!state.sentHolidayKeys?.[holidayKey]) {
+        const payload: PushPayload = {
+          title: `${holiday.name} greetings`,
+          message: holiday.message,
+          url: "/#booking-form",
+          icon: "/icons/main-icon-v2-192x192.png",
+          badge: "/icons/main-icon-v2-96x96.png",
+        };
+        await sendCustomerEngagementCampaign(payload);
+        saveJsonFile<WeekendPromotionState>(WEEKEND_PROMOTION_STATE_FILE, {
+          ...state,
+          sentHolidayKeys: {
+            ...(state.sentHolidayKeys || {}),
+            [holidayKey]: new Date().toISOString(),
+          },
+          lastSentAt: new Date().toISOString(),
+        });
+      }
+      return;
+    }
+
     const weekendKey = getCurrentMontrealWeekendKey();
     if (!weekendKey) {
       return;
     }
 
-    const state = loadJsonFile<WeekendPromotionState>(WEEKEND_PROMOTION_STATE_FILE, {});
     if (state.lastSentWeekendKey === weekendKey) {
-      return;
-    }
-
-    const { visitorSubscriberCount } = getPushSubscriberCounts();
-    if (visitorSubscriberCount <= 0) {
       return;
     }
 
     const payload: PushPayload = {
       title: "Weekend home fix reminder",
-      message: "It is weekend. A good time to fix loose doors, locks, cabinets, furniture, or source the right hardware. FixMyDoor Services can help.",
+      message: "Happy weekend from FixMyDoor Services. If you have time to fix a loose door, lock, cabinet, furniture setup, or hardware issue, send us photos and we will guide you.",
       url: "/#booking-form",
       icon: "/icons/main-icon-v2-192x192.png",
       badge: "/icons/main-icon-v2-96x96.png",
     };
 
-    const logEntry = await sendPushNotificationToSubscribers(payload, { audience: "visitor", log: true });
-    if (logEntry.delivered > 0 || logEntry.failed > 0) {
-      saveJsonFile<WeekendPromotionState>(WEEKEND_PROMOTION_STATE_FILE, {
-        lastSentWeekendKey: weekendKey,
-        lastSentAt: new Date().toISOString(),
-      });
-      broadcastSiteEvent({ type: "notification", title: payload.title, message: payload.message, url: payload.url });
-    }
+    await sendCustomerEngagementCampaign(payload);
+    saveJsonFile<WeekendPromotionState>(WEEKEND_PROMOTION_STATE_FILE, {
+      ...state,
+      lastSentWeekendKey: weekendKey,
+      lastSentAt: new Date().toISOString(),
+    });
   } catch (error) {
     console.error("Weekend promotion sweep failed:", error);
   } finally {
@@ -1705,11 +1845,11 @@ async function startServer() {
 
   // Initialize admin user
   await initializeAdminUser();
-  startBookingReminderSweep();
-  startWeekendPromotionSweep();
 
   // Initialize email service
   emailService.initialize();
+  startBookingReminderSweep();
+  startWeekendPromotionSweep();
 
   // Security middleware
   app.use(helmet({
