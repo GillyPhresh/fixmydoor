@@ -80,3 +80,18 @@ export async function saveReview(review: ReviewRequest): Promise<Review> {
 
   return toReview(createdReview);
 }
+
+export async function saveAdminReview(review: ReviewRequest & { status?: ReviewStatus; adminNotes?: string }): Promise<Review> {
+  const createdReview = await prisma.review.create({
+    data: {
+      name: review.name.trim(),
+      location: review.location?.trim() || null,
+      rating: review.rating,
+      quote: review.quote.trim(),
+      status: validateReviewStatus(review.status) ? review.status : "APPROVED",
+      adminNotes: review.adminNotes?.trim().slice(0, 300) || null,
+    },
+  });
+
+  return toReview(createdReview);
+}

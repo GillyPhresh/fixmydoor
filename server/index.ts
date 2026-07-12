@@ -10,7 +10,7 @@ import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { getClientIdForContact, parseStatusHistory, saveBooking, saveManualBooking, serializeStatusHistory, toBooking, validateBooking, validateBookingStatus, validateManualBooking } from "./bookings";
-import { listAdminReviews, listReviews, saveReview, validateReview, validateReviewStatus } from "./reviews";
+import { listAdminReviews, listReviews, saveAdminReview, saveReview, validateReview, validateReviewStatus } from "./reviews";
 import { createContentItem, listAdminContent, listPublicContent, updateContentItem, validateContentItem } from "./content";
 import { prisma } from "./prisma";
 import { findAdminByUsername, initializeAdminUser, verifyPassword, hashPassword } from "./auth";
@@ -1905,6 +1905,61 @@ async function startServer() {
     };
   }
 
+  function getReviewRequestMessage(booking: Pick<Booking, "repairType">) {
+    const repairType = (booking.repairType || "").toLowerCase();
+    const jobLabel = /lock|rekey|serrurier|barillet/.test(repairType)
+      ? "door lock or rekeying work"
+      : /furniture|cabinet|drawer|chair|sofa|meuble|armoire/.test(repairType)
+        ? "furniture or cabinet work"
+        : /install|entry|fitting|purchase|buy|porte/.test(repairType)
+          ? "door installation or sourcing work"
+          : /hardware|hinge|handle|closer|quincaillerie|charni/.test(repairType)
+            ? "door or furniture hardware work"
+            : "door, lock, furniture, or hardware work";
+
+    return [
+      `Hi, thank you for choosing FixMyDoor Services for your ${jobLabel}.`,
+      "If you were happy with the work, please leave us an honest Google review. Your feedback helps other customers in Montreal find reliable door, lock, furniture, and hardware help.",
+      "",
+      "Review link:",
+      "https://g.page/r/CeZinY_kV0VcEAE/review",
+      "",
+      "Thank you,",
+      "FixMyDoor Services",
+    ].join("\n");
+  }
+
+  async function createReviewSmsDraftForBooking(booking: Booking) {
+    if (!booking.phone?.trim()) {
+      return false;
+    }
+
+    const existingDrafts = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT "id" FROM "SmsDraft" WHERE "bookingId" = ? AND "message" LIKE ? LIMIT 1`,
+      booking.id,
+      "%g.page/r/CeZinY_kV0VcEAE/review%",
+    );
+
+    if (existingDrafts.length > 0) {
+      return false;
+    }
+
+    const id = randomUUID();
+    const clientId = booking.clientId || getClientIdForContact({ phone: booking.phone, email: booking.email || "" });
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO "SmsDraft" ("id", "clientId", "bookingId", "clientName", "phone", "message", "status", "createdAt")
+       VALUES (?, ?, ?, ?, ?, ?, 'PENDING', CURRENT_TIMESTAMP)`,
+      id,
+      clientId,
+      booking.id,
+      booking.name || "Client",
+      booking.phone,
+      getReviewRequestMessage(booking).slice(0, 480),
+    );
+
+    return true;
+  }
+
   async function backfillMissingClientIds() {
     const records = await prisma.$queryRawUnsafe<Array<{ id: string; phone: string; email: string | null }>>(
       `SELECT "id", "phone", "email" FROM "Booking" WHERE "clientId" IS NULL OR "clientId" = '' LIMIT 250`,
@@ -2454,6 +2509,39 @@ async function startServer() {
     }
   });
 
+  app.post("/api/admin/reviews", requireAuth, async (req, res) => {
+    if (!validateReview(req.body)) {
+      return res.status(400).json({ success: false, error: "Invalid review data" });
+    }
+
+    const reviewBody = req.body as any;
+    const requestedStatus = validateReviewStatus(reviewBody.status) ? reviewBody.status : "APPROVED";
+
+    try {
+      const review = await saveAdminReview({
+        ...reviewBody,
+        status: requestedStatus,
+        adminNotes: cleanOptionalText(reviewBody.adminNotes, 300) || "Imported by admin",
+      });
+
+      if (review.status === "APPROVED") {
+        const payload: SiteEventPayload = {
+          type: "review",
+          title: "New FixMyDoor Services review",
+          message: `${review.rating}-star review from ${review.name}`,
+          url: "/#testimonials",
+        };
+        queuePushNotification(payload, { audience: "visitor", log: true });
+        broadcastSiteEvent(payload);
+      }
+
+      return res.status(201).json({ success: true, review });
+    } catch (error) {
+      console.error("Admin review creation error:", error);
+      return res.status(500).json({ success: false, error: "Failed to save review" });
+    }
+  });
+
   app.patch("/api/admin/reviews/:id", requireAuth, async (req, res) => {
     const { id } = req.params;
     const { status, adminNotes } = req.body;
@@ -2855,6 +2943,15 @@ async function startServer() {
         emailService.sendStatusUpdate(normalizedBooking).catch(err =>
           console.error("Failed to send status update email:", err)
         );
+
+        if (nextStatus === "COMPLETED") {
+          emailService.sendReviewRequest(normalizedBooking).catch(err =>
+            console.error("Failed to send review request email:", err)
+          );
+          createReviewSmsDraftForBooking(normalizedBooking).catch(err =>
+            console.error("Failed to create review SMS draft:", err)
+          );
+        }
       }
 
       res.json(normalizedBooking);

@@ -104,6 +104,7 @@ const YELLOWPAGES_REVIEW_SCRIPT_SRC = "https://netsync.yellowpages.ca/widgets-as
 const YELLOWPAGES_REVIEW_KEY = "SCJnqHOI4KiGuuW2pla2nj9B9bDxhs";
 const YELLOWPAGES_LOCATION_ID = "6286613";
 const YELLOWPAGES_PROFILE_URL = "https://www.yellowpages.ca/bus/Quebec/Montreal/FixMyDoor-Services/105313756.html";
+const GOOGLE_REVIEW_URL = "https://g.page/r/CeZinY_kV0VcEAE/review";
 const SOCIAL_LINKS = [
   {
     platform: "instagram",
@@ -2791,12 +2792,22 @@ export default function Home() {
               <p className="text-xs font-bold uppercase tracking-[0.34em] text-primary">Client Reviews</p>
               <h2 className="mt-3 font-display text-3xl font-bold text-secondary md:text-4xl">What customers have said</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-foreground/70">
-                After a job, customers can leave their own review here so others know what to expect.
+                After a job, customers can leave an honest Google review or share feedback here so others know what to expect.
               </p>
             </div>
-            <button type="button" onClick={openReviewForm} className="inline-flex items-center justify-center rounded-2xl bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(47,36,28,0.14)] transition hover:-translate-y-0.5 hover:bg-secondary/90">
-              Write a Review
-            </button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center md:justify-end">
+              <a
+                href={GOOGLE_REVIEW_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-2xl bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-[0_12px_28px_rgba(47,36,28,0.14)] transition hover:-translate-y-0.5 hover:bg-secondary/90"
+              >
+                Review on Google
+              </a>
+              <button type="button" onClick={openReviewForm} className="inline-flex items-center justify-center rounded-2xl border border-primary/20 bg-white px-5 py-2.5 text-sm font-bold text-secondary shadow-[0_12px_28px_rgba(47,36,28,0.08)] transition hover:-translate-y-0.5 hover:border-primary hover:text-primary">
+                Website Review
+              </button>
+            </div>
           </div>
 
           <div className={`grid gap-5 ${reviewFormOpen ? "lg:grid-cols-[1fr_0.62fr]" : ""} lg:items-start`}>

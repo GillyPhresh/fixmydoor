@@ -651,6 +651,13 @@ export default function Admin() {
   const [totalPages, setTotalPages] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewImportDraft, setReviewImportDraft] = useState({
+    name: "",
+    location: "Google review",
+    rating: 5,
+    quote: "",
+  });
+  const [reviewImportSaving, setReviewImportSaving] = useState(false);
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [contentDraft, setContentDraft] = useState<ContentItemRequest>(emptyContentDraft);
   const [editingContentId, setEditingContentId] = useState<string | null>(null);
@@ -1483,6 +1490,40 @@ export default function Admin() {
       toast.success("Review deleted");
     } catch (err) {
       toast.error("Failed to delete review");
+    }
+  };
+
+  const importGoogleReview = async () => {
+    const name = reviewImportDraft.name.trim();
+    const quote = reviewImportDraft.quote.trim();
+
+    if (name.length < 2 || quote.length < 8) {
+      toast.error("Add the real customer name and review text first.");
+      return;
+    }
+
+    setReviewImportSaving(true);
+    try {
+      const response = await axios.post<{ review: Review }>("/api/admin/reviews", {
+        name,
+        location: reviewImportDraft.location.trim() || "Google review",
+        rating: reviewImportDraft.rating,
+        quote,
+        status: "APPROVED",
+        adminNotes: "Imported from Google Business Profile",
+      });
+      setReviews((currentReviews) => [response.data.review, ...currentReviews]);
+      setReviewImportDraft({
+        name: "",
+        location: "Google review",
+        rating: 5,
+        quote: "",
+      });
+      toast.success("Real Google review added to the website.");
+    } catch (err) {
+      toast.error("Failed to add Google review");
+    } finally {
+      setReviewImportSaving(false);
     }
   };
 
@@ -3869,6 +3910,69 @@ export default function Admin() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-0 md:p-6 md:pt-0">
+            <div className="mb-5 rounded-2xl border border-[#ead8bf] bg-[#fffaf2] p-3 md:p-4">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-black text-[#6B4423]">Add real Google review to website</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Only paste reviews from real customers that already appear on Google or were submitted by the customer.
+                  </p>
+                </div>
+                <Badge variant="secondary" className="w-fit">Public review card</Badge>
+              </div>
+              <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_8rem]">
+                <div>
+                  <Label htmlFor="google-review-name">Customer name</Label>
+                  <Input
+                    id="google-review-name"
+                    className="mt-1 bg-white"
+                    value={reviewImportDraft.name}
+                    onChange={(event) => setReviewImportDraft((draft) => ({ ...draft, name: event.target.value }))}
+                    placeholder="Customer name from Google"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="google-review-location">Source / location</Label>
+                  <Input
+                    id="google-review-location"
+                    className="mt-1 bg-white"
+                    value={reviewImportDraft.location}
+                    onChange={(event) => setReviewImportDraft((draft) => ({ ...draft, location: event.target.value }))}
+                    placeholder="Google review"
+                  />
+                </div>
+                <div>
+                  <Label>Rating</Label>
+                  <Select
+                    value={String(reviewImportDraft.rating)}
+                    onValueChange={(value) => setReviewImportDraft((draft) => ({ ...draft, rating: Number(value) }))}
+                  >
+                    <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 stars</SelectItem>
+                      <SelectItem value="4">4 stars</SelectItem>
+                      <SelectItem value="3">3 stars</SelectItem>
+                      <SelectItem value="2">2 stars</SelectItem>
+                      <SelectItem value="1">1 star</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-3">
+                  <Label htmlFor="google-review-text">Review text</Label>
+                  <Textarea
+                    id="google-review-text"
+                    className="mt-1 min-h-20 bg-white"
+                    value={reviewImportDraft.quote}
+                    onChange={(event) => setReviewImportDraft((draft) => ({ ...draft, quote: event.target.value }))}
+                    placeholder="Paste the real customer review here."
+                  />
+                </div>
+              </div>
+              <Button type="button" className="mt-3 w-full sm:w-auto" onClick={importGoogleReview} disabled={reviewImportSaving}>
+                <Star className="mr-2 h-4 w-4" />
+                {reviewImportSaving ? "Adding..." : "Add Google Review"}
+              </Button>
+            </div>
             {reviews.length === 0 ? (
               <p className="py-6 text-center text-muted-foreground">No reviews yet.</p>
             ) : (

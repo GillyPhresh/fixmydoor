@@ -39,6 +39,7 @@ interface EmailRuntimeStatus {
 
 const DEFAULT_BUSINESS_EMAIL = "info.fixmydoor@gmail.com";
 const DEFAULT_PUBLIC_SITE_URL = "https://www.fixmydoor.ca";
+const GOOGLE_REVIEW_URL = "https://g.page/r/CeZinY_kV0VcEAE/review";
 const LOGO_CID = "fixmydoor-logo";
 const EMAIL_LOGO_CARD_STYLE = "background:#ffffff; background-color:#ffffff; border:1px solid #ead8bf; border-radius:22px; padding:14px 22px; margin:0 auto 14px; box-shadow:0 14px 32px rgba(0,0,0,0.16);";
 const EMAIL_LOGO_IMG_STYLE = "display:block; width:220px; max-width:100%; height:auto; margin:0 auto;";
@@ -289,6 +290,23 @@ function statusMessage(status: BookingStatus) {
     default:
       return "Your request is still pending. Our staff will contact you soon.";
   }
+}
+
+function getReviewJobLabel(repairType?: string) {
+  const value = (repairType || "").toLowerCase();
+  if (/lock|rekey|serrurier|barillet/.test(value)) {
+    return "door lock or rekeying service";
+  }
+  if (/furniture|cabinet|drawer|chair|sofa|meuble|armoire/.test(value)) {
+    return "furniture or cabinet service";
+  }
+  if (/install|entry|fitting|purchase|buy|porte/.test(value)) {
+    return "door installation or sourcing service";
+  }
+  if (/hardware|hinge|handle|closer|quincaillerie|charni/.test(value)) {
+    return "door or furniture hardware service";
+  }
+  return "door, lock, furniture, or hardware service";
 }
 
 class EmailService {
@@ -788,6 +806,77 @@ class EmailService {
       return true;
     } catch (error) {
       console.error("Failed to send status update email:", error);
+      return false;
+    }
+  }
+
+  async sendReviewRequest(booking: Booking) {
+    if (!this.canSendEmail()) {
+      console.warn("Review request email skipped because email service is not initialized");
+      return false;
+    }
+
+    if (!booking.email?.trim()) {
+      console.warn("Review request email skipped because customer email is missing");
+      return false;
+    }
+
+    const businessEmail = getBusinessEmail();
+    const useResend = this.getProviderName() === "resend";
+    const logoAttachment = useResend ? undefined : getLogoAttachment();
+    const bookingDisplayId = formatBookingDisplayId(booking);
+    const jobLabel = getReviewJobLabel(booking.repairType);
+    const subject = "How was your FixMyDoor Services job?";
+    const text = [
+      `Hi ${booking.name},`,
+      "",
+      `Thank you for choosing FixMyDoor Services for your ${jobLabel}.`,
+      "If you were happy with the work, please leave us an honest Google review. Your feedback helps other customers in Montreal find reliable door, lock, furniture, and hardware help.",
+      "",
+      `Review link: ${GOOGLE_REVIEW_URL}`,
+      "",
+      "Thank you,",
+      "FixMyDoor Services",
+    ].join("\n");
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;background:#fffaf2;border:1px solid #ead8bf;border-radius:20px;overflow:hidden;">
+        <div style="background:#2f241c;padding:22px;text-align:center;">
+          ${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px", hosted: useResend })}
+        </div>
+        <div style="padding:26px;color:#3a281f;">
+          <p style="margin:0 0 10px;color:#b46532;font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">Completed service follow-up</p>
+          <h1 style="color:#6B4423;margin:0 0 14px;">Thank you for choosing FixMyDoor Services</h1>
+          <p>Hi ${escapeHtml(booking.name)},</p>
+          <p>Thank you for choosing FixMyDoor Services for your ${escapeHtml(jobLabel)}.</p>
+          <p>If you were happy with the work, please leave us an honest Google review. Your feedback helps other customers in Montreal find reliable door, lock, furniture, and hardware help.</p>
+          <div style="background:#F5F1E8;padding:16px;border-radius:14px;margin:20px 0;">
+            <p style="margin:0;"><strong>Booking ID:</strong> ${escapeHtml(bookingDisplayId)}</p>
+          </div>
+          <p><a href="${GOOGLE_REVIEW_URL}" style="display:inline-block;background:#b46532;color:#ffffff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:800;">Leave an honest Google review</a></p>
+          <p style="font-size:14px;color:#6f6258;">Thank you,<br><strong>FixMyDoor Services</strong><br><a href="mailto:${escapeHtml(businessEmail)}" style="color:#b46532;">${escapeHtml(businessEmail)}</a><br>+1 (438) 347-1823</p>
+        </div>
+      </div>
+    `;
+
+    try {
+      const sent = await this.sendEmail({
+        from: this.config?.from,
+        to: booking.email,
+        replyTo: businessEmail,
+        subject,
+        text,
+        html,
+        attachments: logoAttachment ? [logoAttachment] : undefined,
+      }, "Review request", (error) => {
+        this.lastSendError = summarizeEmailError(error);
+      });
+      if (!sent) {
+        return false;
+      }
+      console.log(`Review request email sent to ${booking.email}`);
+      return true;
+    } catch (error) {
+      console.error("Failed to send review request email:", error);
       return false;
     }
   }
