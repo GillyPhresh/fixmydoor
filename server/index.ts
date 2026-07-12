@@ -1058,6 +1058,32 @@ function getPublicImageUrl() {
   return `${getPublicBaseUrl()}/og-fixmydoor-service.jpg`;
 }
 
+function isFrenchSeoRequest(pagePath = "/") {
+  const queryIndex = pagePath.indexOf("?");
+  if (queryIndex === -1) {
+    return false;
+  }
+
+  try {
+    const params = new URLSearchParams(pagePath.slice(queryIndex + 1));
+    return (params.get("lang") || "").toLowerCase().startsWith("fr");
+  } catch {
+    return false;
+  }
+}
+
+function appendFrenchQuery(url: string) {
+  return `${url}${url.includes("?") ? "&" : "?"}lang=fr`;
+}
+
+function getLocalizedSeoPageValues(page: ReturnType<typeof resolveSeoPage>, isFrench: boolean) {
+  return {
+    title: isFrench && page.frenchTitle ? page.frenchTitle : page.title,
+    description: isFrench && page.frenchDescription ? page.frenchDescription : page.description,
+    keywords: isFrench && page.frenchKeywords ? page.frenchKeywords : page.keywords,
+  };
+}
+
 function replacePublicUrlTokens(template: string) {
   return template
     .replaceAll(PUBLIC_SITE_URL_TOKEN, getPublicBaseUrl())
@@ -1099,8 +1125,11 @@ function replaceMetaContent(html: string, selector: "name" | "property", key: st
 
 function renderPageStructuredData(pagePath: string) {
   const page = resolveSeoPage(pagePath);
+  const isFrench = isFrenchSeoRequest(pagePath);
+  const localizedPage = getLocalizedSeoPageValues(page, isFrench);
   const publicBaseUrl = getPublicBaseUrl();
-  const canonicalUrl = page.path === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${page.path}`;
+  const canonicalBaseUrl = page.path === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${page.path}`;
+  const canonicalUrl = isFrench ? appendFrenchQuery(canonicalBaseUrl) : canonicalBaseUrl;
   const servicePage = serviceSeoPages[page.path];
 
   if (!servicePage) {
@@ -1130,6 +1159,30 @@ function renderPageStructuredData(pagePath: string) {
         },
         "areaServed": ["Montreal", "Laval", "Longueuil", "Brossard", "West Island", "Quebec", "Canada"],
         "openingHours": "Mo-Su 00:00-23:59",
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 45.5519558764642,
+          "longitude": -73.6607124389078,
+        },
+        "hasMap": "https://www.google.com/maps/search/?api=1&query=10158%20Rue%20Berri%2C%20Montreal%2C%20QC%20H3L%202G6%2C%20Canada",
+        "contactPoint": [
+          {
+            "@type": "ContactPoint",
+            "telephone": "+14383471823",
+            "contactType": "customer service",
+            "areaServed": ["CA", "Worldwide"],
+            "availableLanguage": ["English", "French"],
+          },
+        ],
+        "knowsAbout": [
+          "door repair Montreal",
+          "serrurier Montreal",
+          "locksmith Montreal",
+          "lock rekeying Montreal",
+          "door hardware replacement",
+          "furniture repair Montreal",
+          "entry door installation Montreal",
+        ],
         "openingHoursSpecification": [
           {
             "@type": "OpeningHoursSpecification",
@@ -1149,7 +1202,8 @@ function renderPageStructuredData(pagePath: string) {
         "@type": "Service",
         "@id": `${canonicalUrl}#service`,
         "name": servicePage.structuredServiceName,
-        "description": servicePage.description,
+        "description": localizedPage.description,
+        "inLanguage": isFrench ? "fr-CA" : "en-CA",
         "provider": {
           "@id": `${publicBaseUrl}/#business`,
         },
@@ -1293,11 +1347,11 @@ function buildServiceFaqs(servicePage: (typeof serviceSeoPages)[string]) {
   ];
 }
 
-function renderAlternateLinks(canonicalUrl: string) {
+function renderAlternateLinks(canonicalBaseUrl: string) {
   return [
-    `    <link rel="alternate" hreflang="en-ca" href="${escapeHtml(canonicalUrl)}" />`,
-    `    <link rel="alternate" hreflang="fr-ca" href="${escapeHtml(`${canonicalUrl}${canonicalUrl.includes("?") ? "&" : "?"}lang=fr`)}" />`,
-    `    <link rel="alternate" hreflang="x-default" href="${escapeHtml(canonicalUrl)}" />`,
+    `    <link rel="alternate" hreflang="en-ca" href="${escapeHtml(canonicalBaseUrl)}" />`,
+    `    <link rel="alternate" hreflang="fr-ca" href="${escapeHtml(appendFrenchQuery(canonicalBaseUrl))}" />`,
+    `    <link rel="alternate" hreflang="x-default" href="${escapeHtml(canonicalBaseUrl)}" />`,
   ].join("\n");
 }
 
@@ -1348,13 +1402,17 @@ function renderServiceFallbackContent(pagePath: string) {
 
 function renderIndexHtmlForPath(template: string, pagePath = "/") {
   const page = resolveSeoPage(pagePath);
+  const isFrench = isFrenchSeoRequest(pagePath);
+  const localizedPage = getLocalizedSeoPageValues(page, isFrench);
   const publicBaseUrl = getPublicBaseUrl();
-  const canonicalUrl = page.path === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${page.path}`;
+  const canonicalBaseUrl = page.path === "/" ? `${publicBaseUrl}/` : `${publicBaseUrl}${page.path}`;
+  const canonicalUrl = isFrench ? appendFrenchQuery(canonicalBaseUrl) : canonicalBaseUrl;
   const structuredData = renderPageStructuredData(pagePath);
   const isAdminPath = normalizeSeoPath(pagePath).startsWith("/admin");
 
   let html = replacePublicUrlTokens(template)
-    .replace(/<title>.*?<\/title>/s, `<title>${escapeHtml(page.title)}</title>`)
+    .replace(/<html lang="[^"]*">/, `<html lang="${isFrench ? "fr-CA" : "en-CA"}">`)
+    .replace(/<title>.*?<\/title>/s, `<title>${escapeHtml(localizedPage.title)}</title>`)
     .replace(/<link rel="canonical" href="[^"]*" \/>/, `<link rel="canonical" href="${escapeHtml(canonicalUrl)}" />`);
 
   if (isAdminPath) {
@@ -1368,19 +1426,20 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
   }
 
   html = html
-    .replace(/    <link rel="alternate" hreflang="en-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="fr-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="x-default" href="[^"]*" \/>/, renderAlternateLinks(canonicalUrl));
+    .replace(/    <link rel="alternate" hreflang="en-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="fr-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="x-default" href="[^"]*" \/>/, renderAlternateLinks(canonicalBaseUrl));
 
-  html = replaceMetaContent(html, "name", "description", page.description);
-  html = replaceMetaContent(html, "name", "keywords", page.keywords);
-  html = replaceMetaContent(html, "property", "og:title", page.title);
-  html = replaceMetaContent(html, "property", "og:description", page.description);
+  html = replaceMetaContent(html, "name", "description", localizedPage.description);
+  html = replaceMetaContent(html, "name", "keywords", localizedPage.keywords);
+  html = replaceMetaContent(html, "name", "language", isFrench ? "French, English" : "English, French");
+  html = replaceMetaContent(html, "property", "og:title", localizedPage.title);
+  html = replaceMetaContent(html, "property", "og:description", localizedPage.description);
   html = replaceMetaContent(html, "property", "og:url", canonicalUrl);
   html = replaceMetaContent(html, "property", "og:image", getPublicImageUrl());
   html = replaceMetaContent(html, "property", "og:image:width", "1200");
   html = replaceMetaContent(html, "property", "og:image:height", "630");
   html = replaceMetaContent(html, "property", "og:image:alt", "FixMyDoor Services door and furniture repair work");
-  html = replaceMetaContent(html, "name", "twitter:title", page.title);
-  html = replaceMetaContent(html, "name", "twitter:description", page.description);
+  html = replaceMetaContent(html, "name", "twitter:title", localizedPage.title);
+  html = replaceMetaContent(html, "name", "twitter:description", localizedPage.description);
   html = replaceMetaContent(html, "name", "twitter:image", getPublicImageUrl());
   html = replaceMetaContent(html, "name", "twitter:image:alt", "FixMyDoor Services door and furniture repair work");
 
@@ -3015,7 +3074,7 @@ async function startServer() {
     if (!isKnownClientRoute(req.path)) {
       res.status(404);
     }
-    sendIndexHtml(res, req.path);
+    sendIndexHtml(res, req.originalUrl || req.url || req.path);
   });
 
   const port = process.env.PORT || 3000;
