@@ -3359,16 +3359,17 @@ export default function Home() {
                   )}
                 </div>
                 <FormField control={form.control} name="message" render={({ field }) => (<FormItem className="sm:col-span-2"><FormLabel className="font-semibold text-foreground">Message</FormLabel><FormControl><Textarea placeholder="What is not working, or what are you trying to buy?" className="min-h-20" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="securityAnswer" render={({ field }) => (
+                <FormField control={form.control} name="customerConsent" render={({ field }) => (
                   <FormItem className="sm:col-span-2 rounded-[20px] border border-primary/12 bg-[#fffaf2] p-4 shadow-sm">
                     <div className="flex items-start gap-3">
                       <FormControl>
                         <Checkbox
-                          checked={field.value === "verified-customer"}
+                          checked={field.value}
                           onCheckedChange={(checked) => {
-                            const verified = checked === true;
-                            field.onChange(verified ? "verified-customer" : "");
-                            if (verified) {
+                            const confirmed = checked === true;
+                            field.onChange(confirmed);
+                            form.setValue("securityAnswer", confirmed ? "verified-customer" : "", { shouldDirty: true, shouldValidate: true });
+                            if (confirmed) {
                               setHumanCheckConfirmed(true);
                               window.localStorage.setItem("fixmydoor-human-check-v2", "verified");
                               requestNotificationsFromHumanConfirmation();
@@ -3377,24 +3378,10 @@ export default function Home() {
                         />
                       </FormControl>
                       <div>
-                        <FormLabel className="font-semibold text-foreground">Protected request verification *</FormLabel>
+                        <FormLabel className="font-semibold text-foreground">I am a real customer and I agree that FixMyDoor Services can contact me about this request.</FormLabel>
                         <p className="mt-1 text-xs leading-relaxed text-foreground/65">
-                          Confirm this is a real customer request. The form also uses timing checks, spam traps, rate limits, and secure server validation.
+                          Your details are used to respond to your booking, quote, repair, or product request. This also confirms the protected request verification while the form keeps spam checks, rate limits, and secure server validation active.
                         </p>
-                        <FormMessage />
-                      </div>
-                    </div>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="customerConsent" render={({ field }) => (
-                  <FormItem className="sm:col-span-2 rounded-[18px] bg-background p-4">
-                    <div className="flex items-start gap-3">
-                      <FormControl>
-                        <Checkbox checked={field.value} onCheckedChange={(checked) => field.onChange(checked === true)} />
-                      </FormControl>
-                      <div>
-                        <FormLabel className="font-semibold text-foreground">I agree that FixMyDoor Services can contact me about this request.</FormLabel>
-                        <p className="mt-1 text-xs leading-relaxed text-foreground/65">Your details are used to respond to your booking, quote, repair, or product request.</p>
                         <FormMessage />
                       </div>
                     </div>
