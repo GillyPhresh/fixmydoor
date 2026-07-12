@@ -472,6 +472,66 @@ function getDefaultJobReminderNote(repairType?: string) {
   return `About 2 hours left to go and do the ${repairType || "job"}. Check the customer details, route, tools, and parts before leaving.`;
 }
 
+function getReminderMessageForWindow(reminderWindow: string, repairType?: string) {
+  const jobLabel = repairType || "service request";
+
+  switch (reminderWindow) {
+    case "2 hours before appointment":
+      return `About 2 hours left before the ${jobLabel}. Review the customer details, route, tools, parts, and quote before leaving.`;
+    case "Within 15 minutes":
+      return `Urgent follow-up: contact the customer about the ${jobLabel} within 15 minutes. Check the message, phone number, and next action now.`;
+    case "Within 30 minutes":
+      return `Short follow-up: respond to the customer about the ${jobLabel} within 30 minutes. Confirm what they need and the next step.`;
+    case "Within 1 hour":
+      return `Follow-up needed within 1 hour for the ${jobLabel}. Review the booking details and contact the customer before the reminder expires.`;
+    case "Same day follow-up":
+      return `Same-day follow-up for the ${jobLabel}. Contact the customer today, confirm availability, and update the booking notes.`;
+    default:
+      return `Reminder for the ${jobLabel}. Review the customer details and complete the next admin action.`;
+  }
+}
+
+function getReminderTimeForWindow(reminderWindow: string, appointmentTime?: string) {
+  const now = Date.now();
+  const appointmentDate = appointmentTime ? new Date(appointmentTime) : null;
+  const appointmentMs = appointmentDate && !Number.isNaN(appointmentDate.getTime()) ? appointmentDate.getTime() : null;
+
+  if (reminderWindow === "2 hours before appointment" && appointmentMs) {
+    return new Date(Math.max(now, appointmentMs - TWO_HOURS_MS)).toISOString();
+  }
+
+  if (reminderWindow === "Within 15 minutes") {
+    return new Date(now + 15 * 60 * 1000).toISOString();
+  }
+
+  if (reminderWindow === "Within 30 minutes") {
+    return new Date(now + 30 * 60 * 1000).toISOString();
+  }
+
+  if (reminderWindow === "Within 1 hour") {
+    return new Date(now + 60 * 60 * 1000).toISOString();
+  }
+
+  if (reminderWindow === "Same day follow-up") {
+    const sameDay = new Date();
+    sameDay.setHours(18, 0, 0, 0);
+    return new Date(Math.max(now + 15 * 60 * 1000, sameDay.getTime())).toISOString();
+  }
+
+  return "";
+}
+
+function applyReminderWindowToDraft(draft: BookingUpdateRequest, reminderWindow: string, repairType?: string): BookingUpdateRequest {
+  const reminderAt = getReminderTimeForWindow(reminderWindow, draft.appointmentTime);
+
+  return {
+    ...draft,
+    reminderWindow,
+    reminderAt: reminderAt || draft.reminderAt || "",
+    reminderNote: getReminderMessageForWindow(reminderWindow, repairType),
+  };
+}
+
 function applyAppointmentToDraft(draft: BookingUpdateRequest, value: string, repairType?: string): BookingUpdateRequest {
   const appointmentTime = formatDateTimeLocalInput(value);
 
@@ -496,7 +556,7 @@ function applyAppointmentToDraft(draft: BookingUpdateRequest, value: string, rep
     appointmentTime,
     reminderAt,
     reminderWindow: reminderAt ? "2 hours before appointment" : draft.reminderWindow || "At selected time",
-    reminderNote: draft.reminderNote || getDefaultJobReminderNote(repairType),
+    reminderNote: getReminderMessageForWindow("2 hours before appointment", repairType),
   };
 }
 
@@ -3032,8 +3092,8 @@ export default function Admin() {
                                   />
                                 </div>
                                 <div className="rounded-2xl border border-rose-100 bg-[#fff7f0] p-3">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div>
+                                  <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-start">
+                                    <div className="min-w-0">
                                       <Label htmlFor={`reminder-${booking.id}`}>Admin Job Reminder</Label>
                                       <p className="mt-1 text-[0.68rem] leading-relaxed text-muted-foreground">
                                         Choose the appointment first. The reminder is recalculated for 2 hours before that visit so the timing stays correct.
@@ -3073,7 +3133,7 @@ export default function Admin() {
                                     <div className="grid gap-2 sm:grid-cols-2">
                                       <div>
                                         <Label className="text-[0.7rem]">Reminder Type</Label>
-                                        <Select value={bookingDraft.reminderWindow || "At selected time"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, reminderWindow: value }))}>
+                                        <Select value={bookingDraft.reminderWindow || "At selected time"} onValueChange={(value) => setBookingDraft((draft) => applyReminderWindowToDraft(draft, value, booking.repairType))}>
                                           <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
                                           <SelectContent>
                                             {reminderWindowOptions.map((option) => (
@@ -3082,13 +3142,13 @@ export default function Admin() {
                                           </SelectContent>
                                         </Select>
                                       </div>
-                                      <div>
-                                        <Label className="text-[0.7rem]">Message</Label>
-                                        <Input
+                                      <div className="sm:col-span-2">
+                                        <Label className="text-[0.7rem]">Reminder Message</Label>
+                                        <Textarea
                                           value={bookingDraft.reminderNote || ""}
                                           onChange={(event) => setBookingDraft((draft) => ({ ...draft, reminderNote: event.target.value }))}
-                                          placeholder="Job follow-up"
-                                          className="mt-1 bg-white"
+                                          placeholder="Reminder message"
+                                          className="mt-1 min-h-[76px] resize-y bg-white text-xs leading-relaxed"
                                         />
                                       </div>
                                     </div>
@@ -3536,8 +3596,8 @@ export default function Admin() {
                                         ))}
                                       </div>
                                     </details>
-                                    <div className="grid gap-3 sm:grid-cols-3">
-                                      <div>
+                                    <div className="grid gap-3 xl:grid-cols-[0.8fr_1.4fr]">
+                                      <div className="min-w-0">
                                         <Label>Appointment Date & Time</Label>
                                         <Input
                                           type="datetime-local"
@@ -3545,9 +3605,9 @@ export default function Admin() {
                                           onChange={(event) => setBookingDraft((draft) => applyAppointmentToDraft(draft, event.target.value, selectedBooking.repairType))}
                                         />
                                       </div>
-                                      <div className="rounded-2xl border border-rose-100 bg-[#fff7f0] p-3 sm:col-span-2">
-                                        <div className="flex items-center justify-between gap-2">
-                                          <div>
+                                      <div className="min-w-0 rounded-2xl border border-rose-100 bg-[#fff7f0] p-3">
+                                        <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-start">
+                                          <div className="min-w-0">
                                             <Label>Admin Job Reminder</Label>
                                             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                                               Choose the appointment first. The dashboard recalculates the reminder for 2 hours before that visit.
@@ -3573,7 +3633,7 @@ export default function Admin() {
                                             ))}
                                           </div>
                                         </details>
-                                        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_0.8fr]">
+                                        <div className="mt-3 grid gap-2 md:grid-cols-[1fr_0.8fr]">
                                           <div>
                                             <Label className="text-xs">Reminder Time</Label>
                                             <Input
@@ -3585,7 +3645,7 @@ export default function Admin() {
                                           </div>
                                           <div>
                                             <Label className="text-xs">Reminder Type</Label>
-                                            <Select value={bookingDraft.reminderWindow || "At selected time"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, reminderWindow: value }))}>
+                                            <Select value={bookingDraft.reminderWindow || "At selected time"} onValueChange={(value) => setBookingDraft((draft) => applyReminderWindowToDraft(draft, value, selectedBooking.repairType))}>
                                               <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
                                               <SelectContent>
                                                 {reminderWindowOptions.map((option) => (
@@ -3594,13 +3654,13 @@ export default function Admin() {
                                               </SelectContent>
                                             </Select>
                                           </div>
-                                          <div className="sm:col-span-2">
+                                          <div className="md:col-span-2">
                                             <Label className="text-xs">Reminder Message</Label>
                                             <Textarea
                                               value={bookingDraft.reminderNote || ""}
                                               onChange={(event) => setBookingDraft((draft) => ({ ...draft, reminderNote: event.target.value }))}
                                               placeholder="Example: Job starts soon. Check customer details, route, tools, and parts."
-                                              className="mt-1 bg-white"
+                                              className="mt-1 min-h-[88px] resize-y bg-white text-sm leading-relaxed"
                                             />
                                           </div>
                                         </div>
