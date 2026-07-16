@@ -3096,7 +3096,7 @@ export default function Admin() {
                                   <Label>Customer Photos</Label>
                                   <span className="text-[0.68rem] font-semibold text-muted-foreground">{booking.photos.length} attached</span>
                                 </div>
-                                <div className="mt-2 grid grid-cols-2 gap-2">
+                                <div className="mt-2 grid grid-cols-2 gap-3">
                                   {booking.photos.map((photo, index) => (
                                     <a
                                       key={`${booking.id}-mobile-photo-${index}`}
@@ -3109,9 +3109,9 @@ export default function Admin() {
                                       <img
                                         src={photo}
                                         alt={`Customer uploaded photo ${index + 1}`}
-                                        loading="lazy"
+                                        loading={index === 0 ? "eager" : "lazy"}
                                         decoding="async"
-                                        className="h-24 w-full object-cover transition duration-200 group-hover:scale-105"
+                                        className="h-28 w-full object-cover transition duration-200 group-hover:scale-105"
                                       />
                                       <span className="flex items-center justify-center gap-1 px-2 py-1 text-[0.65rem] font-bold text-secondary">
                                         <ImageIcon className="h-3 w-3" />
@@ -3471,7 +3471,7 @@ export default function Admin() {
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-h-[88vh] w-[min(920px,calc(100vw-2rem))] max-w-none overflow-x-hidden overflow-y-auto rounded-2xl p-4">
+                            <DialogContent className="max-h-[90vh] w-[min(980px,calc(100vw-1.25rem))] max-w-none overflow-x-hidden overflow-y-auto rounded-3xl p-3 sm:p-5">
                               <DialogHeader>
                                 <DialogTitle>Booking Details</DialogTitle>
                               </DialogHeader>
@@ -3628,7 +3628,7 @@ export default function Admin() {
                                         <Label>Customer Photos</Label>
                                         <span className="text-xs font-semibold text-muted-foreground">{selectedBooking.photos.length} attached</span>
                                       </div>
-                                      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                      <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
                                         {selectedBooking.photos.map((photo, index) => (
                                           <a
                                             key={`${selectedBooking.id}-photo-${index}`}
@@ -3641,9 +3641,9 @@ export default function Admin() {
                                             <img
                                               src={photo}
                                               alt={`Customer uploaded photo ${index + 1}`}
-                                              loading="lazy"
+                                              loading={index === 0 ? "eager" : "lazy"}
                                               decoding="async"
-                                              className="h-28 w-full object-cover transition duration-200 group-hover:scale-105 sm:h-32"
+                                              className="h-32 w-full object-cover transition duration-200 group-hover:scale-105 sm:h-40"
                                             />
                                             <span className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-bold text-secondary">
                                               <ImageIcon className="h-3.5 w-3.5" />
@@ -3681,7 +3681,7 @@ export default function Admin() {
                                         ))}
                                       </div>
                                     </details>
-                                    <div className="grid gap-3 md:grid-cols-2">
+                                    <div className="grid gap-3">
                                       <div className="min-w-0">
                                         <Label>Appointment Date & Time</Label>
                                         <Input
@@ -3690,7 +3690,7 @@ export default function Admin() {
                                           onChange={(event) => setBookingDraft((draft) => applyAppointmentToDraft(draft, event.target.value, selectedBooking.repairType))}
                                         />
                                       </div>
-                                      <div className="min-w-0 rounded-2xl border border-rose-100 bg-[#fff7f0] p-3 md:col-span-2">
+                                      <div className="min-w-0 rounded-2xl border border-rose-100 bg-[#fff7f0] p-3">
                                         <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
                                           <div className="min-w-0">
                                             <Label>Admin Job Reminder</Label>
@@ -3718,7 +3718,7 @@ export default function Admin() {
                                             ))}
                                           </div>
                                         </details>
-                                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                                        <div className="mt-3 grid gap-3">
                                           <div>
                                             <Label className="text-xs">Reminder Time</Label>
                                             <Input
@@ -3739,7 +3739,7 @@ export default function Admin() {
                                               </SelectContent>
                                             </Select>
                                           </div>
-                                          <div className="sm:col-span-2">
+                                          <div>
                                             <Label className="text-xs">Reminder Message</Label>
                                             <Textarea
                                               value={bookingDraft.reminderNote || ""}
@@ -3750,18 +3750,19 @@ export default function Admin() {
                                           </div>
                                         </div>
                                       </div>
-                                      <div>
+                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                         <Label>Quote Amount</Label>
                                         <Input
                                           value={bookingDraft.quoteAmount || ""}
                                           onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteAmount: event.target.value }))}
                                           placeholder="C$250"
+                                          className="mt-1 bg-white"
                                         />
                                       </div>
-                                      <div>
+                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                         <Label>Staff Assigned</Label>
                                         <Select value={bookingDraft.staffAssigned || "Not assigned"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, staffAssigned: value }))}>
-                                          <SelectTrigger><SelectValue /></SelectTrigger>
+                                          <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
                                           <SelectContent>
                                             {staffAssignmentOptions.map((option) => (
                                               <SelectItem key={option} value={option}>{option}</SelectItem>
@@ -3769,10 +3770,10 @@ export default function Admin() {
                                           </SelectContent>
                                         </Select>
                                       </div>
-                                      <div>
+                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                         <Label>Invoice / Quote Stage</Label>
                                         <Select value={bookingDraft.invoiceStatus || "Not issued"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, invoiceStatus: value }))}>
-                                          <SelectTrigger><SelectValue /></SelectTrigger>
+                                          <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
                                           <SelectContent>
                                             {invoiceStatusOptions.map((option) => (
                                               <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
@@ -3781,10 +3782,10 @@ export default function Admin() {
                                         </Select>
                                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Shows whether nothing was sent, a quote was sent, or the final invoice is ready.</p>
                                       </div>
-                                      <div>
+                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                         <Label>Payment Progress</Label>
                                         <Select value={bookingDraft.paymentStatus || "Not paid"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, paymentStatus: value }))}>
-                                          <SelectTrigger><SelectValue /></SelectTrigger>
+                                          <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
                                           <SelectContent>
                                             {paymentStatusOptions.map((option) => (
                                               <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
@@ -3793,7 +3794,7 @@ export default function Admin() {
                                         </Select>
                                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Shows whether payment is missing, requested, partly received, or fully paid.</p>
                                       </div>
-                                      <div className="sm:col-span-3">
+                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                         <div className="flex items-center justify-between gap-2">
                                           <Label>Quote / Invoice Notes</Label>
                                           <Button type="button" variant="outline" size="sm" onClick={insertQuoteTemplate}>
@@ -3804,17 +3805,17 @@ export default function Admin() {
                                           value={bookingDraft.quoteNotes || ""}
                                           onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteNotes: event.target.value }))}
                                           placeholder="Line items, labour, materials, delivery, tax notes, payment link, or quote terms..."
-                                          className="min-h-36 resize-y transition-all duration-200 focus:min-h-72"
+                                          className="min-h-36 resize-y bg-white transition-all duration-200 focus:min-h-72"
                                         />
                                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Click inside this box and it opens more space for longer invoice details.</p>
                                       </div>
-                                      <div className="sm:col-span-3">
+                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                         <Label>Private Admin / Payment Notes</Label>
                                         <Textarea
                                           value={bookingDraft.adminNotes || ""}
                                           onChange={(event) => setBookingDraft((draft) => ({ ...draft, adminNotes: event.target.value }))}
                                           placeholder="Private payment notes, follow-up reminders, measurements, pricing, supplier info, or customer preferences..."
-                                          className="min-h-32 resize-y transition-all duration-200 focus:min-h-72"
+                                          className="min-h-32 resize-y bg-white transition-all duration-200 focus:min-h-72"
                                         />
                                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Use this for deposit, balance, collection notes, and anything only the admin should see.</p>
                                       </div>
