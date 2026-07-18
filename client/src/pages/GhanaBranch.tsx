@@ -9,7 +9,7 @@ const GHANA_PHONE_DISPLAY = "+233 55 900 4048";
 const GHANA_PHONE_TEL = "+233559004048";
 const GHANA_WHATSAPP_URL = "https://wa.me/233559004048?text=Hello%20FixMyDoor%20Services%20Ghana%2C%20I%20need%20help%20with%20doors%2C%20furniture%2C%20installation%2C%20or%20repairs.";
 const GHANA_EMAIL = "info.fixmydoor@gmail.com";
-const GHANA_MANAGER_PHOTO = "/ghana-manager-emmanuella-asare-konadu.heic";
+const GHANA_MANAGER_PHOTO = "/ghana-manager-emmanuella-asare-konadu.jpg";
 
 const ghanaServices = [
   "Wholesale and retail of all kinds of doors",
@@ -61,6 +61,7 @@ export default function GhanaBranch() {
           "@type": "Person",
           name: "Emmanuella Asare Konadu",
           jobTitle: "Managing Director",
+          image: `${SITE_URL}${GHANA_MANAGER_PHOTO}`,
         },
         knowsAbout: ghanaServices,
         priceRange: "$$",
@@ -160,17 +161,14 @@ export default function GhanaBranch() {
         <aside className="rounded-[30px] border border-primary/12 bg-white p-5 shadow-[0_24px_70px_rgba(66,40,18,0.12)]">
           <div className="rounded-[24px] bg-[#2f241c] p-5 text-white">
             <div className="flex items-center gap-4">
-              <span className="relative inline-flex h-20 w-20 shrink-0 overflow-hidden rounded-[1.35rem] border border-white/20 bg-[#FAF6F0] shadow-lg ring-2 ring-primary/35">
-                <picture>
-                  <source srcSet={GHANA_MANAGER_PHOTO} type="image/heic" />
-                  <img
-                    src="/img5150-transparent.png"
-                    alt="Emmanuella Asare Konadu, Managing Director of FixMyDoor Services Ghana"
-                    className="h-full w-full object-cover"
-                    loading="eager"
-                    decoding="async"
-                  />
-                </picture>
+              <span className="relative inline-flex h-20 w-20 shrink-0 overflow-hidden rounded-[1.35rem] border border-white/20 bg-[#FAF6F0] shadow-lg ring-2 ring-primary/35 sm:h-24 sm:w-24">
+                <img
+                  src={GHANA_MANAGER_PHOTO}
+                  alt="Emmanuella Asare Konadu, Managing Director of FixMyDoor Services Ghana"
+                  className="h-full w-full object-cover"
+                  loading="eager"
+                  decoding="async"
+                />
               </span>
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.22em] text-primary">Managing Director</p>

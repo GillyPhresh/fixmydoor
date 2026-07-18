@@ -1305,6 +1305,7 @@ function renderPageStructuredData(pagePath: string) {
             "@type": "Person",
             "name": "Emmanuella Asare Konadu",
             "jobTitle": "Managing Director",
+            "image": `${publicBaseUrl}/ghana-manager-emmanuella-asare-konadu.jpg`,
           },
           "knowsAbout": [
             "door wholesale Ghana",
@@ -1405,6 +1406,7 @@ function renderPageStructuredData(pagePath: string) {
           "https://www.facebook.com/share/1Mc9zS8fXa/?mibextid=wwXIfr",
           "https://www.instagram.com/fixmydoor_services?igsh=MWpqdXVmZDI2a3dyYw%3D%3D&utm_source=fixmydoor.ca&utm_medium=social_link&utm_campaign=montreal_quebec_canada",
           "https://x.com/fixmydoor?s=11",
+          "https://www.yellowpages.ca/bus/Quebec/Montreal/FixMyDoor-Services/105313756.html",
         ],
       },
       {

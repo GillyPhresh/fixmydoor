@@ -1214,7 +1214,7 @@ export default function Home() {
           },
         ],
         priceRange: "$$",
-        sameAs: SOCIAL_LINKS.map((link) => link.href),
+        sameAs: [...SOCIAL_LINKS.map((link) => link.href), YELLOWPAGES_PROFILE_URL],
         ...(reviewSchemaItems.length > 0
           ? {
               aggregateRating: {
