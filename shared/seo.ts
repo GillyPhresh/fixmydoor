@@ -56,6 +56,17 @@ export const termsConditionsSeoPage: SeoPage = {
   changeFrequency: "monthly",
 };
 
+export const ghanaBranchSeoPage: SeoPage = {
+  path: "/ghana-branch",
+  title: "FixMyDoor Services Ghana | Doors, Furniture & Installation in Kumasi",
+  description:
+    "FixMyDoor Services Ghana in Kumasi offers door sales, door installation, furniture sales, furniture installation, door repairs, and furniture repairs.",
+  keywords:
+    "FixMyDoor Services Ghana, doors Kumasi, door installation Ghana, furniture sales Kumasi, furniture installation Ghana, door repairs Ghana, furniture repairs Ghana",
+  sitemapPriority: "0.7",
+  changeFrequency: "weekly",
+};
+
 export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/door-repair": {
     path: "/door-repair",
@@ -294,10 +305,11 @@ export const seoPages: Record<string, SeoPage> = {
   [homeSeoPage.path]: homeSeoPage,
   [privacyPolicySeoPage.path]: privacyPolicySeoPage,
   [termsConditionsSeoPage.path]: termsConditionsSeoPage,
+  [ghanaBranchSeoPage.path]: ghanaBranchSeoPage,
   ...serviceSeoPages,
 };
 
-export const sitemapRoutes = [homeSeoPage.path, ...Object.keys(serviceSeoPages), privacyPolicySeoPage.path, termsConditionsSeoPage.path];
+export const sitemapRoutes = [homeSeoPage.path, ...Object.keys(serviceSeoPages), ghanaBranchSeoPage.path, privacyPolicySeoPage.path, termsConditionsSeoPage.path];
 
 export function normalizeSeoPath(pathname = "/") {
   const withoutQuery = pathname.split("?")[0].split("#")[0] || "/";

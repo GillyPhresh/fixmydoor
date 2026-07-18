@@ -21,6 +21,7 @@ const TrackBooking = lazy(() => import("./pages/TrackBooking"));
 const ServicePage = lazy(() => import("./pages/ServicePage"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsConditions = lazy(() => import("./pages/TermsConditions"));
+const GhanaBranch = lazy(() => import("./pages/GhanaBranch"));
 
 function HomeRoute() {
   return <Home />;
@@ -44,6 +45,10 @@ function PrivacyPolicyRoute() {
 
 function TermsConditionsRoute() {
   return <TermsConditions />;
+}
+
+function GhanaBranchRoute() {
+  return <GhanaBranch />;
 }
 
 function GoogleAnalytics() {
@@ -108,6 +113,7 @@ function Router() {
         <Route path={"/door-hardware"} component={ServicePageRoute} />
         <Route path={"/hardware-sourcing"} component={ServicePageRoute} />
         <Route path={"/international-requests"} component={ServicePageRoute} />
+        <Route path={"/ghana-branch"} component={GhanaBranchRoute} />
         <Route path={"/privacy-policy"} component={PrivacyPolicyRoute} />
         <Route path={"/terms-and-conditions"} component={TermsConditionsRoute} />
         <Route path={"/admin"} component={AdminRoute} />

@@ -18,7 +18,7 @@ import { emailService, getPublicBaseUrl } from "./email";
 import type { Booking, BookingStatusHistoryEntry, BookingUpdateRequest } from "@shared/types";
 import { formatBookingDisplayId } from "@shared/booking-code";
 import { serviceCatalog } from "@shared/services";
-import { normalizeSeoPath, resolveSeoPage, seoRouteAliases, serviceSeoPages, sitemapRoutes } from "@shared/seo";
+import { ghanaBranchSeoPage, normalizeSeoPath, resolveSeoPage, seoRouteAliases, serviceSeoPages, sitemapRoutes } from "@shared/seo";
 
 if (fs.existsSync(".env")) {
   process.loadEnvFile?.(".env");
@@ -1272,6 +1272,75 @@ function renderPageStructuredData(pagePath: string) {
   const canonicalUrl = isFrench ? appendFrenchQuery(canonicalBaseUrl) : canonicalBaseUrl;
   const servicePage = serviceSeoPages[page.path];
 
+  if (page.path === ghanaBranchSeoPage.path) {
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "LocalBusiness",
+          "@id": `${canonicalUrl}#ghana-branch`,
+          "name": "FixMyDoor Services Ghana",
+          "url": canonicalUrl,
+          "logo": `${publicBaseUrl}/img5150-transparent.png`,
+          "image": getPublicImageUrl(),
+          "description": localizedPage.description,
+          "telephone": "+233559004048",
+          "email": "info.fixmydoor@gmail.com",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Kumasi",
+            "addressCountry": "GH",
+          },
+          "areaServed": [
+            { "@type": "City", "name": "Kumasi" },
+            { "@type": "AdministrativeArea", "name": "Ashanti Region" },
+            { "@type": "Country", "name": "Ghana" },
+          ],
+          "branchOf": {
+            "@type": "LocalBusiness",
+            "name": "FixMyDoor Services",
+            "url": publicBaseUrl,
+          },
+          "employee": {
+            "@type": "Person",
+            "name": "Emmanuella Asare Konadu",
+            "jobTitle": "Managing Director",
+          },
+          "knowsAbout": [
+            "door wholesale Ghana",
+            "door retail Ghana",
+            "door installation Kumasi",
+            "furniture sales Kumasi",
+            "furniture installation Ghana",
+            "door repairs Ghana",
+            "furniture repairs Ghana",
+          ],
+          "priceRange": "$$",
+        },
+        {
+          "@type": "BreadcrumbList",
+          "@id": `${canonicalUrl}#breadcrumb`,
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": `${publicBaseUrl}/`,
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Ghana Branch",
+              "item": canonicalUrl,
+            },
+          ],
+        },
+      ],
+    };
+
+    return `    <script type="application/ld+json">${JSON.stringify(structuredData).replace(/</g, "\\u003c")}</script>`;
+  }
+
   if (!servicePage) {
     return "";
   }
@@ -1487,7 +1556,15 @@ function buildServiceFaqs(servicePage: (typeof serviceSeoPages)[string]) {
   ];
 }
 
-function renderAlternateLinks(canonicalBaseUrl: string) {
+function renderAlternateLinks(canonicalBaseUrl: string, pagePath = "/") {
+  if (normalizeSeoPath(pagePath) === ghanaBranchSeoPage.path) {
+    return [
+      `    <link rel="alternate" hreflang="en-gh" href="${escapeHtml(canonicalBaseUrl)}" />`,
+      `    <link rel="alternate" hreflang="en-ca" href="${escapeHtml(getPublicBaseUrl())}/" />`,
+      `    <link rel="alternate" hreflang="x-default" href="${escapeHtml(canonicalBaseUrl)}" />`,
+    ].join("\n");
+  }
+
   return [
     `    <link rel="alternate" hreflang="en-ca" href="${escapeHtml(canonicalBaseUrl)}" />`,
     `    <link rel="alternate" hreflang="fr-ca" href="${escapeHtml(appendFrenchQuery(canonicalBaseUrl))}" />`,
@@ -1566,7 +1643,7 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
   }
 
   html = html
-    .replace(/    <link rel="alternate" hreflang="en-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="fr-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="x-default" href="[^"]*" \/>/, renderAlternateLinks(canonicalBaseUrl));
+    .replace(/    <link rel="alternate" hreflang="en-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="fr-ca" href="[^"]*" \/>\n    <link rel="alternate" hreflang="x-default" href="[^"]*" \/>/, renderAlternateLinks(canonicalBaseUrl, page.path));
 
   html = replaceMetaContent(html, "name", "description", localizedPage.description);
   html = replaceMetaContent(html, "name", "keywords", localizedPage.keywords);
@@ -3249,6 +3326,7 @@ async function startServer() {
       normalizedPath === "/admin/notify" ||
       normalizedPath === "/privacy-policy" ||
       normalizedPath === "/terms-and-conditions" ||
+      normalizedPath === ghanaBranchSeoPage.path ||
       normalizedPath === "/404" ||
       normalizedPath.startsWith("/track/") ||
       Boolean(serviceSeoPages[normalizedPath])

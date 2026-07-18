@@ -13,9 +13,11 @@ import {
   ArrowLeft,
   ArrowRight,
   Bell,
+  Building2,
   CheckCircle2,
   Facebook,
   FileText,
+  Flag,
   Globe2,
   Instagram,
   Mail,
@@ -212,6 +214,7 @@ const navLinks = [
   { href: "#before-after", label: "Projects" },
   { href: "#about", label: "About" },
   { href: "#testimonials", label: "Reviews" },
+  { href: "/ghana-branch", label: "Ghana Branch" },
   { href: "#contact", label: "Contact" },
 ];
 
@@ -2207,6 +2210,33 @@ export default function Home() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="branches-heading" className="bg-white py-4 sm:py-6">
+        <div className="container max-w-[1180px]">
+          <div className="grid gap-3 rounded-[26px] border border-primary/12 bg-[#fff8ef] p-4 shadow-[0_16px_44px_rgba(66,40,18,0.08)] sm:grid-cols-[1fr_auto] sm:items-center sm:p-5">
+            <div className="flex gap-3">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-secondary text-white shadow-sm">
+                <Flag className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[0.64rem] font-black uppercase tracking-[0.22em] text-primary">Our Branches</p>
+                <h2 id="branches-heading" className="mt-1 font-display text-xl font-bold leading-tight text-secondary sm:text-2xl">We are now in Ghana</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-foreground/70">
+                  FixMyDoor Services Ghana is based in Kumasi for doors, furniture, sales, installations, and repair support.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/ghana-branch"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-black text-white shadow-[0_12px_28px_rgba(180,101,50,0.22)] transition hover:-translate-y-0.5 hover:bg-primary/90"
+            >
+              <Building2 className="h-4 w-4" />
+              View Ghana Branch
+              <ArrowRight className="h-4 w-4" />
+            </a>
           </div>
         </div>
       </section>
