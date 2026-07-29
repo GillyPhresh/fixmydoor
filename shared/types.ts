@@ -61,6 +61,7 @@ export interface Booking extends BookingRequest {
   reminderWindow?: string;
   reminderNote?: string;
   reminderSentAt?: string;
+  emailOptOut?: boolean;
   statusHistory?: BookingStatusHistoryEntry[];
   createdAt: string;
   updatedAt?: string;
@@ -86,6 +87,7 @@ export interface BookingUpdateRequest {
   reminderAt?: string;
   reminderWindow?: string;
   reminderNote?: string;
+  emailOptOut?: boolean;
 }
 
 export interface ReviewRequest {

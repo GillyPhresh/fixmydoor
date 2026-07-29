@@ -1304,6 +1304,7 @@ export default function Admin() {
       reminderAt: booking.reminderAt || "",
       reminderWindow: booking.reminderWindow || "At selected time",
       reminderNote: booking.reminderNote || "",
+      emailOptOut: booking.emailOptOut === true,
     });
   };
 
@@ -1465,6 +1466,7 @@ export default function Admin() {
         reminderAt: updatedBooking.reminderAt || "",
         reminderWindow: updatedBooking.reminderWindow || "At selected time",
         reminderNote: updatedBooking.reminderNote || "",
+        emailOptOut: updatedBooking.emailOptOut === true,
       });
       await fetchStats();
       toast.success("Booking details saved");
@@ -3015,11 +3017,25 @@ export default function Admin() {
                             <DialogTitle className="text-lg">Booking Details</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-3">
-                            <div className="rounded-2xl bg-[#fffaf2] p-3">
-                              <p className="font-bold text-secondary">{booking.name}</p>
-                              <p className="mt-1 text-xs font-black text-primary">{formatBookingDisplayId(booking)}</p>
-                              <p className="mt-1 text-xs text-muted-foreground">Submitted: {new Date(booking.createdAt).toLocaleString()}</p>
-                            </div>
+                              <div className="rounded-2xl bg-[#fffaf2] p-3">
+                                <p className="font-bold text-secondary">{booking.name}</p>
+                                <p className="mt-1 text-xs font-black text-primary">{formatBookingDisplayId(booking)}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">Submitted: {new Date(booking.createdAt).toLocaleString()}</p>
+                              </div>
+                              <label className={`flex items-start gap-3 rounded-2xl border p-3 text-sm ${bookingDraft.emailOptOut ? "border-red-200 bg-red-50 text-red-950" : "border-green-200 bg-green-50 text-green-950"}`}>
+                                <input
+                                  type="checkbox"
+                                  className="mt-1 h-4 w-4 accent-red-700"
+                                  checked={bookingDraft.emailOptOut === true}
+                                  onChange={(event) => setBookingDraft((draft) => ({ ...draft, emailOptOut: event.target.checked }))}
+                                />
+                                <span>
+                                  <span className="block font-black">{bookingDraft.emailOptOut ? "Emails stopped for this customer" : "Customer emails allowed"}</span>
+                                  <span className="mt-0.5 block text-xs leading-relaxed opacity-80">
+                                    Tick this when a customer asks you to stop emailing them. Save details after changing it.
+                                  </span>
+                                </span>
+                              </label>
                             <div className="grid gap-2 text-sm sm:grid-cols-2">
                               <div className="rounded-xl border bg-white p-3">
                                 <p className="text-xs font-semibold text-muted-foreground">Service</p>
@@ -3122,10 +3138,10 @@ export default function Admin() {
                                 </div>
                               </div>
                             )}
-                            <div className="rounded-2xl border border-[#ead8bf] bg-white p-3 shadow-sm">
-                              <div className="mb-3 rounded-xl bg-[#fffaf2] p-3">
-                                <div>
-                                  <Label>Admin Workflow</Label>
+                                    <div className="rounded-2xl border border-[#ead8bf] bg-white p-3 shadow-sm">
+                                      <div className="mb-3 rounded-xl bg-[#fffaf2] p-3">
+                                        <div>
+                                          <Label>Admin Workflow</Label>
                                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                                     Set the appointment, quote, invoice status, payment status, assigned staff, and private notes from your phone.
                                   </p>
@@ -3142,8 +3158,22 @@ export default function Admin() {
                                   <Save className="mr-1.5 h-4 w-4" />
                                   Save Details
                                 </Button>
-                              </div>
-                              <div className="grid gap-2">
+                                      </div>
+                                      <label className={`mb-3 flex items-start gap-3 rounded-2xl border p-3 text-sm ${bookingDraft.emailOptOut ? "border-red-200 bg-red-50 text-red-950" : "border-green-200 bg-green-50 text-green-950"}`}>
+                                        <input
+                                          type="checkbox"
+                                          className="mt-1 h-4 w-4 accent-red-700"
+                                          checked={bookingDraft.emailOptOut === true}
+                                          onChange={(event) => setBookingDraft((draft) => ({ ...draft, emailOptOut: event.target.checked }))}
+                                        />
+                                        <span>
+                                          <span className="block font-black">{bookingDraft.emailOptOut ? "Emails stopped for this customer" : "Customer emails allowed"}</span>
+                                          <span className="mt-0.5 block text-xs leading-relaxed opacity-80">
+                                            Tick this when the customer asks you to stop sending emails. Save details after changing it.
+                                          </span>
+                                        </span>
+                                      </label>
+                                      <div className="grid gap-2">
                                 <div>
                                   <Label htmlFor={`appointment-${booking.id}`}>Appointment Date & Time</Label>
                                   <Input

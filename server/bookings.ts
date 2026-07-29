@@ -106,6 +106,7 @@ export function toBooking(record: any): Booking {
     reminderWindow: record.reminderWindow ?? undefined,
     reminderNote: record.reminderNote ?? undefined,
     reminderSentAt: record.reminderSentAt ?? undefined,
+    emailOptOut: Boolean(record.emailOptOut),
     statusHistory: parseStatusHistory(record.statusHistory),
     createdAt: record.createdAt instanceof Date ? record.createdAt.toISOString() : record.createdAt,
     updatedAt: record.updatedAt instanceof Date ? record.updatedAt.toISOString() : record.updatedAt,

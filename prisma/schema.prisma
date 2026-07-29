@@ -47,6 +47,7 @@ model Booking {
   reminderWindow     String?
   reminderNote       String?
   reminderSentAt     String?
+  emailOptOut        Boolean     @default(false)
   statusHistory      String?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt

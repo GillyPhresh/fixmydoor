@@ -749,17 +749,12 @@ async function sendCustomerEmailBroadcast(
   payload: Pick<PushPayload, "title" | "message" | "url">,
   type: "advert" | "notification",
 ) {
-  const bookings = await prisma.booking.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      email: true,
-      customerConsent: true,
-    },
-    take: 1000,
-  });
+  const bookings = await prisma.$queryRawUnsafe<Array<{ email: string; customerConsent: boolean | number; emailOptOut?: boolean | number }>>(
+    `SELECT "email", "customerConsent", COALESCE("emailOptOut", 0) AS "emailOptOut" FROM "Booking" ORDER BY "createdAt" DESC LIMIT 1000`,
+  );
   const uniqueEmails = Array.from(new Set(
     bookings
-      .filter((booking) => booking.customerConsent && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(booking.email || ""))
+      .filter((booking) => booking.customerConsent && !booking.emailOptOut && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(booking.email || ""))
       .map((booking) => booking.email.trim().toLowerCase()),
   )).slice(0, CUSTOMER_EMAIL_BROADCAST_LIMIT);
 
@@ -1019,6 +1014,7 @@ async function ensureDatabaseCompatibility() {
     `ALTER TABLE "Booking" ADD COLUMN "reminderWindow" TEXT`,
     `ALTER TABLE "Booking" ADD COLUMN "reminderNote" TEXT`,
     `ALTER TABLE "Booking" ADD COLUMN "reminderSentAt" TEXT`,
+    `ALTER TABLE "Booking" ADD COLUMN "emailOptOut" BOOLEAN NOT NULL DEFAULT 0`,
     `ALTER TABLE "Booking" ADD COLUMN "statusHistory" TEXT`,
     `ALTER TABLE "Booking" ADD COLUMN "city" TEXT`,
     `ALTER TABLE "Booking" ADD COLUMN "country" TEXT`,
@@ -3151,14 +3147,19 @@ async function startServer() {
       }
       if ("reminderWindow" in update) updateData.reminderWindow = cleanOptionalText(update.reminderWindow, 80);
       if ("reminderNote" in update) updateData.reminderNote = cleanOptionalText(update.reminderNote, 400);
+      const requestedEmailOptOut = "emailOptOut" in update ? update.emailOptOut === true : undefined;
 
       const booking = await prisma.booking.update({
         where: { id },
         data: updateData as any,
       });
+      if (requestedEmailOptOut !== undefined) {
+        await prisma.$executeRaw`UPDATE "Booking" SET "emailOptOut" = ${requestedEmailOptOut ? 1 : 0} WHERE "id" = ${id}`;
+        (booking as any).emailOptOut = requestedEmailOptOut;
+      }
       const normalizedBooking = toBooking(booking);
 
-      if (status && status !== previousStatus) {
+      if (status && status !== previousStatus && !normalizedBooking.emailOptOut) {
         emailService.sendStatusUpdate(normalizedBooking).catch(err =>
           console.error("Failed to send status update email:", err)
         );
@@ -3171,6 +3172,8 @@ async function startServer() {
             console.error("Failed to create review SMS draft:", err)
           );
         }
+      } else if (status && status !== previousStatus && normalizedBooking.emailOptOut) {
+        console.log(`Customer email skipped for ${formatBookingDisplayId(normalizedBooking)} because email is stopped`);
       }
 
       res.json(normalizedBooking);
