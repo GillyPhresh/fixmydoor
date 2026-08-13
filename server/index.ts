@@ -94,6 +94,18 @@ const mediaTypes: Record<string, { extension: string; kind: "image" | "video" | 
   "application/msword": { extension: "doc", kind: "document" },
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": { extension: "docx", kind: "document" },
 };
+const ADMIN_SESSION_MAX_AGE_MS = 8 * 60 * 60 * 1000;
+const ADMIN_SENSITIVE_PATH_PATTERN = /^\/(?:admin(?:\/|$)|api\/admin(?:\/|$)|api\/auth(?:\/|$)|api\/bookings(?:\/|$))/i;
+
+function isStrongAdminPassword(password: string) {
+  return (
+    password.length >= 12 &&
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
+}
 
 function broadcastSiteEvent(event: SiteEventPayload) {
   const payload = JSON.stringify({
@@ -1976,8 +1988,20 @@ async function startServer() {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
     res.setHeader("X-Download-Options", "noopen");
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
 
-    if (isProduction && /^\/(?:src|server|shared|attached_assets|\.git|\.env|node_modules)(?:\/|$)/i.test(req.path)) {
+    if (ADMIN_SENSITIVE_PATH_PATTERN.test(req.path)) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");
+    }
+
+    if (/\/(?:\.git|\.env|\.DS_Store|package-lock\.json|pnpm-lock\.yaml|yarn\.lock|composer\.json|composer\.lock|wp-config\.php|config\.php|backup|backups)(?:\/|$)/i.test(req.path)) {
+      return res.status(404).send("Not found");
+    }
+
+    if (isProduction && /^\/(?:src|server|shared|attached_assets|node_modules)(?:\/|$)/i.test(req.path)) {
       return res.status(404).send("Not found");
     }
 
@@ -2065,11 +2089,12 @@ async function startServer() {
     secret: sessionSecret as string,
     resave: false,
     saveUninitialized: false,
+    rolling: true,
     proxy: isProduction,
     cookie: {
       secure: isProduction, // Use HTTPS in production
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      maxAge: ADMIN_SESSION_MAX_AGE_MS,
       sameSite: "lax",
     },
     name: "fixmydoor.sid", // Change default session name
@@ -2253,8 +2278,22 @@ async function startServer() {
         return res.status(401).json({ success: false, error: "Invalid credentials" });
       }
 
-      req.session.adminId = admin.id;
-      res.json({ success: true });
+      req.session.regenerate((error) => {
+        if (error) {
+          console.error("Session regeneration error:", error);
+          return res.status(500).json({ success: false, error: "Login failed" });
+        }
+
+        req.session.adminId = admin.id;
+        req.session.save((saveError) => {
+          if (saveError) {
+            console.error("Session save error:", saveError);
+            return res.status(500).json({ success: false, error: "Login failed" });
+          }
+
+          res.json({ success: true });
+        });
+      });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ success: false, error: "Login failed" });
@@ -2266,7 +2305,11 @@ async function startServer() {
       if (err) {
         return res.status(500).json({ success: false, error: "Logout failed" });
       }
-      res.clearCookie("fixmydoor.sid");
+      res.clearCookie("fixmydoor.sid", {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: "lax",
+      });
       res.json({ success: true });
     });
   });
@@ -2282,8 +2325,12 @@ async function startServer() {
       return res.status(400).json({ success: false, error: "Current and new password required" });
     }
 
-    if (newPassword.length < 8) {
-      return res.status(400).json({ success: false, error: "New password must be at least 8 characters long" });
+    if (typeof currentPassword !== "string" || typeof newPassword !== "string" || currentPassword.length > 100 || newPassword.length > 100) {
+      return res.status(400).json({ success: false, error: "Invalid password format" });
+    }
+
+    if (!isStrongAdminPassword(newPassword)) {
+      return res.status(400).json({ success: false, error: "Use at least 12 characters with uppercase, lowercase, number, and symbol" });
     }
 
     try {
