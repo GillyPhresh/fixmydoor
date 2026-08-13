@@ -1,4 +1,10 @@
 User-agent: *
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin/notify
+Disallow: /api/admin/
+Disallow: /api/bookings
+Disallow: /api/bookings/
 Allow: /
 
 Sitemap: https://www.fixmydoor.ca/sitemap.xml

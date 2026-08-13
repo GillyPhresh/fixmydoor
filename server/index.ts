@@ -1674,6 +1674,12 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
 function renderRobotsTxt() {
   return [
     "User-agent: *",
+    "Disallow: /admin",
+    "Disallow: /admin/",
+    "Disallow: /admin/notify",
+    "Disallow: /api/admin/",
+    "Disallow: /api/bookings",
+    "Disallow: /api/bookings/",
     "Allow: /",
     "",
     `Sitemap: ${getPublicBaseUrl()}/sitemap.xml`,
@@ -3339,6 +3345,16 @@ async function startServer() {
   };
 
   app.use((req, res, next) => {
+    if (
+      req.path === "/admin" ||
+      req.path.startsWith("/admin/") ||
+      req.path.startsWith("/api/admin/") ||
+      req.path === "/api/bookings" ||
+      req.path.startsWith("/api/bookings/")
+    ) {
+      res.setHeader("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");
+    }
+
     if ((req.method === "GET" || req.method === "HEAD") && req.path.length > 1 && req.path.endsWith("/")) {
       const query = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
       return res.redirect(301, `${req.path.replace(/\/+$/, "")}${query}`);
