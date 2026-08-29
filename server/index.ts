@@ -3511,6 +3511,11 @@ async function startServer() {
     res.type("text/plain").send(renderSecurityTxt());
   });
 
+  app.get(["/review", "/google-review"], (_req, res) => {
+    res.setHeader("Cache-Control", isProduction ? "public, max-age=3600" : "no-cache");
+    return res.redirect(301, "https://g.page/r/CeZinY_kV0VcEAE/review");
+  });
+
   app.get(Object.keys(seoRouteAliases), (req, res) => {
     const canonicalPath = seoRouteAliases[normalizeSeoPath(req.path)];
     if (!canonicalPath) {
