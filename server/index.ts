@@ -328,7 +328,7 @@ function createVapidJwt(subscriptionEndpoint: string) {
   const payload = base64UrlEncode(JSON.stringify({
     aud: audience,
     exp: Math.floor(Date.now() / 1000) + 12 * 60 * 60,
-    sub: "mailto:info.fixmydoor@gmail.com",
+    sub: "mailto:booking@fixmydoor.ca",
   }));
   const signingInput = `${header}.${payload}`;
   const publicKeyBuffer = base64UrlDecode(publicKey);
@@ -1293,7 +1293,7 @@ function renderPageStructuredData(pagePath: string) {
           "image": getPublicImageUrl(),
           "description": localizedPage.description,
           "telephone": "+233559004048",
-          "email": "info.fixmydoor@gmail.com",
+          "email": "booking@fixmydoor.ca",
           "address": {
             "@type": "PostalAddress",
             "addressLocality": "Kumasi",
@@ -1366,7 +1366,7 @@ function renderPageStructuredData(pagePath: string) {
         "image": getPublicImageUrl(),
         "description": "Door repairs, door installations, furniture repairs, lock rekeying, and hardware sourcing in Montreal, Quebec, Canada.",
         "telephone": "+14383471823",
-        "email": "info.fixmydoor@gmail.com",
+        "email": "booking@fixmydoor.ca",
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "10158 Rue Berri",
@@ -1613,7 +1613,7 @@ function renderServiceFallbackMain(pagePath: string) {
         <p>FixMyDoor Services is based in Montreal, Quebec and welcomes requests from Montreal, Laval, Longueuil, Brossard, nearby Quebec communities, other Canadian locations, and international customers who need door, furniture, or hardware sourcing guidance.</p>
         <h2>Contact FixMyDoor Services</h2>
         <p>Phone: <a href="tel:+14383471823">+1 (438) 347-1823</a></p>
-        <p>Email: <a href="mailto:info.fixmydoor@gmail.com">info.fixmydoor@gmail.com</a></p>
+        <p>Email: <a href="mailto:booking@fixmydoor.ca">booking@fixmydoor.ca</a></p>
         <p>WhatsApp: <a href="https://wa.me/233242011305">+233 24 201 1305</a></p>
         <p>Canonical page: <a href="${escapeHtml(canonicalUrl)}">${escapeHtml(canonicalUrl)}</a></p>
       </main>`;
@@ -1712,7 +1712,7 @@ function renderLlmsTxt() {
     `Primary website: ${publicBaseUrl}/`,
     `Booking form: ${publicBaseUrl}/#contact`,
     "Phone: +1 438 347 1823",
-    "Email: info.fixmydoor@gmail.com",
+    "Email: booking@fixmydoor.ca",
     "Address: 10158 Rue Berri, Montreal, Quebec H3L 2G6, Canada",
     "",
     "Important pages:",
@@ -1742,7 +1742,7 @@ function renderSecurityTxt() {
   const publicBaseUrl = getPublicBaseUrl();
 
   return [
-    "Contact: mailto:info.fixmydoor@gmail.com",
+    "Contact: mailto:booking@fixmydoor.ca",
     "Preferred-Languages: en, fr",
     `Canonical: ${publicBaseUrl}/.well-known/security.txt`,
     `Policy: ${publicBaseUrl}/privacy-policy`,
@@ -1890,7 +1890,7 @@ function renderQuoteInvoiceHtml(booking: Booking, nonce: string) {
         <h3>Notes</h3>
         <p>Prepared from the booking details. Final cost may change if measurements, parts, delivery, or installation requirements change.</p>
         <p>Thank you for choosing FixMyDoor Services. We appreciate your trust.</p>
-        <p><strong>FixMyDoor Services</strong><br>info.fixmydoor@gmail.com<br>+1 (438) 347-1823</p>
+        <p><strong>FixMyDoor Services</strong><br>booking@fixmydoor.ca<br>+1 (438) 347-1823</p>
       </div>
       <div class="approval-block">
         <p>Sincerely,</p>

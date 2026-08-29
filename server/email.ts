@@ -37,7 +37,8 @@ interface EmailRuntimeStatus {
   initializedAt: string;
 }
 
-const DEFAULT_BUSINESS_EMAIL = "info.fixmydoor@gmail.com";
+const DEFAULT_BUSINESS_EMAIL = "booking@fixmydoor.ca";
+const DEFAULT_FROM_EMAIL = "FixMyDoor Services <booking@fixmydoor.ca>";
 const DEFAULT_PUBLIC_SITE_URL = "https://www.fixmydoor.ca";
 const GOOGLE_REVIEW_URL = "https://g.page/r/CeZinY_kV0VcEAE/review";
 const LOGO_CID = "fixmydoor-logo";
@@ -107,6 +108,31 @@ function summarizeEmailError(error: unknown) {
 
 function getBusinessEmail() {
   return normalizeEnvValue(process.env.BUSINESS_EMAIL) || normalizeEnvValue(process.env.ADMIN_EMAIL) || DEFAULT_BUSINESS_EMAIL;
+}
+
+function getOutboundFromEmail() {
+  return normalizeEnvValue(process.env.RESEND_FROM_EMAIL) || normalizeEnvValue(process.env.FROM_EMAIL) || DEFAULT_FROM_EMAIL;
+}
+
+function getCustomerEmailMetadata(type: "booking" | "status" | "review" | "broadcast" | "test", referenceId?: string) {
+  const businessEmail = getBusinessEmail();
+  const safeReference = sanitizeSingleLine(referenceId || `${Date.now()}`, 80).replace(/[^a-zA-Z0-9_-]/g, "-");
+  const category = type === "broadcast" ? "promotions" : "updates";
+
+  return {
+    headers: {
+      "X-Entity-Ref-ID": `fixmydoor-${type}-${safeReference}`,
+      "X-FixMyDoor-Email-Type": type,
+      "X-FixMyDoor-Inbox-Category": category,
+      "X-Auto-Response-Suppress": "OOF, AutoReply",
+      "List-Unsubscribe": `<mailto:${businessEmail}?subject=Unsubscribe%20FixMyDoor%20Services>`,
+    },
+    tags: [
+      { name: "business", value: "fixmydoor" },
+      { name: "email_type", value: type },
+      { name: "inbox_goal", value: category },
+    ],
+  };
 }
 
 function normalizePublicUrl(value?: string) {
@@ -323,7 +349,7 @@ class EmailService {
   }
 
   private getResendFrom() {
-    return normalizeEnvValue(process.env.RESEND_FROM_EMAIL) || normalizeEnvValue(process.env.FROM_EMAIL);
+    return getOutboundFromEmail();
   }
 
   private canUseResend() {
@@ -354,7 +380,7 @@ class EmailService {
     const host = inferSmtpHost(user, rawHost);
     const port = parseInt(normalizeEnvValue(process.env.SMTP_PORT) || (/gmail/i.test(host) ? "465" : "587"), 10);
     const pass = normalizeSmtpPassword(normalizeEnvValue(process.env.SMTP_PASS), host);
-    const from = `FixMyDoor Services <${user}>`;
+    const from = normalizeEnvValue(process.env.FROM_EMAIL) || `FixMyDoor Services <${user}>`;
 
     if (!host || !user || !pass) {
       this.transporter = null;
@@ -475,6 +501,8 @@ class EmailService {
           subject: options.subject,
           html: options.html,
           text: options.text,
+          headers: options.headers,
+          tags: options.tags,
           attachments: attachments.length ? attachments : undefined,
         }),
         signal: controller.signal,
@@ -612,6 +640,7 @@ class EmailService {
         subject,
         text,
         html,
+        ...getCustomerEmailMetadata("booking", bookingDisplayId),
         attachments: logoAttachment ? [logoAttachment] : undefined,
       }, "Customer booking confirmation", (error) => {
         this.lastSendError = summarizeEmailError(error);
@@ -795,6 +824,7 @@ class EmailService {
         replyTo: businessEmail,
         subject,
         html,
+        ...getCustomerEmailMetadata("status", bookingDisplayId),
         attachments: logoAttachment ? [logoAttachment] : undefined,
       }, "Status update", (error) => {
         this.lastSendError = summarizeEmailError(error);
@@ -866,6 +896,7 @@ class EmailService {
         subject,
         text,
         html,
+        ...getCustomerEmailMetadata("review", bookingDisplayId),
         attachments: logoAttachment ? [logoAttachment] : undefined,
       }, "Review request", (error) => {
         this.lastSendError = summarizeEmailError(error);
@@ -927,6 +958,7 @@ class EmailService {
           `Contact: ${businessEmail} | +1 (438) 347-1823`,
         ].join("\n"),
         html,
+        ...getCustomerEmailMetadata("broadcast", title),
         attachments: logoAttachment ? [logoAttachment] : undefined,
       }, "Customer update broadcast", (error) => {
         this.lastSendError = summarizeEmailError(error);
@@ -967,6 +999,7 @@ class EmailService {
         replyTo: getBusinessEmail(),
         subject: "FixMyDoor Services email test",
         html,
+        ...getCustomerEmailMetadata("test", "email-test"),
         attachments: logoAttachment ? [logoAttachment] : undefined,
       }, "Test", (error) => {
         this.lastSendError = summarizeEmailError(error);

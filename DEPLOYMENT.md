@@ -79,9 +79,9 @@ Resend option:
 
 ```env
 RESEND_API_KEY="re_xxxxxxxxx"
-RESEND_FROM_EMAIL="FixMyDoor <bookings@fixmydoor.ca>"
-ADMIN_EMAIL="info.fixmydoor@gmail.com"
-BUSINESS_EMAIL="info.fixmydoor@gmail.com"
+RESEND_FROM_EMAIL="FixMyDoor Services <booking@fixmydoor.ca>"
+ADMIN_EMAIL="booking@fixmydoor.ca"
+BUSINESS_EMAIL="booking@fixmydoor.ca"
 ```
 
 Use Resend after the domain is verified in Resend. Railway can still use Gmail SMTP while waiting for the domain approval.
@@ -93,9 +93,9 @@ SMTP_HOST="smtp.gmail.com"
 SMTP_PORT="587"
 SMTP_USER="info.fixmydoor@gmail.com"
 SMTP_PASS="your-gmail-app-password"
-FROM_EMAIL="FixMyDoor <info.fixmydoor@gmail.com>"
-BUSINESS_EMAIL="info.fixmydoor@gmail.com"
-ADMIN_EMAIL="info.fixmydoor@gmail.com"
+FROM_EMAIL="FixMyDoor Services <booking@fixmydoor.ca>"
+BUSINESS_EMAIL="booking@fixmydoor.ca"
+ADMIN_EMAIL="booking@fixmydoor.ca"
 ```
 
 For Resend, verify your sending domain in Resend after the domain DNS is live.
@@ -176,7 +176,7 @@ In Resend:
 
 ```env
 RESEND_API_KEY="re_xxxxxxxxx"
-RESEND_FROM_EMAIL="FixMyDoor <bookings@fixmydoor.ca>"
+RESEND_FROM_EMAIL="FixMyDoor Services <booking@fixmydoor.ca>"
 ```
 
 Do not use a `@fixmydoor.ca` sender in Railway until Resend says the domain is verified.

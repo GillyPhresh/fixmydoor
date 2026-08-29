@@ -67,9 +67,9 @@ export default function NotFound() {
               <Phone className="h-5 w-5 text-primary" />
               +1 (438) 347-1823
             </a>
-            <a href="mailto:info.fixmydoor@gmail.com" className="flex items-center gap-3 rounded-2xl bg-[#fffaf2] p-4 text-sm font-bold text-secondary transition hover:text-primary">
+            <a href="mailto:booking@fixmydoor.ca" className="flex items-center gap-3 rounded-2xl bg-[#fffaf2] p-4 text-sm font-bold text-secondary transition hover:text-primary">
               <Mail className="h-5 w-5 text-primary" />
-              info.fixmydoor@gmail.com
+              booking@fixmydoor.ca
             </a>
           </div>
         </aside>

@@ -8,7 +8,7 @@ const SITE_URL = "https://www.fixmydoor.ca";
 const GHANA_PHONE_DISPLAY = "+233 55 900 4048";
 const GHANA_PHONE_TEL = "+233559004048";
 const GHANA_WHATSAPP_URL = "https://wa.me/233559004048?text=Hello%20FixMyDoor%20Services%20Ghana%2C%20I%20need%20help%20with%20doors%2C%20furniture%2C%20installation%2C%20or%20repairs.";
-const GHANA_EMAIL = "info.fixmydoor@gmail.com";
+const GHANA_EMAIL = "booking@fixmydoor.ca";
 const GHANA_MANAGER_PHOTO = "/ghana-manager-emmanuella-asare-konadu.jpg";
 
 const ghanaServices = [

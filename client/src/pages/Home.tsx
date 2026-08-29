@@ -1195,7 +1195,7 @@ export default function Home() {
         image: `${SITE_URL}/og-fixmydoor-service.jpg`,
         description: "Door repairs, door installations, furniture repairs, lock rekeying, and hardware sourcing in Montreal, Quebec, Canada.",
         telephone: "+1-438-347-1823",
-        email: "info.fixmydoor@gmail.com",
+        email: "booking@fixmydoor.ca",
         address: {
           "@type": "PostalAddress",
           streetAddress: "10158 Rue Berri",
@@ -3285,7 +3285,7 @@ export default function Home() {
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10"><Mail className="h-5 w-5 text-primary" /></div>
                 <div>
                   <p className="font-semibold text-secondary">Email</p>
-                  <a href="mailto:info.fixmydoor@gmail.com" className="mt-1 inline-block text-base font-semibold text-primary hover:underline">info.fixmydoor@gmail.com</a>
+                  <a href="mailto:booking@fixmydoor.ca" className="mt-1 inline-block text-base font-semibold text-primary hover:underline">booking@fixmydoor.ca</a>
                 </div>
               </div>
               <div className="flex gap-3 rounded-[20px] bg-background p-4 shadow-sm">
@@ -3645,7 +3645,7 @@ export default function Home() {
                 </summary>
                 <div className="mt-2 grid gap-1.5 text-xs">
                   <a href="tel:+14383471823" className="rounded-xl bg-white/8 px-3 py-2 font-semibold text-white/86">+1 (438) 347-1823</a>
-                  <a href="mailto:info.fixmydoor@gmail.com" className="rounded-xl bg-white/8 px-3 py-2 font-semibold text-white/86">info.fixmydoor@gmail.com</a>
+                  <a href="mailto:booking@fixmydoor.ca" className="rounded-xl bg-white/8 px-3 py-2 font-semibold text-white/86">booking@fixmydoor.ca</a>
                   <a href={BUSINESS_WHATSAPP_URL} target="_blank" rel="noreferrer" className="rounded-xl bg-white/8 px-3 py-2 font-semibold text-white/86">WhatsApp: {BUSINESS_WHATSAPP_DISPLAY}</a>
                 </div>
               </details>
@@ -3760,9 +3760,9 @@ export default function Home() {
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15"><Phone className="h-3.5 w-3.5 text-primary" /></span>
                   <span className="text-sm font-semibold text-white/86">+1 (438) 347-1823</span>
                 </a>
-                <a href="mailto:info.fixmydoor@gmail.com" className="flex gap-2 rounded-xl bg-white/8 p-2 transition hover:bg-white/12">
+                <a href="mailto:booking@fixmydoor.ca" className="flex gap-2 rounded-xl bg-white/8 p-2 transition hover:bg-white/12">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15"><Mail className="h-3.5 w-3.5 text-primary" /></span>
-                  <span className="break-all text-sm font-semibold text-white/86">info.fixmydoor@gmail.com</span>
+                  <span className="break-all text-sm font-semibold text-white/86">booking@fixmydoor.ca</span>
                 </a>
                 <a href={BUSINESS_WHATSAPP_URL} target="_blank" rel="noreferrer" className="flex gap-2 rounded-xl bg-white/8 p-2 transition hover:bg-white/12">
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15"><MessageCircle className="h-3.5 w-3.5 text-primary" /></span>

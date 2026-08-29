@@ -1416,7 +1416,7 @@ export default function Admin() {
       footer { margin-top:14px; border-top:1px solid #ead8bf; padding-top:7px; color:#6b5a50; font-size:9.2px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
       @media print { body { background:#fff; } }
     </style></head><body>
-      <header class="top"><img class="logo" src="/fixmydoor-logo-transparent.png" /><div><h1>FixMyDoor Services</h1><div class="tag">Door & Furniture Repair Services</div><div>10158 Rue Berri, Montreal, QC H3L 2G6, Canada<br>+1 (438) 347-1823 | info.fixmydoor@gmail.com | www.fixmydoor.ca</div></div></header>
+      <header class="top"><img class="logo" src="/fixmydoor-logo-transparent.png" /><div><h1>FixMyDoor Services</h1><div class="tag">Door & Furniture Repair Services</div><div>10158 Rue Berri, Montreal, QC H3L 2G6, Canada<br>+1 (438) 347-1823 | booking@fixmydoor.ca | www.fixmydoor.ca</div></div></header>
       <h2>Security Service Authorization Agreement</h2><p class="sub">For unlocking, rekeying, lock replacement, entry repair, and related security services.</p>
       <section class="box"><h3>Client and Service Details</h3><div class="body grid">
         <div><span class="label">Client name</span><div class="value">${htmlEscape(draft.clientName)}</div></div>
@@ -1871,7 +1871,7 @@ export default function Admin() {
                       Use the current admin account to change it inside the dashboard, or update the admin password securely from the website server environment.
                     </p>
                     <a
-                      href="mailto:info.fixmydoor@gmail.com?subject=FixMyDoor%20Services%20admin%20password%20help"
+                      href="mailto:booking@fixmydoor.ca?subject=FixMyDoor%20Services%20admin%20password%20help"
                       className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2 font-bold text-white transition hover:bg-primary/90"
                     >
                       <Mail className="h-4 w-4" />

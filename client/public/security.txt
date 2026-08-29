@@ -1,4 +1,4 @@
-Contact: mailto:info.fixmydoor@gmail.com
+Contact: mailto:booking@fixmydoor.ca
 Preferred-Languages: en, fr
 Canonical: https://www.fixmydoor.ca/.well-known/security.txt
 Policy: https://www.fixmydoor.ca/privacy-policy

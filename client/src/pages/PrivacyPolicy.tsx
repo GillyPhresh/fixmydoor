@@ -129,7 +129,7 @@ export default function PrivacyPolicy() {
       name: "FixMyDoor Services",
       url: SITE_URL,
       telephone: "+14383471823",
-      email: "info.fixmydoor@gmail.com",
+      email: "booking@fixmydoor.ca",
     },
     inLanguage: ["en-CA", "fr-CA"],
   };
@@ -257,9 +257,9 @@ export default function PrivacyPolicy() {
                 </div>
               </div>
               <div className="mt-4 grid gap-2 text-sm font-semibold text-secondary">
-                <a href="mailto:info.fixmydoor@gmail.com" className="flex min-w-0 items-center gap-2 rounded-2xl bg-background px-3 py-3 transition hover:text-primary">
+                <a href="mailto:booking@fixmydoor.ca" className="flex min-w-0 items-center gap-2 rounded-2xl bg-background px-3 py-3 transition hover:text-primary">
                   <Mail className="h-4 w-4 shrink-0 text-primary" />
-                  <span className="break-all">info.fixmydoor@gmail.com</span>
+                  <span className="break-all">booking@fixmydoor.ca</span>
                 </a>
                 <a href="tel:+14383471823" className="flex items-center gap-2 rounded-2xl bg-background px-3 py-3 transition hover:text-primary">
                   <Phone className="h-4 w-4 shrink-0 text-primary" />
@@ -310,7 +310,7 @@ export default function PrivacyPolicy() {
                   <h2 className="text-2xl font-bold text-secondary">Questions</h2>
                   <p className="mt-2 text-sm leading-relaxed text-foreground/72 md:text-base">
                     For privacy questions, review display questions, notification requests, or personal information changes, contact FixMyDoor Services at{" "}
-                    <a href="mailto:info.fixmydoor@gmail.com" className="font-bold text-primary">info.fixmydoor@gmail.com</a>.
+                    <a href="mailto:booking@fixmydoor.ca" className="font-bold text-primary">booking@fixmydoor.ca</a>.
                   </p>
                 </div>
               </div>

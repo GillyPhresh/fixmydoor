@@ -137,7 +137,7 @@ export default function TrackBooking() {
             <Phone className="h-4 w-4" />
             Call +1 (438) 347-1823
           </a>
-          <a href="mailto:info.fixmydoor@gmail.com" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-sm font-bold text-white">
+          <a href="mailto:booking@fixmydoor.ca" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-sm font-bold text-white">
             <Mail className="h-4 w-4" />
             Email FixMyDoor Services
           </a>
