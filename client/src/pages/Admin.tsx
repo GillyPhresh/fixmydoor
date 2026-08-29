@@ -21,6 +21,15 @@ const ADMIN_NOTIFICATION_CHOICE_KEY = "fixmydoor-admin-push-choice-v1";
 const ADMIN_REMINDER_WATCH_DISMISS_KEY = "fixmydoor-admin-reminder-watch-dismissed-v1";
 const SECURITY_AUTH_DRAFT_KEY = "fixmydoor-security-authorization-draft-v1";
 
+const mobileAdminSections: Array<{ label: string; value: MobileAdminSection; target: string }> = [
+  { label: "Overview", value: "overview", target: "owner-controls" },
+  { label: "Alerts", value: "alerts", target: "push-notification-manager" },
+  { label: "SMS", value: "sms", target: "sms-message-manager" },
+  { label: "Jobs", value: "jobs", target: "booking-requests" },
+  { label: "Reviews", value: "reviews", target: "review-moderation" },
+  { label: "Content", value: "content", target: "website-content-manager" },
+];
+
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
@@ -38,6 +47,8 @@ type SecurityAuthorizationDraft = {
   clientSignature: string;
   signedDate: string;
 };
+
+type MobileAdminSection = "overview" | "alerts" | "sms" | "jobs" | "reviews" | "content";
 
 const statusColors = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -684,6 +695,7 @@ export default function Admin() {
   const [visitorSubscriberCount, setVisitorSubscriberCount] = useState(0);
   const [adminSubscriberCount, setAdminSubscriberCount] = useState(0);
   const [pushNotifications, setPushNotifications] = useState<PushNotificationLogEntry[]>([]);
+  const [activeMobileSection, setActiveMobileSection] = useState<MobileAdminSection>("jobs");
   const [smsSelectedBookingIds, setSmsSelectedBookingIds] = useState<string[]>([]);
   const [smsManualNumbers, setSmsManualNumbers] = useState("");
   const [smsMessage, setSmsMessage] = useState("Hello, this is FixMyDoor Services. We are contacting you about your door, furniture, or hardware request.");
@@ -756,6 +768,7 @@ export default function Admin() {
         });
       }
       if (window.location.pathname === "/admin/notify") {
+        setActiveMobileSection("alerts");
         window.setTimeout(() => {
           document.getElementById("push-notification-manager")?.scrollIntoView({ behavior: "smooth", block: "start" });
         }, 250);
@@ -906,7 +919,7 @@ export default function Admin() {
     setStatusFilter(filter.status || "ALL");
     setWorkflowFilter(filter.workflow || "ALL");
     setCurrentPage(1);
-    document.getElementById("booking-requests")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    showMobileSection("jobs", "booking-requests");
   };
 
   const dismissReminderWatch = (reminderWatchKey: string) => {
@@ -1947,6 +1960,13 @@ export default function Admin() {
     .join("|");
   const showReminderWatch = reminderWatchBookings.length > 0 && reminderWatchKey !== dismissedReminderWatchKey;
   const managerContentItems = contentItems.filter((item) => item.category !== "ownerProfile");
+  const mobileSectionClass = (section: MobileAdminSection) => activeMobileSection === section ? "" : "max-md:hidden";
+  const showMobileSection = (section: MobileAdminSection, target: string) => {
+    setActiveMobileSection(section);
+    window.setTimeout(() => {
+      document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
 
   return (
     <div className="admin-dashboard-shell min-h-screen max-w-full overflow-x-hidden bg-[#f7efe4]">
@@ -2000,18 +2020,13 @@ export default function Admin() {
           </div>
         </div>
 
-        <div className="sticky top-2 z-20 mb-4 grid grid-cols-4 gap-1.5 rounded-2xl border border-[#ead8bf] bg-white/95 p-1.5 shadow-[0_14px_35px_rgba(66,40,18,0.12)] backdrop-blur md:hidden">
-          {[
-            ["Jobs", "booking-requests"],
-            ["Alerts", "push-notification-manager"],
-            ["Content", "website-content-manager"],
-            ["Reviews", "review-moderation"],
-          ].map(([label, target]) => (
+        <div className="sticky top-2 z-20 mb-4 grid grid-cols-3 gap-1.5 rounded-2xl border border-[#ead8bf] bg-white/95 p-1.5 shadow-[0_14px_35px_rgba(66,40,18,0.12)] backdrop-blur md:hidden">
+          {mobileAdminSections.map(({ label, value, target }) => (
             <button
-              key={target}
+              key={value}
               type="button"
-              onClick={() => document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="rounded-xl bg-[#fff6ea] px-2 py-2 text-[0.68rem] font-black text-[#6B4423]"
+              onClick={() => showMobileSection(value, target)}
+              className={`rounded-xl px-2 py-2 text-[0.68rem] font-black transition ${activeMobileSection === value ? "bg-[#6B4423] text-white shadow-sm" : "bg-[#fff6ea] text-[#6B4423]"}`}
             >
               {label}
             </button>
@@ -2020,7 +2035,7 @@ export default function Admin() {
 
         {/* Stats Dashboard */}
         {stats && (
-          <div className="mb-4 grid grid-cols-3 gap-1.5 md:mb-6 md:grid-cols-3 md:gap-3 xl:grid-cols-6">
+          <div className={`${mobileSectionClass("overview")} mb-4 grid grid-cols-3 gap-1.5 md:mb-6 md:grid-cols-3 md:gap-3 xl:grid-cols-6`}>
             {statsCards.map((card) => (
               <button
                 key={card.label}
@@ -2036,7 +2051,7 @@ export default function Admin() {
         )}
 
         {showReminderWatch && (
-          <Card className="mb-4 border-[#e7c7b5] bg-[#fff7f0] shadow-sm md:mb-6">
+          <Card className={`${mobileSectionClass("overview")} mb-4 border-[#e7c7b5] bg-[#fff7f0] shadow-sm md:mb-6`}>
             <CardContent className="p-3 md:p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -2088,7 +2103,7 @@ export default function Admin() {
           </Card>
         )}
 
-        <Card className="mb-4 border-[#ead8bf] bg-[#fffaf2] shadow-sm md:mb-6">
+        <Card id="owner-controls" className={`${mobileSectionClass("overview")} mb-4 border-[#ead8bf] bg-[#fffaf2] shadow-sm md:mb-6`}>
           <CardContent className="grid gap-4 p-3 md:p-4">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
@@ -2350,7 +2365,7 @@ export default function Admin() {
                   type="button"
                   variant="outline"
                   className="h-10 bg-white px-2 text-xs md:text-sm"
-                  onClick={() => document.getElementById("push-notification-manager")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  onClick={() => showMobileSection("alerts", "push-notification-manager")}
                 >
                   <Bell className="mr-1.5 h-4 w-4" />
                   Notifications
@@ -2361,9 +2376,7 @@ export default function Admin() {
                   className="h-10 bg-white px-2 text-xs md:text-sm"
                   onClick={() => {
                     setSmsPanelOpen(true);
-                    window.setTimeout(() => {
-                      document.getElementById("sms-message-manager")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }, 50);
+                    showMobileSection("sms", "sms-message-manager");
                   }}
                 >
                   <MessageCircle className="mr-1.5 h-4 w-4" />
@@ -2373,7 +2386,7 @@ export default function Admin() {
                   type="button"
                   variant="outline"
                   className="h-10 bg-white px-2 text-xs md:text-sm"
-                  onClick={() => document.getElementById("website-content-manager")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  onClick={() => showMobileSection("content", "website-content-manager")}
                 >
                   <Save className="mr-1.5 h-4 w-4" />
                   Content
@@ -2417,7 +2430,7 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        <Card id="security-authorization-manager" className="mb-4 scroll-mt-8 border-[#ead8bf] bg-white shadow-sm md:mb-6">
+        <Card id="security-authorization-manager" className={`${mobileSectionClass("overview")} mb-4 scroll-mt-20 border-[#ead8bf] bg-white shadow-sm md:mb-6 md:scroll-mt-8`}>
           <CardHeader className="p-4 md:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
@@ -2549,7 +2562,7 @@ export default function Admin() {
           )}
         </Card>
 
-        <Card id="push-notification-manager" className="mb-4 scroll-mt-8 border-[#ead8bf] bg-white shadow-sm md:mb-6">
+        <Card id="push-notification-manager" className={`${mobileSectionClass("alerts")} mb-4 scroll-mt-20 border-[#ead8bf] bg-white shadow-sm md:mb-6 md:scroll-mt-8`}>
           <CardHeader className="p-4 md:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
@@ -2657,7 +2670,7 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        <Card id="sms-message-manager" className="mb-4 scroll-mt-8 overflow-hidden border-[#ead8bf] bg-white shadow-sm md:mb-6">
+        <Card id="sms-message-manager" className={`${mobileSectionClass("sms")} mb-4 scroll-mt-20 overflow-hidden border-[#ead8bf] bg-white shadow-sm md:mb-6 md:scroll-mt-8`}>
           <CardHeader className="bg-gradient-to-r from-[#fff8ec] to-white p-3 md:p-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
@@ -2840,7 +2853,7 @@ export default function Admin() {
 
         {/* Recent Bookings */}
         {stats?.recentBookings && stats.recentBookings.length > 0 && (
-          <Card className="mb-4 border-[#ead8bf] bg-white shadow-sm md:mb-6">
+          <Card className={`${mobileSectionClass("jobs")} mb-4 border-[#ead8bf] bg-white shadow-sm md:mb-6`}>
             <CardHeader className="p-3 pb-2 md:p-6 md:pb-3">
               <CardTitle className="text-base md:text-xl">Recent Bookings</CardTitle>
             </CardHeader>
@@ -2863,7 +2876,7 @@ export default function Admin() {
           </Card>
         )}
 
-        <div className="mb-4 grid gap-2 lg:mb-6 lg:grid-cols-[1fr_16rem_auto] lg:gap-4">
+        <div className={`${mobileSectionClass("jobs")} mb-4 grid gap-2 lg:mb-6 lg:grid-cols-[1fr_16rem_auto] lg:gap-4`}>
           <div className="flex-1">
             <div className="relative">
               <span className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-[0_8px_18px_rgba(66,40,18,0.12)] ring-1 ring-primary/18">
@@ -2902,7 +2915,7 @@ export default function Admin() {
           </Button>
         </div>
 
-        <Card id="booking-requests" className="scroll-mt-20 border-[#ead8bf] bg-white shadow-sm md:scroll-mt-8">
+        <Card id="booking-requests" className={`${mobileSectionClass("jobs")} scroll-mt-20 border-[#ead8bf] bg-white shadow-sm md:scroll-mt-8`}>
           <CardHeader className="p-4 md:p-6">
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
@@ -3933,7 +3946,7 @@ export default function Admin() {
           </div>
         )}
 
-        <Card id="review-moderation" className="mt-8 scroll-mt-20 md:scroll-mt-6">
+        <Card id="review-moderation" className={`${mobileSectionClass("reviews")} mt-8 scroll-mt-20 md:scroll-mt-6`}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Star className="h-5 w-5" />
@@ -4041,7 +4054,7 @@ export default function Admin() {
           </CardContent>
         </Card>
 
-        <Card id="website-content-manager" className="mt-6 scroll-mt-20 border-[#ead8bf] bg-white shadow-sm md:scroll-mt-6">
+        <Card id="website-content-manager" className={`${mobileSectionClass("content")} mt-6 scroll-mt-20 border-[#ead8bf] bg-white shadow-sm md:scroll-mt-6`}>
           <CardHeader className="p-4 md:p-6">
             <CardTitle>Website Content Manager</CardTitle>
             <p className="text-xs leading-relaxed text-muted-foreground md:text-sm">
