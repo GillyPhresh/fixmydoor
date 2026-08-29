@@ -3012,7 +3012,7 @@ export default function Admin() {
                             View
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-h-[88vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-x-hidden overflow-y-auto rounded-2xl p-4">
+                        <DialogContent className="max-h-[90vh] w-[min(960px,calc(100vw-1rem))] max-w-none overflow-x-hidden overflow-y-auto rounded-2xl p-3 sm:p-5">
                           <DialogHeader>
                             <DialogTitle className="text-lg">Booking Details</DialogTitle>
                           </DialogHeader>
@@ -3112,14 +3112,14 @@ export default function Admin() {
                                   <Label>Customer Photos</Label>
                                   <span className="text-[0.68rem] font-semibold text-muted-foreground">{booking.photos.length} attached</span>
                                 </div>
-                                <div className="mt-2 grid grid-cols-2 gap-3">
+                                <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                   {booking.photos.map((photo, index) => (
                                     <a
                                       key={`${booking.id}-mobile-photo-${index}`}
                                       href={photo}
                                       target="_blank"
                                       rel="noreferrer"
-                                      className="group overflow-hidden rounded-xl border bg-white"
+                                      className="group overflow-hidden rounded-xl border bg-white shadow-sm"
                                       title={`Open customer photo ${index + 1}`}
                                     >
                                       <img
@@ -3127,7 +3127,7 @@ export default function Admin() {
                                         alt={`Customer uploaded photo ${index + 1}`}
                                         loading={index === 0 ? "eager" : "lazy"}
                                         decoding="async"
-                                        className="h-28 w-full object-cover transition duration-200 group-hover:scale-105"
+                                        className="aspect-[4/3] h-auto w-full object-cover transition duration-200 group-hover:scale-105"
                                       />
                                       <span className="flex items-center justify-center gap-1 px-2 py-1 text-[0.65rem] font-bold text-secondary">
                                         <ImageIcon className="h-3 w-3" />
@@ -3173,18 +3173,18 @@ export default function Admin() {
                                           </span>
                                         </span>
                                       </label>
-                                      <div className="grid gap-2">
-                                <div>
+                                      <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
+                                <div className="min-w-0 rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                   <Label htmlFor={`appointment-${booking.id}`}>Appointment Date & Time</Label>
                                   <Input
                                     id={`appointment-${booking.id}`}
                                     type="datetime-local"
                                     value={toDateTimeLocalInputValue(bookingDraft.appointmentTime)}
                                     onChange={(event) => setBookingDraft((draft) => applyAppointmentToDraft(draft, event.target.value, booking.repairType))}
-                                    className="bg-white"
+                                    className="mt-1 bg-white"
                                   />
                                 </div>
-                                <div className="rounded-2xl border border-rose-100 bg-[#fff7f0] p-3">
+                                <div className="min-w-0 rounded-2xl border border-rose-100 bg-[#fff7f0] p-3 lg:row-span-3">
                                   <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-start">
                                     <div className="min-w-0">
                                       <Label htmlFor={`reminder-${booking.id}`}>Admin Job Reminder</Label>
@@ -3250,20 +3250,20 @@ export default function Admin() {
                                     This reminder is only for admin. It helps you prepare before the job and avoid forgetting the customer.
                                   </p>
                                 </div>
-                                <div className="grid gap-2 sm:grid-cols-2">
-                                  <div>
+                                <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+                                  <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                     <Label>Quote Amount</Label>
                                     <Input
                                       value={bookingDraft.quoteAmount || ""}
                                       onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteAmount: event.target.value }))}
                                       placeholder="C$250"
-                                      className="bg-white"
+                                      className="mt-1 bg-white"
                                     />
                                   </div>
-                                  <div>
+                                  <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                     <Label>Staff Assigned</Label>
                                     <Select value={bookingDraft.staffAssigned || "Not assigned"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, staffAssigned: value }))}>
-                                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                      <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
                                       <SelectContent>
                                         {staffAssignmentOptions.map((option) => (
                                           <SelectItem key={option} value={option}>{option}</SelectItem>
@@ -3272,11 +3272,11 @@ export default function Admin() {
                                     </Select>
                                   </div>
                                 </div>
-                                <div className="grid gap-2 sm:grid-cols-2">
-                                  <div>
+                                <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+                                  <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                     <Label>Invoice / Quote Stage</Label>
                                     <Select value={bookingDraft.invoiceStatus || "Not issued"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, invoiceStatus: value }))}>
-                                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                      <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
                                       <SelectContent>
                                         {invoiceStatusOptions.map((option) => (
                                           <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
@@ -3285,10 +3285,10 @@ export default function Admin() {
                                     </Select>
                                     <p className="mt-1 text-[0.66rem] leading-relaxed text-muted-foreground">Shows if paperwork has not been sent, a quote was sent, or the final invoice is ready.</p>
                                   </div>
-                                  <div>
+                                  <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                     <Label>Payment Progress</Label>
                                     <Select value={bookingDraft.paymentStatus || "Not paid"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, paymentStatus: value }))}>
-                                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                                      <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
                                       <SelectContent>
                                         {paymentStatusOptions.map((option) => (
                                           <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
@@ -3298,7 +3298,7 @@ export default function Admin() {
                                     <p className="mt-1 text-[0.66rem] leading-relaxed text-muted-foreground">Tracks whether money has not arrived, deposit is needed, part payment came in, or it is fully paid.</p>
                                   </div>
                                 </div>
-                                <div>
+                                <div className="min-w-0 rounded-xl border border-primary/10 bg-[#fffaf2] p-3 lg:col-span-2">
                                   <div className="flex items-center justify-between gap-2">
                                     <Label>Quote / Invoice Notes</Label>
                                     <Button type="button" variant="outline" size="sm" onClick={insertQuoteTemplate} className="h-8 bg-white px-2 text-[0.68rem]">
@@ -3309,21 +3309,21 @@ export default function Admin() {
                                     value={bookingDraft.quoteNotes || ""}
                                     onChange={(event) => setBookingDraft((draft) => ({ ...draft, quoteNotes: event.target.value }))}
                                     placeholder="Labour, material, delivery, payment terms, or quote details."
-                                    className="min-h-36 resize-y bg-white transition-all duration-200 focus:min-h-72"
+                                    className="mt-2 min-h-36 resize-y bg-white transition-all duration-200 focus:min-h-72"
                                   />
                                   <p className="mt-1 text-[0.66rem] leading-relaxed text-muted-foreground">Tap or click inside this box and it opens more space for longer invoice details.</p>
                                 </div>
-                                <div>
+                                <div className="min-w-0 rounded-xl border border-primary/10 bg-[#fffaf2] p-3 lg:col-span-2">
                                   <Label>Private Admin / Payment Notes</Label>
                                   <Textarea
                                     value={bookingDraft.adminNotes || ""}
                                     onChange={(event) => setBookingDraft((draft) => ({ ...draft, adminNotes: event.target.value }))}
                                     placeholder="Internal payment notes, follow-up reminders, customer preference, parts, supplier info, or anything the customer should not see."
-                                    className="min-h-32 resize-y bg-white transition-all duration-200 focus:min-h-72"
+                                    className="mt-2 min-h-32 resize-y bg-white transition-all duration-200 focus:min-h-72"
                                   />
                                   <p className="mt-1 text-[0.66rem] leading-relaxed text-muted-foreground">Use this for deposit, balance, collection notes, and private follow-up details.</p>
                                 </div>
-                                <Button type="button" variant="outline" className="bg-white" onClick={() => openQuoteInvoice(booking.id)}>
+                                <Button type="button" variant="outline" className="bg-white lg:col-span-2" onClick={() => openQuoteInvoice(booking.id)}>
                                   <FileText className="mr-1.5 h-4 w-4" />
                                   Open Quote / Invoice
                                 </Button>
@@ -3658,7 +3658,7 @@ export default function Admin() {
                                         <Label>Customer Photos</Label>
                                         <span className="text-xs font-semibold text-muted-foreground">{selectedBooking.photos.length} attached</span>
                                       </div>
-                                      <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                      <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                                         {selectedBooking.photos.map((photo, index) => (
                                           <a
                                             key={`${selectedBooking.id}-photo-${index}`}
@@ -3673,7 +3673,7 @@ export default function Admin() {
                                               alt={`Customer uploaded photo ${index + 1}`}
                                               loading={index === 0 ? "eager" : "lazy"}
                                               decoding="async"
-                                              className="h-32 w-full object-cover transition duration-200 group-hover:scale-105 sm:h-40"
+                                              className="aspect-[4/3] h-auto w-full object-cover transition duration-200 group-hover:scale-105"
                                             />
                                             <span className="flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-bold text-secondary">
                                               <ImageIcon className="h-3.5 w-3.5" />
@@ -3711,7 +3711,7 @@ export default function Admin() {
                                         ))}
                                       </div>
                                     </details>
-                                    <div className="grid gap-3">
+                                    <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
                                       <div className="min-w-0">
                                         <Label>Appointment Date & Time</Label>
                                         <Input
@@ -3720,7 +3720,7 @@ export default function Admin() {
                                           onChange={(event) => setBookingDraft((draft) => applyAppointmentToDraft(draft, event.target.value, selectedBooking.repairType))}
                                         />
                                       </div>
-                                      <div className="min-w-0 rounded-2xl border border-rose-100 bg-[#fff7f0] p-3">
+                                      <div className="min-w-0 rounded-2xl border border-rose-100 bg-[#fff7f0] p-3 lg:row-span-3">
                                         <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-center">
                                           <div className="min-w-0">
                                             <Label>Admin Job Reminder</Label>
@@ -3780,7 +3780,7 @@ export default function Admin() {
                                           </div>
                                         </div>
                                       </div>
-                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
+                                      <div className="min-w-0 rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                         <Label>Quote Amount</Label>
                                         <Input
                                           value={bookingDraft.quoteAmount || ""}
@@ -3789,7 +3789,7 @@ export default function Admin() {
                                           className="mt-1 bg-white"
                                         />
                                       </div>
-                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
+                                      <div className="min-w-0 rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                         <Label>Staff Assigned</Label>
                                         <Select value={bookingDraft.staffAssigned || "Not assigned"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, staffAssigned: value }))}>
                                           <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
@@ -3800,7 +3800,7 @@ export default function Admin() {
                                           </SelectContent>
                                         </Select>
                                       </div>
-                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
+                                      <div className="min-w-0 rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                         <Label>Invoice / Quote Stage</Label>
                                         <Select value={bookingDraft.invoiceStatus || "Not issued"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, invoiceStatus: value }))}>
                                           <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
@@ -3812,7 +3812,7 @@ export default function Admin() {
                                         </Select>
                                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Shows whether nothing was sent, a quote was sent, or the final invoice is ready.</p>
                                       </div>
-                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
+                                      <div className="min-w-0 rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
                                         <Label>Payment Progress</Label>
                                         <Select value={bookingDraft.paymentStatus || "Not paid"} onValueChange={(value) => setBookingDraft((draft) => ({ ...draft, paymentStatus: value }))}>
                                           <SelectTrigger className="mt-1 bg-white"><SelectValue /></SelectTrigger>
@@ -3824,7 +3824,7 @@ export default function Admin() {
                                         </Select>
                                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Shows whether payment is missing, requested, partly received, or fully paid.</p>
                                       </div>
-                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
+                                      <div className="min-w-0 rounded-xl border border-primary/10 bg-[#fffaf2] p-3 lg:col-span-2">
                                         <div className="flex items-center justify-between gap-2">
                                           <Label>Quote / Invoice Notes</Label>
                                           <Button type="button" variant="outline" size="sm" onClick={insertQuoteTemplate}>
@@ -3839,7 +3839,7 @@ export default function Admin() {
                                         />
                                         <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Click inside this box and it opens more space for longer invoice details.</p>
                                       </div>
-                                      <div className="rounded-xl border border-primary/10 bg-[#fffaf2] p-3">
+                                      <div className="min-w-0 rounded-xl border border-primary/10 bg-[#fffaf2] p-3 lg:col-span-2">
                                         <Label>Private Admin / Payment Notes</Label>
                                         <Textarea
                                           value={bookingDraft.adminNotes || ""}
