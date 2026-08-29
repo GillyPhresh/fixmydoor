@@ -151,6 +151,10 @@ function parseEnvIdList(value?: string) {
     .map((id) => ({ id }));
 }
 
+function isEnabledEnv(value?: string) {
+  return /^(1|true|yes|on)$/i.test(normalizeEnvValue(value));
+}
+
 function getResendContactProperties(booking: Booking) {
   const bookingDisplayId = formatBookingDisplayId(booking);
   return {
@@ -420,9 +424,11 @@ class EmailService {
       this.config = null;
       this.resendVerified = true;
       console.log("Email service configured for Resend HTTPS delivery.");
-      this.ensureResendAutomationEvents().catch((error) => {
-        console.warn("Resend automation event setup skipped:", summarizeEmailError(error));
-      });
+      if (isEnabledEnv(process.env.RESEND_SETUP_AUTOMATION_EVENTS)) {
+        this.ensureResendAutomationEvents().catch((error) => {
+          console.warn("Resend automation event setup skipped:", summarizeEmailError(error));
+        });
+      }
       return true;
     }
 

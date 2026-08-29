@@ -92,9 +92,10 @@ Optional Resend marketing setup:
 ```env
 RESEND_CONTACT_SEGMENT_IDS=""
 RESEND_CONTACT_TOPIC_IDS=""
+RESEND_SETUP_AUTOMATION_EVENTS="false"
 ```
 
-Add the audience ID after you create an Audience in Resend. Add segment or topic IDs only after you create them in Resend. The website will sync consenting customers into Resend Contacts and send automation events for booking creation, status updates, completed jobs, and customers who ask to stop email.
+Add the audience ID after you create an Audience in Resend. Add segment or topic IDs only after you create them in Resend. The website will sync consenting customers into Resend Contacts and send automation events for booking creation, status updates, completed jobs, and customers who ask to stop email. Leave `RESEND_SETUP_AUTOMATION_EVENTS` as `false` unless you intentionally want the server to create Resend event definitions during startup.
 
 SMTP fallback option:
 
