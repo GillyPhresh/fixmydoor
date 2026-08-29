@@ -1,3 +1,4 @@
+import "./env";
 import express, { type Response } from "express";
 import session from "express-session";
 import { createServer } from "http";
@@ -19,10 +20,6 @@ import type { Booking, BookingStatusHistoryEntry, BookingUpdateRequest } from "@
 import { formatBookingDisplayId } from "@shared/booking-code";
 import { serviceCatalog } from "@shared/services";
 import { ghanaBranchSeoPage, normalizeSeoPath, resolveSeoPage, seoRouteAliases, serviceSeoPages, sitemapRoutes } from "@shared/seo";
-
-if (fs.existsSync(".env")) {
-  process.loadEnvFile?.(".env");
-}
 
 declare module "express-session" {
   interface SessionData {
