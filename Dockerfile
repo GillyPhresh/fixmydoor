@@ -14,8 +14,8 @@ WORKDIR /app
 # as root, so the runtime stays root to avoid SQLite write permission failures.
 RUN mkdir -p /data && chown -R nextjs:nodejs /app /data
 
-# Install pnpm
-RUN npm install -g pnpm
+# Use the pnpm version pinned in package.json via Corepack.
+RUN corepack enable
 
 # Copy package files and patch files required by pnpm
 COPY package.json pnpm-lock.yaml ./
