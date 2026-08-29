@@ -2924,6 +2924,12 @@ async function startServer() {
     try {
       const savedBooking = await saveBooking(booking) as Booking;
       const trackingUrl = savedBooking.customerToken ? `${getPublicBaseUrl()}/track/${savedBooking.customerToken}` : "";
+      emailService.syncResendContactForBooking(savedBooking).catch((error) =>
+        console.error("Failed to sync Resend contact:", error)
+      );
+      emailService.sendResendAutomationEvent("fixmydoor.booking_created", savedBooking).catch((error) =>
+        console.error("Failed to send Resend booking event:", error)
+      );
       const emailPromise = sendBookingEmailsWithStatus(savedBooking);
       const emailStatus = await Promise.race([
         emailPromise,
@@ -3268,12 +3274,34 @@ async function startServer() {
       }
       const normalizedBooking = toBooking(booking);
 
+      emailService.syncResendContactForBooking(normalizedBooking).catch((error) =>
+        console.error("Failed to sync Resend contact:", error)
+      );
+
+      if (requestedEmailOptOut === true) {
+        emailService.sendResendAutomationEvent("fixmydoor.email_stopped", normalizedBooking).catch((error) =>
+          console.error("Failed to send Resend email stopped event:", error)
+        );
+      }
+
+      if (status && status !== previousStatus) {
+        emailService.sendResendAutomationEvent("fixmydoor.status_updated", normalizedBooking, {
+          previous_status: previousStatus,
+          next_status: nextStatus,
+        }).catch((error) =>
+          console.error("Failed to send Resend status event:", error)
+        );
+      }
+
       if (status && status !== previousStatus && !normalizedBooking.emailOptOut) {
         emailService.sendStatusUpdate(normalizedBooking).catch(err =>
           console.error("Failed to send status update email:", err)
         );
 
         if (nextStatus === "COMPLETED") {
+          emailService.sendResendAutomationEvent("fixmydoor.job_completed", normalizedBooking).catch((error) =>
+            console.error("Failed to send Resend completed event:", error)
+          );
           emailService.sendReviewRequest(normalizedBooking).catch(err =>
             console.error("Failed to send review request email:", err)
           );

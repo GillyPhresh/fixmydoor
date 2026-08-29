@@ -135,6 +135,50 @@ function getCustomerEmailMetadata(type: "booking" | "status" | "review" | "broad
   };
 }
 
+function splitCustomerName(name?: string) {
+  const parts = sanitizeSingleLine(name || "", 100).split(/\s+/).filter(Boolean);
+  return {
+    firstName: parts[0] || "",
+    lastName: parts.length > 1 ? parts.slice(1).join(" ") : "",
+  };
+}
+
+function parseEnvIdList(value?: string) {
+  return normalizeEnvValue(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((id) => ({ id }));
+}
+
+function getResendContactProperties(booking: Booking) {
+  const bookingDisplayId = formatBookingDisplayId(booking);
+  return {
+    client_id: booking.clientId || "",
+    booking_id: bookingDisplayId,
+    latest_booking_status: booking.status,
+    latest_service: booking.repairType || "",
+    city: booking.city || "",
+    country: booking.country || "",
+    preferred_contact_method: booking.preferredContactMethod || "",
+    source: "fixmydoor.ca",
+  };
+}
+
+function getResendEventPayload(booking: Booking, extra: Record<string, string | number | boolean> = {}) {
+  return {
+    booking_id: formatBookingDisplayId(booking),
+    client_id: booking.clientId || "",
+    service: booking.repairType || "",
+    status: booking.status,
+    city: booking.city || "",
+    country: booking.country || "",
+    preferred_contact_method: booking.preferredContactMethod || "",
+    email_opt_out: booking.emailOptOut === true,
+    ...extra,
+  };
+}
+
 function normalizePublicUrl(value?: string) {
   const rawValue = normalizeEnvValue(value);
   if (!rawValue) {
@@ -348,6 +392,10 @@ class EmailService {
     return normalizeEnvValue(process.env.RESEND_API_KEY);
   }
 
+  private getResendAudienceId() {
+    return normalizeEnvValue(process.env.RESEND_AUDIENCE_ID);
+  }
+
   private getResendFrom() {
     return getOutboundFromEmail();
   }
@@ -372,6 +420,9 @@ class EmailService {
       this.config = null;
       this.resendVerified = true;
       console.log("Email service configured for Resend HTTPS delivery.");
+      this.ensureResendAutomationEvents().catch((error) => {
+        console.warn("Resend automation event setup skipped:", summarizeEmailError(error));
+      });
       return true;
     }
 
@@ -523,6 +574,120 @@ class EmailService {
       this.lastSendError = summarizeEmailError(error);
       console.error(`${label} email failed with Resend:`, error);
       onError?.(error);
+      return false;
+    }
+  }
+
+  private async resendRequest(path: string, body: Record<string, unknown>, label: string, method = "POST") {
+    const apiKey = this.getResendApiKey();
+    if (!apiKey) {
+      return false;
+    }
+
+    const response = await fetch(`https://api.resend.com${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    const responseBody = await response.text();
+
+    if (!response.ok) {
+      throw new Error(`${label} failed with Resend ${response.status}: ${responseBody.slice(0, 260)}`);
+    }
+
+    return true;
+  }
+
+  async ensureResendAutomationEvents() {
+    if (!this.canUseResend()) {
+      return false;
+    }
+
+    const events = [
+      "fixmydoor.booking_created",
+      "fixmydoor.status_updated",
+      "fixmydoor.job_completed",
+      "fixmydoor.email_stopped",
+    ];
+    const schema = {
+      booking_id: "string",
+      client_id: "string",
+      service: "string",
+      status: "string",
+      city: "string",
+      country: "string",
+      preferred_contact_method: "string",
+      email_opt_out: "boolean",
+    };
+
+    await Promise.all(events.map(async (eventName) => {
+      try {
+        await this.resendRequest("/events", { name: eventName, schema }, `Create ${eventName}`);
+      } catch (error) {
+        const message = summarizeEmailError(error);
+        if (!/already|exist|duplicate|409/i.test(message)) {
+          throw error;
+        }
+      }
+    }));
+
+    return true;
+  }
+
+  async syncResendContactForBooking(booking: Booking) {
+    const audienceId = this.getResendAudienceId();
+    if (!this.canUseResend() || !audienceId || !booking.email?.trim() || !booking.customerConsent) {
+      return false;
+    }
+
+    const { firstName, lastName } = splitCustomerName(booking.name);
+    const body = {
+      email: booking.email.trim().toLowerCase(),
+      first_name: firstName || undefined,
+      last_name: lastName || undefined,
+      unsubscribed: booking.emailOptOut === true,
+      properties: getResendContactProperties(booking),
+      segments: parseEnvIdList(process.env.RESEND_CONTACT_SEGMENT_IDS),
+      topics: parseEnvIdList(process.env.RESEND_CONTACT_TOPIC_IDS).map((topic) => ({
+        ...topic,
+        subscription: booking.emailOptOut ? "opt_out" : "opt_in",
+      })),
+    };
+
+    try {
+      return await this.resendRequest(`/audiences/${encodeURIComponent(audienceId)}/contacts`, body, "Create Resend contact");
+    } catch (createError) {
+      const message = summarizeEmailError(createError);
+      if (!/already|exist|duplicate|409/i.test(message)) {
+        console.warn("Resend contact sync failed:", message);
+        return false;
+      }
+
+      try {
+        return await this.resendRequest(`/audiences/${encodeURIComponent(audienceId)}/contacts/${encodeURIComponent(booking.email.trim().toLowerCase())}`, body, "Update Resend contact", "PATCH");
+      } catch (updateError) {
+        console.warn("Resend contact update failed:", summarizeEmailError(updateError));
+        return false;
+      }
+    }
+  }
+
+  async sendResendAutomationEvent(event: "fixmydoor.booking_created" | "fixmydoor.status_updated" | "fixmydoor.job_completed" | "fixmydoor.email_stopped", booking: Booking, extra: Record<string, string | number | boolean> = {}) {
+    if (!this.canUseResend() || !booking.email?.trim() || !booking.customerConsent) {
+      return false;
+    }
+
+    try {
+      return await this.resendRequest("/events/send", {
+        event,
+        email: booking.email.trim().toLowerCase(),
+        payload: getResendEventPayload(booking, extra),
+      }, `Send ${event}`);
+    } catch (error) {
+      console.warn("Resend automation event failed:", summarizeEmailError(error));
       return false;
     }
   }

@@ -80,11 +80,21 @@ Resend option:
 ```env
 RESEND_API_KEY="re_xxxxxxxxx"
 RESEND_FROM_EMAIL="FixMyDoor Services <booking@fixmydoor.ca>"
+RESEND_AUDIENCE_ID=""
 ADMIN_EMAIL="booking@fixmydoor.ca"
 BUSINESS_EMAIL="booking@fixmydoor.ca"
 ```
 
 Use Resend after the domain is verified in Resend. Railway can still use Gmail SMTP while waiting for the domain approval.
+
+Optional Resend marketing setup:
+
+```env
+RESEND_CONTACT_SEGMENT_IDS=""
+RESEND_CONTACT_TOPIC_IDS=""
+```
+
+Add the audience ID after you create an Audience in Resend. Add segment or topic IDs only after you create them in Resend. The website will sync consenting customers into Resend Contacts and send automation events for booking creation, status updates, completed jobs, and customers who ask to stop email.
 
 SMTP fallback option:
 
