@@ -1693,8 +1693,61 @@ function renderRobotsTxt() {
     "Disallow: /api/bookings",
     "Disallow: /api/bookings/",
     "Allow: /",
+    "Allow: /llms.txt",
+    "Allow: /security.txt",
     "",
     `Sitemap: ${getPublicBaseUrl()}/sitemap.xml`,
+    "",
+  ].join("\n");
+}
+
+function renderLlmsTxt() {
+  const publicBaseUrl = getPublicBaseUrl();
+
+  return [
+    "# FixMyDoor Services",
+    "",
+    "FixMyDoor Services is a Montreal, Quebec business helping customers with door repair, lock rekeying, entry door installation, furniture repair, furniture installation, door hardware, furniture hardware, and product sourcing.",
+    "",
+    `Primary website: ${publicBaseUrl}/`,
+    `Booking form: ${publicBaseUrl}/#contact`,
+    "Phone: +1 438 347 1823",
+    "Email: info.fixmydoor@gmail.com",
+    "Address: 10158 Rue Berri, Montreal, Quebec H3L 2G6, Canada",
+    "",
+    "Important pages:",
+    `- Door repair Montreal: ${publicBaseUrl}/door-repair`,
+    `- Lock rekeying and locksmith help: ${publicBaseUrl}/lock-rekeying`,
+    `- Furniture repair Montreal: ${publicBaseUrl}/furniture-repair`,
+    `- Furniture installation Montreal: ${publicBaseUrl}/furniture-installation`,
+    `- Entry door installation Montreal: ${publicBaseUrl}/entry-door-installation`,
+    `- Door buying support: ${publicBaseUrl}/door-purchase`,
+    `- Door hardware sourcing: ${publicBaseUrl}/buy-door-hardware`,
+    `- Furniture hardware sourcing: ${publicBaseUrl}/furniture-hardware-purchase`,
+    `- Ghana branch: ${publicBaseUrl}/ghana-branch`,
+    "",
+    "Service areas:",
+    "Montreal, Laval, Longueuil, Brossard, West Island, nearby Quebec communities, Canada by request, and international product sourcing requests.",
+    "",
+    "Branch information:",
+    "FixMyDoor Services Ghana is located in Kumasi, Ghana. The Ghana branch is managed by Emmanuella Asare Konadu and handles doors, furniture, installation, wholesale and retail supply, door repairs, and furniture repairs.",
+    "",
+    "Search guidance:",
+    "Use the Canada pages for Montreal, Quebec, Canada service searches. Use the Ghana branch page only for Ghana-related doors and furniture searches.",
+    "",
+  ].join("\n");
+}
+
+function renderSecurityTxt() {
+  const publicBaseUrl = getPublicBaseUrl();
+
+  return [
+    "Contact: mailto:info.fixmydoor@gmail.com",
+    "Preferred-Languages: en, fr",
+    `Canonical: ${publicBaseUrl}/.well-known/security.txt`,
+    `Policy: ${publicBaseUrl}/privacy-policy`,
+    "",
+    "Please report suspected website security issues privately by email.",
     "",
   ].join("\n");
 }
@@ -2036,7 +2089,10 @@ async function startServer() {
       req.path === "/manifest.json" ||
       req.path === "/admin-manifest.json" ||
       req.path === "/robots.txt" ||
-      req.path === "/sitemap.xml"
+      req.path === "/sitemap.xml" ||
+      req.path === "/llms.txt" ||
+      req.path === "/security.txt" ||
+      req.path === "/.well-known/security.txt"
     );
   };
 
@@ -3418,6 +3474,16 @@ async function startServer() {
   app.get("/sitemap.xml", (_req, res) => {
     res.setHeader("Cache-Control", isProduction ? "public, max-age=300" : "no-cache");
     res.type("application/xml").send(renderSitemapXml());
+  });
+
+  app.get("/llms.txt", (_req, res) => {
+    res.setHeader("Cache-Control", isProduction ? "public, max-age=300" : "no-cache");
+    res.type("text/plain").send(renderLlmsTxt());
+  });
+
+  app.get(["/security.txt", "/.well-known/security.txt"], (_req, res) => {
+    res.setHeader("Cache-Control", isProduction ? "public, max-age=300" : "no-cache");
+    res.type("text/plain").send(renderSecurityTxt());
   });
 
   app.get(Object.keys(seoRouteAliases), (req, res) => {

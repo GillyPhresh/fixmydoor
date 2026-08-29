@@ -20,9 +20,9 @@ export interface ServiceSeoPage extends SeoPage {
 
 export const homeSeoPage: SeoPage = {
   path: "/",
-  title: "Door Repair Montreal | Locksmith & Furniture Help | FixMyDoor",
+  title: "Door Repair Montreal | Locksmith, Rekeying & Furniture Repair",
   description:
-    "Door repair, lock rekeying, furniture repair, installation, and hardware sourcing in Montreal. Send photos to FixMyDoor Services for clear next steps.",
+    "FixMyDoor Services helps Montreal customers with door repair, lock rekeying, furniture repair, installation, and hardware sourcing. Send photos for fast next steps.",
   keywords:
     "door repair Montreal, serrurier Montreal, locksmith Montreal, lock rekeying Montreal, door hardware replacement, furniture repair Montreal, entry door installation Montreal, FixMyDoor Services, Laval door repair, Longueuil door repair",
   frenchTitle: "Reparation de portes Montreal | Serrurier et meubles | FixMyDoor",
@@ -91,9 +91,9 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/lock-rekeying": {
     path: "/lock-rekeying",
     eyebrow: "Lock Rekeying",
-    title: "Serrurier Montreal | Lock Rekeying & Door Lock Help",
+    title: "Locksmith Montreal | Rekeying, Cylinders & Door Lock Help",
     description:
-      "Need a Montreal locksmith for lock rekeying, cylinder replacement, handle repair, or safer entry hardware? Send photos to FixMyDoor Services.",
+      "Need a Montreal locksmith for rekeying, cylinder replacement, handle repair, or safer door hardware? Send photos to FixMyDoor Services.",
     keywords:
       "lock rekeying Montreal, serrurier Montreal, locksmith Montreal, door lock replacement Montreal, rekey front door, lock repair Montreal, door cylinder replacement, handle replacement Montreal, safer door lock, Quebec door hardware",
     frenchTitle: "Serrurier Montreal | Changement de barillet et serrure",
@@ -191,7 +191,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/door-purchase": {
     path: "/door-purchase",
     eyebrow: "Buy Doors",
-    title: "Buy Doors Montreal | Entry, Interior, Steel & Glass Options",
+    title: "Buy Doors Montreal | Entry, Interior, Steel & Glass Doors",
     description:
       "Need help buying the right door? FixMyDoor Services can review measurements, style, hardware, and sourcing options for entry, interior, steel, and glass doors.",
     keywords:
@@ -211,7 +211,7 @@ export const serviceSeoPages: Record<string, ServiceSeoPage> = {
   "/buy-door-hardware": {
     path: "/buy-door-hardware",
     eyebrow: "Buy Door Hardware",
-    title: "Door Hardware Montreal | Locks, Handles, Hinges & Parts",
+    title: "Door Hardware Montreal | Locks, Handles, Hinges & Cylinders",
     description:
       "Need door hardware in Montreal? Get help sourcing locks, handles, hinges, cylinders, backplates, mortise kits, and entry hardware.",
     keywords:
