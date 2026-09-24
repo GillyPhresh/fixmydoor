@@ -1781,6 +1781,15 @@ export default function Home() {
 
     return () => window.clearTimeout(timer);
   }, [applyBookingContext]);
+  useEffect(() => {
+    if (window.location.hash !== "#booking-form") {
+      return;
+    }
+
+    // The browser resolves fragments before this SPA has rendered the form.
+    const timer = window.setTimeout(scrollToContactForm, 250);
+    return () => window.clearTimeout(timer);
+  }, [scrollToContactForm]);
 
   const compressBookingPhoto = (file: File) =>
     new Promise<string>((resolve, reject) => {
