@@ -60,14 +60,6 @@ pnpm build
 pnpm start
 ```
 
-## Admin Access
-
-Default admin credentials:
-- **Username**: `admin`
-- **Password**: `admin123`
-
-⚠️ **Important**: Change the default password in production!
-
 ## API Endpoints
 
 - `POST /api/bookings` - Submit booking
