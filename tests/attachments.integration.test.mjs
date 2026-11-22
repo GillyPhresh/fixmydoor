@@ -68,7 +68,7 @@ before(async () => {
   databasePath = path.join(process.cwd(), "prisma", `attachments-test-${process.pid}.db`);
   process.env.DATABASE_URL = `file:./attachments-test-${process.pid}.db`;
   const cli = path.join(process.cwd(), "node_modules", "prisma", "build", "index.js");
-  const initialized = spawnSync(process.execPath, [cli, "db", "push", "--skip-generate"], { encoding: "utf8", env: { ...process.env, CI: "true", RUST_LOG: "debug" } });
+  const initialized = spawnSync(process.execPath, [cli, "migrate", "deploy"], { encoding: "utf8", env: { ...process.env, CI: "true", RUST_LOG: "debug" } });
   assert.equal(initialized.status, 0, `${initialized.stdout}\n${initialized.stderr}`);
   const fixture = new DatabaseSync(databasePath);
   try {
@@ -347,4 +347,48 @@ test("promotional email provider methods fail closed", async () => {
   assert.equal(await emailService.sendReviewRequest({}), false);
   assert.equal(await emailService.sendCustomerBroadcastEmail("synthetic@example.invalid", { title: "Test", message: "Test" }), false);
   assert.equal(smtpMessages.length, messageCount, "promotional operations do not reach the provider");
+});
+
+test("commercial lifecycle uses explicit ownership, integer CAD totals and guarded quote revisions",async()=>{
+  const login=await fetch(appUrl+"/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:"synthetic-admin",password:"SyntheticPass2026"})});
+  const cookie=login.headers.get("set-cookie").split(";")[0];
+  const endpoint=appUrl+"/api/admin/commercial";
+  const call=(url,method="GET",body)=>fetch(endpoint+url,{method,headers:{cookie,"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const ok=async(r,code)=>{assert.equal(r.status,code);return code===204?null:r.json()};
+  for(const url of ["/customers","/properties","/quotes","/bookings?remote=yes"])
+    assert.equal((await fetch(endpoint+url)).status,401);
+  const person={name:"Commerce Fixture",category:"Business",email:"synthetic@example.invalid",phone:"5145550102",preferredContactMethod:"Email",notes:"STAFF ONLY"};
+  const a=await ok(await call("/customers","POST",person),201), other=await ok(await call("/customers","POST",person),201);
+  assert.notEqual(a.id,other.id);
+  await ok(await call("/customers/"+a.id,"PUT",{...person,name:"Facility Manager"}),200);
+  const list=await ok(await call("/customers?q=Facility&category=Business"),200);assert.deepEqual(list.map(p=>p.id),[a.id]);
+  const site=await ok(await call("/customers/"+a.id+"/properties","POST",{label:"Warehouse",type:"Commercial",address:"123 Test",city:"Test",province:"QC",country:"CA",accessInstructions:"PRIVATE ENTRY"}),201);
+  const remote={name:"Remote fixture",email:person.email,phone:person.phone,address:"",repairType:"Door",visitMode:"REMOTE",customerConsent:true,securityAnswer:"verified-customer",submittedAt:new Date(Date.now()-5000).toISOString(),preferredContactMethod:"Phone",message:"Consult about a door"};
+  const submit=body=>fetch(appUrl+"/api/bookings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  assert.equal((await submit({...remote,visitMode:"OTHER"})).status,400);
+  const intake=await ok(await submit(remote),201);
+  const [job]=await ok(await call("/bookings?remote=yes&q=Remote%20fixture"),200);
+  assert.equal(job.customerId,null);
+  const association={customerId:a.id,propertyId:site.id};
+  assert.equal((await call("/bookings/"+job.id+"/link","PUT",{...association,customerId:other.id})).status,409);
+  await ok(await call("/bookings/"+job.id+"/link","PUT",association),204);
+  const profile=await ok(await call("/customers/"+a.id),200);assert.equal(profile.bookings[0].propertyId,site.id);assert.equal(profile.properties[0].id,site.id);
+  const body={...association,bookingId:job.id,description:"Consultation estimate",expiresOn:"2099-01-01",notes:"PRIVATE COST",taxLabel:"Staff calculated tax",taxCents:100,lines:[{kind:"Labour",description:"Review",quantity:3,unitCents:1234}]};
+  assert.equal((await call("/quotes","POST",{...body,customerId:other.id})).status,409);
+  assert.equal((await call("/quotes","POST",{...body,taxCents:0.1})).status,400);
+  const draft=await ok(await call("/quotes","POST",body),201);assert.equal(draft.totalCents,3802);
+  const url="/quotes/"+draft.id;
+  const edited=await ok(await call(url,"PUT",{...body,version:1,taxCents:1}),200);
+  assert.equal(edited.totalCents,3703);assert.equal(edited.subtotalCents,3702);
+  assert.equal((await call(url+"/status","PATCH",{status:"ACCEPTED",version:2})).status,409);
+  await ok(await call(url+"/status","PATCH",{status:"SENT",version:2}),204);
+  assert.equal((await call(url,"PUT",{...body,version:2})).status,409);
+  await ok(await call(url+"/status","PATCH",{status:"ACCEPTED",version:3}),204);
+  assert.equal((await call("/bookings/"+job.id+"/link","PUT",{customerId:other.id,propertyId:null})).status,409);
+  const track=await fetch(intake.trackingUrl.replace("/track/","/api/bookings/track/"));
+  assert.equal(track.status,200);assert.doesNotMatch(await track.text(),/STAFF ONLY|PRIVATE|customerId|propertyId|quotation/i);
+  if(process.env.FMD_COMMERCIAL_BROWSER==="1") {
+    const {verifyCommercialBrowser}=await import("./helpers/commercial-browser.mjs");
+    await verifyCommercialBrowser(appUrl,cookie,job.id);
+  }
 });

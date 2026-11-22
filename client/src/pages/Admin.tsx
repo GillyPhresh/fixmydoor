@@ -1,3 +1,4 @@
+import Commercial from "./Commercial";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1979,6 +1980,8 @@ export default function Admin() {
     }, 50);
   };
 
+  if (window.location.pathname === "/admin/commercial") return <Commercial />;
+
   return (
     <div className="admin-dashboard-shell min-h-screen max-w-full overflow-x-hidden bg-[#f7efe4]">
       <div className="container mx-auto w-full max-w-[1320px] min-w-0 overflow-x-hidden px-3 py-4 sm:px-4 md:py-8">
@@ -2006,6 +2009,7 @@ export default function Admin() {
             </div>
           </div>
           <div className="mx-auto mt-4 grid w-full max-w-[34rem] grid-cols-2 gap-2 rounded-[22px] border border-[#ead8bf] bg-[#fffaf2]/90 p-2 shadow-[0_16px_38px_rgba(66,40,18,0.12)] md:max-w-[45rem] md:grid-cols-4">
+            <a className="rounded-2xl bg-secondary p-2 text-sm font-bold text-white" href="/admin/commercial">Service management</a>
             <Button type="button" onClick={installAdminApp} variant="outline" className="h-10 justify-center rounded-2xl bg-white/95 px-2 text-xs font-black shadow-sm sm:text-sm">
               <Download className="w-4 h-4 mr-2" />
               <span>{adminStandalone ? "App Open" : "Install App"}</span>
@@ -3535,6 +3539,7 @@ export default function Admin() {
                                     <div>
                                       <Label>Name</Label>
                                       <p className="font-medium">{selectedBooking.name}</p>
+                                      <a className="underline" href={`/admin/commercial#booking/${selectedBooking.id}`}>Customer, property and quotations</a>
                                       <p className="mt-1 text-xs font-black text-primary">{formatBookingDisplayId(selectedBooking)}</p>
                                     </div>
                                     <div>

@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, randomUUID } from "crypto";
+import { registerCommercial } from "./commercial";
 import { AttachmentError, saveWithAttachments, registerAttachmentRoutes, startAttachmentCleanup } from "./attachments";
 import { createBackupWindow, scheduleStagingBackupDrill, stagingBackupDrillEnabled } from "./backup-window";
 import compression from "compression";
@@ -1516,6 +1517,7 @@ async function startServer() {
   app.use("/api/media", uploadLimiter, express.json({ limit: "7200kb" }));
   app.use("/api/admin/media", uploadLimiter);
   app.use(express.json({ limit: "30mb" }));
+  registerCommercial(app, requireAuth);
   registerAttachmentRoutes(app, requireAuth, uploadDir);
 
   // Auth middleware
@@ -2452,7 +2454,10 @@ async function startServer() {
       });
       return res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting booking:", error);
+      if (error && typeof error === "object" && "code" in error && error.code === "P2003") {
+        return res.status(409).json({success:false,error:"A quotation references this booking."});
+      }
+      console.error("Booking deletion failed");
       return res.status(500).json({ success: false, error: "Failed to delete booking" });
     }
   });
@@ -2588,6 +2593,7 @@ async function startServer() {
       normalizedPath === "/" ||
       normalizedPath === "/admin" ||
       normalizedPath === "/admin/notify" ||
+      normalizedPath === "/admin/commercial" ||
       normalizedPath === "/privacy-policy" ||
       normalizedPath === "/terms-and-conditions" ||
       normalizedPath === ghanaBranchSeoPage.path ||

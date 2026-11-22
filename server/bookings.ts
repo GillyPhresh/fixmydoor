@@ -129,7 +129,8 @@ export function validateBooking(body: any): body is BookingRequest {
     body.email.trim().length <= 100 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email.trim()) &&
     typeof body.address === "string" &&
-    body.address.trim().length > 0 &&
+    (body.visitMode === undefined || ["REMOTE", "ONSITE"].includes(body.visitMode)) &&
+    (body.visitMode === "REMOTE" || body.address.trim().length > 0) &&
     body.address.trim().length <= 500 &&
     typeof body.repairType === "string" &&
     body.repairType.trim().length > 0 &&
@@ -213,6 +214,7 @@ export async function saveBooking(booking: BookingRequest, db: Pick<typeof prism
 
   // Sanitize inputs
   const sanitizedBooking = {
+    visitMode: booking.visitMode ?? "ONSITE",
     clientId: getClientIdForContact(booking),
     name: booking.name.trim(),
     phone: booking.phone.trim(),

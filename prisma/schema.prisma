@@ -9,6 +9,15 @@ datasource db {
 
 model Booking {
   id                 String      @id @default(cuid())
+  visitMode          String      @default("ONSITE")
+  customerId         String?
+  customer           Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  propertyId         String?
+  property           Property? @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  quotations         Quotation[]
+  @@index([customerId])
+  @@index([propertyId])
+  @@index([visitMode, createdAt])
   clientId           String?
   name               String
   phone              String
@@ -142,4 +151,73 @@ model Attachment {
 
   @@index([owner, createdAt])
   @@index([bookingId])
+}
+
+model Customer {
+  id String @id @default(cuid())
+  name String
+  category String
+  email String
+  phone String
+  preferredContactMethod String
+  notes String
+  createdAt DateTime @default(now())
+  bookings Booking[]
+  properties Property[]
+  quotations Quotation[]
+  @@index([name])
+}
+
+model Property {
+  id String @id @default(cuid())
+  customerId String
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  label String
+  type String
+  address String
+  city String
+  province String
+  postalCode String
+  country String
+  accessInstructions String
+  notes String
+  bookings Booking[]
+  quotations Quotation[]
+  @@index([customerId])
+}
+
+model Quotation {
+  id String @id @default(cuid())
+  customerId String
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  bookingId String?
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  propertyId String?
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  description String
+  notes String
+  status String @default("DRAFT")
+  currency String @default("CAD")
+  createdAt DateTime @default(now())
+  expiresOn String
+  taxLabel String
+  taxCents Int
+  subtotalCents Int
+  totalCents Int
+  version Int @default(1)
+  lines QuoteLine[]
+  @@index([customerId])
+  @@index([propertyId])
+  @@index([bookingId])
+}
+model QuoteLine {
+  id String @id @default(cuid())
+  quotationId String
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  position Int
+  kind String
+  description String
+  quantity Int
+  unitCents Int
+  @@unique([quotationId, position])
 }

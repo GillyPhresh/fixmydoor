@@ -66,7 +66,8 @@ const bookingSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().min(10, "Please enter a valid phone number"),
   email: z.string().email("Please enter a valid email address"),
-  address: z.string().min(5, "Please enter your full address"),
+  address: z.string(),
+  visitMode: z.enum(["ONSITE", "REMOTE"]),
   city: z.string().optional(),
   country: z.string().optional(),
   timeZone: z.string().optional(),
@@ -87,7 +88,7 @@ const bookingSchema = z.object({
   budget: z.string().optional(),
   securityAnswer: z.string().refine((value): boolean => value === "verified-customer", "Please confirm that you are a real customer"),
   customerConsent: z.boolean().refine(Boolean, "Please confirm that FixMyDoor Services can contact you about this request"),
-});
+}).refine(data => data.visitMode === "REMOTE" || data.address.trim().length >= 5, {path:["address"],message:"Please enter your full address"});
 
 type BookingFormData = z.infer<typeof bookingSchema>;
 
@@ -590,6 +591,7 @@ export default function Home() {
       city: "",
       country: "Canada",
       timeZone: "",
+      visitMode: "ONSITE",
       preferredContactMethod: "WhatsApp",
       urgency: "Standard",
       requestScope: "Repair or service request",
@@ -1058,7 +1060,8 @@ export default function Home() {
       name: data.name.trim(),
       phone: data.phone.trim(),
       email: data.email.trim(),
-      address: data.address.trim(),
+      visitMode: data.visitMode,
+      address: data.visitMode === "REMOTE" ? "" : data.address.trim(),
       city: data.city?.trim() || undefined,
       country: data.country?.trim() || undefined,
       timeZone: data.timeZone?.trim() || undefined,
@@ -3453,21 +3456,17 @@ export default function Home() {
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Email *</FormLabel><FormControl><Input type="email" placeholder="your.email@example.com" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Address *</FormLabel><FormControl><Input placeholder="Where is the job located?" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="visitMode" render={({ field }) => (
+                  <FormItem><FormLabel>Appointment preference</FormLabel><Select value={field.value} onValueChange={field.onChange}>
+                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                    <SelectContent><SelectItem value="ONSITE">On-site visit</SelectItem><SelectItem value="REMOTE">Remote consultation</SelectItem></SelectContent>
+                  </Select><FormMessage /></FormItem>
+                )} />
+                {form.watch("visitMode") === "REMOTE" ? <p>We will contact you to arrange your consultation.</p> : (<FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Address *</FormLabel><FormControl><Input placeholder="Where is the job located?" {...field} /></FormControl><FormMessage /></FormItem>)} />)}
                 <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">City / Province</FormLabel><FormControl><Input placeholder="Montreal, Quebec" {...field} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="country" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Country</FormLabel><FormControl><Input placeholder="Canada, USA, Ghana..." {...field} /></FormControl><FormMessage /></FormItem>)} />
-                {showInternationalRequestDetails && (
-                <div className="sm:col-span-2 rounded-[22px] border border-primary/10 bg-[#fffaf2] p-4">
-                  <div className="flex items-center gap-2">
-                    <Globe2 className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-bold text-secondary">International request details</p>
-                      <p className="text-xs leading-relaxed text-foreground/65">Shown because the address or country looks outside Canada. These details help us reply at the right time and quote in the right context.</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                    <FormField control={form.control} name="timeZone" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Time Zone</FormLabel><FormControl><Input placeholder="Example: EST, GMT, UTC+1" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="preferredContactMethod" render={({ field }) => (
+                {(showInternationalRequestDetails || form.watch("visitMode") === "REMOTE") && (
+<FormField control={form.control} name="preferredContactMethod" render={({ field }) => (
                       <FormItem>
                         <FormLabel className="font-semibold text-foreground">Best Contact Method</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value || undefined}>
@@ -3482,6 +3481,18 @@ export default function Home() {
                         <FormMessage />
                       </FormItem>
                     )} />
+                )}
+                {showInternationalRequestDetails && (
+                <div className="sm:col-span-2 rounded-[22px] border border-primary/10 bg-[#fffaf2] p-4">
+                  <div className="flex items-center gap-2">
+                    <Globe2 className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-bold text-secondary">International request details</p>
+                      <p className="text-xs leading-relaxed text-foreground/65">Shown because the address or country looks outside Canada. These details help us reply at the right time and quote in the right context.</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <FormField control={form.control} name="timeZone" render={({ field }) => (<FormItem><FormLabel className="font-semibold text-foreground">Time Zone</FormLabel><FormControl><Input placeholder="Example: EST, GMT, UTC+1" {...field} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="urgency" render={({ field }) => (
                       <FormItem>
                         <FormLabel className="font-semibold text-foreground">Urgency</FormLabel>

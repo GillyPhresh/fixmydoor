@@ -1,4 +1,5 @@
 export interface BookingRequest {
+  visitMode?: "ONSITE" | "REMOTE";
   name: string;
   phone: string;
   email: string;

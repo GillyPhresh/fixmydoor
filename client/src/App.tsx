@@ -118,6 +118,7 @@ function Router() {
         <Route path={"/ghana-branch"} component={GhanaBranchRoute} />
         <Route path={"/privacy-policy"} component={PrivacyPolicyRoute} />
         <Route path={"/terms-and-conditions"} component={TermsConditionsRoute} />
+        <Route path={"/admin/commercial"} component={AdminRoute} />
         <Route path={"/admin"} component={AdminRoute} />
         <Route path={"/admin/notify"} component={AdminRoute} />
         <Route path={"/track/:token"} component={TrackBookingRoute} />

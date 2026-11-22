@@ -1,0 +1,117 @@
+.cm-shell {
+  max-width: 62rem;
+  margin: auto;
+  padding: clamp(1rem, 4vw, 3rem);
+  color: #392c23;
+  overflow-wrap: anywhere;
+}
+.cm-shell header,
+.cm-row,
+.cm-shell nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.cm-shell nav {
+  justify-content: flex-start;
+  padding: 1rem 0;
+}
+.cm-shell nav a,
+.cm-shell button:not([class]) {
+  padding: 0.55rem 0.85rem;
+  border: 1px solid #d4b998;
+  border-radius: 0.6rem;
+  background: #fffaf3;
+}
+.cm-shell a {
+  color: #694321;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cm-shell nav [aria-current] {
+  background: #654526;
+  color: white;
+}
+.cm-shell h1,
+.cm-shell h2,
+.cm-shell h3 {
+  font-weight: 700;
+  margin: 0.75em 0 0.4em;
+}
+.cm-shell h1 {
+  font-size: 2rem;
+}
+.cm-shell h2 {
+  font-size: 1.45rem;
+}
+.cm-shell h3 {
+  font-size: 1.15rem;
+}
+.cm-panel {
+  min-width: 0;
+  border: 1px solid #ddc9ad;
+  border-radius: 1rem;
+  padding: clamp(0.8rem, 3vw, 2rem);
+  background: white;
+}
+.cm-shell p,
+.cm-shell form,
+.cm-row,
+.cm-shell aside {
+  margin: 0.65rem 0;
+}
+.cm-row {
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #eadcc9;
+}
+.cm-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  align-items: end;
+}
+.cm-field {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.6rem 0;
+  font-size: 0.95rem;
+}
+.cm-field select,
+.cm-field textarea {
+  min-height: 2.5rem;
+  border: 1px solid #aaa;
+  border-radius: 0.45rem;
+  padding: 0.4rem;
+  width: 100%;
+}
+.cm-panel fieldset {
+  padding: 0.6rem;
+  border: 1px solid #eadcc9;
+  margin: 0.65rem 0;
+}
+.cm-shell button:disabled {
+  opacity: 0.5;
+}
+.cm-shell [role="alert"] {
+  color: #8e251a;
+}
+@media print {
+  body:has(.cm-print) * {
+    visibility: hidden;
+  }
+  .cm-print,
+  .cm-print * {
+    visibility: visible !important;
+  }
+  .cm-print {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 1cm;
+  }
+  .cm-print .cm-row {
+    break-inside: avoid;
+  }
+}
