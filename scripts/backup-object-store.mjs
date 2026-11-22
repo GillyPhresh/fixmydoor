@@ -6,7 +6,7 @@ import path from "node:path";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { setTimeout as delay } from "node:timers/promises";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { readBackupKey, restoreBackup } from "./portable-backup.mjs";
 import { fileHash } from "./rehearse-staging-recovery.mjs";
@@ -172,8 +172,15 @@ export function createBackupStore({ writer, reader, bucket, environment }) {
 
 async function main([operation, environment, ...args], env) {
   if (operation === "keygen" && environment && args.length === 0) {
+    const filename = path.resolve(environment);
+    const parent = await realpath(path.dirname(filename));
+    const project = await realpath(fileURLToPath(new URL("../", import.meta.url)));
+    const relative = path.relative(project, parent);
+    if (relative === "" || (!relative.startsWith(".." + path.sep) && relative !== ".." && !path.isAbsolute(relative))) {
+      throw error("KEY_FILE_INSIDE_PROJECT");
+    }
     const key = randomBytes(32);
-    try { await writeFile(environment, key, { mode: 0o600, flag: "wx" }); }
+    try { await writeFile(path.join(parent, path.basename(filename)), key, { mode: 0o600, flag: "wx" }); }
     finally { key.fill(0); }
     return { generated: true };
   }

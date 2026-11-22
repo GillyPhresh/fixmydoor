@@ -71,4 +71,6 @@ playwright-report
 
 # Portable backup envelopes and scratch files never enter the image.
 **/*.fmd
+**/*.fmd-key
+**/fmd-backup-key
 **/.fmd-backup-*

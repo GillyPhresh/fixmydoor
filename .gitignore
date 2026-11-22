@@ -117,4 +117,6 @@ client/public/__manus__/version.json
 test-results/
 playwright-report/
 *.fmd
+*.fmd-key
+fmd-backup-key
 .fmd-backup-*/

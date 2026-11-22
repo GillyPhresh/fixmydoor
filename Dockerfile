@@ -46,4 +46,4 @@ EXPOSE 3000
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
-CMD ["sh", "-c", "if [ \"$RAILWAY_SERVICE_ID\" = \"76e8013f-fb71-4aad-8e3b-4c852a3e07c3\" ]; then timeout 120 node scripts/rehearse-portable-staging.mjs || echo PORTABLE_STAGING_UNSUCCESSFUL; fi; exec pnpm start"]
+CMD ["pnpm", "start"]

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -8,6 +10,30 @@ import test from "node:test";
 import { createBackup, restoreBackup } from "../scripts/portable-backup.mjs";
 import { createBackupStore, createS3BackupClient, retentionPlan } from "../scripts/backup-object-store.mjs";
 import { startFakeS3 } from "./support/backup-s3-fake.mjs";
+
+const run = promisify(execFile);
+
+test("backup keys are independent, never printed, and cannot be overwritten", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "fmd-key-test-"));
+  const first = path.join(dir, "first.key"), second = path.join(dir, "second.key");
+  try {
+    const keys = await Promise.all([first, second].map(async file => {
+      const result = await run(process.execPath, ["scripts/backup-object-store.mjs", "keygen", file]);
+      assert.equal(result.stdout.trim(), 'BACKUP_STORAGE {"generated":true}');
+      const bytes = await readFile(file);
+      assert.equal(bytes.length, 32);
+      return bytes;
+    }));
+    assert.notDeepEqual(keys[0], keys[1]);
+    await assert.rejects(run(process.execPath, ["scripts/backup-object-store.mjs", "keygen", first]), { code: 1 });
+    assert.deepEqual(await readFile(first), keys[0]);
+    await assert.rejects(run(process.execPath, ["scripts/backup-object-store.mjs", "keygen", "forbidden.fmd-key"]), /KEY_FILE_INSIDE_PROJECT/);
+    await assert.rejects(run(process.execPath, ["scripts/backup-object-store.mjs", "inventory", "production"],
+      { env: { ...process.env, FMD_ALLOW_PRODUCTION_TRANSFER: "" } }), /UNAPPROVED_TRANSFER_TARGET/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 
 test("S3 transfer retries interrupted streams and verifies immutable encrypted recovery points", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "fmd-s3-test-"));

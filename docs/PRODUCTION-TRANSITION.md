@@ -1,5 +1,13 @@
 # Production transition approval package
 
+## Phase 5.5 execution gates
+
+The external tooling uses a conditional single PUT, full ciphertext read-back, independent download and authenticated restore. Neither FixMyDoor Railway environment has a registered Railway bucket, and no owner-controlled external archive destination has been confirmed. Proposed destination is private R2 Standard `fixmydoor-recovery-prod` with prefix `sqlite-media/v1/production/` and a 30-day expiration rule. The owner must approve account, jurisdiction, credentials, key custodians, maintenance runtime, duration, data scope and external transfer. Verify the selected provider first with synthetic staging data. Keep customer data outside GitHub CI unless explicitly authorized as a trusted backup runner. The pricing assumptions in Phase 5.4 still apply.
+
+Production rollout order after approval: validate a private bucket and recoverable key with synthetic data, verify actual production IDs and source paths, quiesce writers in the approved maintenance runtime, capture and authenticate the archive, upload, download with a separate reader credential, verify byte hash and restore, and record exact production source SHA, capture UTC and verified object identifier. Close the maintenance window as soon as the approved capture and safe retention allow. Keep the archived artifact private and restore only in isolated scratch. The live production image is Node 20, so select and rehearse an approved Node 24 method before scheduling the production window.
+
+Once that recovery point is verified, refresh the already authorized plan using `railway config plan --environment 29134135-d1e0-4cc7-a9c2-3d376c692b74 --verbose` from the scratch directory linked to the production IDs. Verify only the 300-second timeout, ON_FAILURE policy and 10 retries differ. Run `railway config apply --environment 29134135-d1e0-4cc7-a9c2-3d376c692b74` with that checked authoring file and current CLI confirmation. Stop on drift. Then verify saved fields, branch, exact running revision, both domains, original volume and health. This approval is for the settings transition. The security release remains a separate operation with the existing legacy media, migration, transactional, provider, SEO and rollback gates.
+
 ## Phase 5.4 decision
 
 The new encrypted SQLite/media backup passed an isolated Railway staging restore. See [SECURITY-OPERATIONS.md](SECURITY-OPERATIONS.md#independent-production-backup-approval-gate). Production still has zero native recovery points and no schedule. The refreshed Railway plan again showed exactly the three approved fields, with zero additions and zero deletions. The apply remains gated on verified recovery. Existing settings approval does not need to be repeated.
