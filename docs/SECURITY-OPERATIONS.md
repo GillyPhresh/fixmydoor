@@ -59,6 +59,12 @@ After the storage and production capture approvals in [PRODUCTION-TRANSITION.md]
 
 For the first real provider test, use a disposable Linux Node 24 runner with the built candidate, Prisma and tar, and only synthetic staging credentials. Set `FMD_S3_BUCKET=fixmydoor-staging-backups`, configure the jurisdiction-specific endpoint and inject the distinct temporary tokens privately. Set `FMD_ALLOW_R2_STAGING_TEST=approved` only after approving the private test bucket. Run `node scripts/verify-r2-staging.mjs /run/secrets/fmd-staging-backup-key <exact-staging-commit>`. The script creates a new temporary migrated SQLite DB, writes synthetic WAL, booking, media and attachment fixtures, uploads and retrieves an encrypted archive, checks anonymous and write-token read denial, and tests the restored app. It never uses the deployed staging or production database. Record the provider result only after observing success. Keep the synthetic objects subject to owner-approved test retention.
 
+For a Windows host with Linux Docker, build the verified checkout and run the same command in a disposable container. Mount only a user-restricted secrets directory from outside the checkout, read-only. Put the approved endpoint, bucket, staging approval flag and temporary R2 sessions in `r2-staging.env` in that directory. Keep the staging key in a separate file there. Use Node's `--env-file` inside the container so Docker container metadata never contains the session values. Copy the key into private Linux scratch with `umask 077` before verification, since Windows bind mounts can present permissive Unix modes. Do not mount a Railway data volume or set the production transfer flag.
+
+```powershell
+docker run --rm --mount "type=bind,source=$fmdSecretDir,target=/run/fmd-input,readonly" --entrypoint sh fixmydoor-r2-acceptance:34091ed -c 'set -eu; umask 077; fmdDir=$(mktemp -d); cp /run/fmd-input/fmd-staging-backup-key "$fmdDir/key"; chmod 600 "$fmdDir/key"; exec node --env-file=/run/fmd-input/r2-staging.env scripts/verify-r2-staging.mjs "$fmdDir/key" 34091eda21961e57dd52dbca2cdeef1307d8e6a8'
+```
+
 ```sh
 node scripts/backup-object-store.mjs upload production /tmp/fmd-private/fixmydoor-UTC.fmd /run/secrets/fmd-backup-key
 node scripts/backup-object-store.mjs inventory production 36
