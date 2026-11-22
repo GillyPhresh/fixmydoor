@@ -546,7 +546,11 @@ export default function Home() {
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [headerCompact, setHeaderCompact] = useState(false);
-  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]); // private upload references
+  const [photoDisplayUrls, setPhotoDisplayUrls] = useState<string[]>([]);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoUploadError, setPhotoUploadError] = useState(false);
+  const photoUploadPendingRef = useRef(false);
   const [bookingContext, setBookingContext] = useState<BookingContext | null>(null);
   const [cookieBannerOpen, setCookieBannerOpen] = useState(false);
   const [humanCheckConfirmed, setHumanCheckConfirmed] = useState(false);
@@ -1046,6 +1050,10 @@ export default function Home() {
   }, [notifyVisitor]);
 
   const onSubmit = async (data: BookingFormData) => {
+    if (photoUploadPendingRef.current || photoUploadError) {
+      toast.error("Wait for photos to finish uploading, or clear the photo selection and try again.");
+      return;
+    }
     const payload: BookingRequest = {
       name: data.name.trim(),
       phone: data.phone.trim(),
@@ -1101,6 +1109,7 @@ export default function Home() {
       }
       form.reset();
       setPhotoPreviews([]);
+      setPhotoDisplayUrls([]);
       formReadyAtRef.current = Date.now();
     } catch (error) {
       toast.error("Unable to submit booking at this time. Please try again later.");
@@ -1836,6 +1845,7 @@ export default function Home() {
     });
 
   const handlePhotoChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (photoUploadPendingRef.current) return;
     const selectedFiles = Array.from(event.target.files || []);
     const files = selectedFiles.slice(0, 3);
 
@@ -1857,6 +1867,10 @@ export default function Home() {
       return true;
     });
 
+    if (!validFiles.length || validFiles.length !== files.length) {
+      setPhotoUploadError(true);
+      return;
+    }
     const readFile = (file: File) =>
       new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -1865,6 +1879,9 @@ export default function Home() {
         reader.readAsDataURL(file);
       });
 
+    photoUploadPendingRef.current = true;
+    setPhotoUploading(true);
+    setPhotoUploadError(false);
     try {
       await axios.post("/api/media/session");
       const images = await Promise.all(validFiles.map(async (file) => {
@@ -1873,9 +1890,13 @@ export default function Home() {
       }));
       const response = await axios.post<{ refs: string[] }>("/api/media", { images, replace: photoPreviews });
       setPhotoPreviews(response.data.refs);
+      setPhotoDisplayUrls(images);
     } catch (error) {
-      toast.error("Unable to upload one of the selected photos.");
-      console.error("Photo read error:", error);
+      setPhotoUploadError(true);
+      toast.error("Unable to upload photos. Select them again or clear the selection before sending.");
+    } finally {
+      photoUploadPendingRef.current = false;
+      setPhotoUploading(false);
     }
   };
 
@@ -3604,11 +3625,14 @@ export default function Home() {
                         <p className="text-xs leading-relaxed text-foreground/65">Optional, but very helpful. Upload the faulty door/furniture/lock/hinge, or upload the item/style you want to buy. Add up to 3 images under 1.8MB each.</p>
                       </div>
                     </div>
-                    <Input type="file" accept="image/*" multiple onChange={handlePhotoChange} className="max-w-xs bg-background" />
+                    <Input type="file" accept="image/*" multiple disabled={photoUploading || form.formState.isSubmitting} onChange={handlePhotoChange} className="max-w-xs bg-background" />
                   </div>
-                  {photoPreviews.length > 0 && (
+                  {photoUploading && <p role="status" className="mt-2 text-sm">Uploading photos…</p>}
+                  {photoUploadError && <p role="alert" className="mt-2 text-sm">Photo upload failed. Select photos again or clear them before sending.</p>}
+                  {(photoPreviews.length > 0 || photoUploadError) && !photoUploading && <Button type="button" variant="outline" onClick={() => { setPhotoPreviews([]); setPhotoDisplayUrls([]); setPhotoUploadError(false); }}>Clear photos</Button>}
+                  {photoDisplayUrls.length > 0 && (
                     <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                      {photoPreviews.map((photo, index) => (
+                      {photoDisplayUrls.map((photo, index) => (
                         <img key={`${photo.slice(0, 30)}-${index}`} src={photo} alt={`Uploaded preview ${index + 1}`} decoding="async" className="h-28 w-full rounded-2xl object-cover" />
                       ))}
                     </div>
@@ -3643,7 +3667,7 @@ export default function Home() {
                     </div>
                   </FormItem>
                 )} />
-                <Button type="submit" className="btn-primary w-full sm:col-span-2" disabled={form.formState.isSubmitting}>{form.formState.isSubmitting ? "Sending..." : "Send Request"}</Button>
+                <Button type="submit" className="btn-primary w-full sm:col-span-2" disabled={form.formState.isSubmitting || photoUploading || photoUploadError}>{form.formState.isSubmitting ? "Sending..." : "Send Request"}</Button>
               </form>
             </Form>
           </div>

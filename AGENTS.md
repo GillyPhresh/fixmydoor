@@ -22,7 +22,7 @@
 - `main` is connected to Railway deployment triggers. Recheck live Railway source and triggers before any push or release; do not push or merge to `main` without explicit release authorization.
 - Do not run migrations, file operations, messaging, or integrations against production. Use an isolated staging project and a new empty `/data` volume.
 - Respect the checked-in lockfile and package-manager pin. Use `corepack pnpm` to select the pinned `pnpm@10.4.1`; do not let package-manager compatibility checks purge or reinstall `node_modules` without reviewing the exact effect.
-- The repository currently pins Node 20, which is end-of-life. Before release, plan a supported-LTS runtime upgrade and validate Prisma, Sharp, SQLite, Docker, builds, and tests; do not change the runtime pin without that compatibility evidence.
+- The runtime target is Node 24 LTS. Validate Prisma native engines, Sharp, bcrypt, SQLite migrations, Docker and all tests before changing runtime pins.
 - Add focused tests for security boundaries and preserve existing public routes and customer workflows. Run the project’s defined checks in a runtime compatible with its declared engine.
 - Avoid broad refactors, framework changes, or unrelated features. Document security-sensitive decisions and verify changes with tests before reporting completion.
 
@@ -38,3 +38,13 @@
 - Keep future customer/organization, provider/technician, property, service request/job, scheduling, quotation/payment, and geographic eligibility concepts modular.
 - Model regional service eligibility and regulated-trade qualification as data and policy checks; do not hardcode national availability or imply unverified licensing.
 - Build future AI and workflow automation behind auditable, human-reviewable service boundaries. Do not add marketplace, payment, or AI features as part of security-only work.
+
+## Durable mission and release context
+
+- Business goal: grow the Montréal service business into a Canadian multi-service platform. Advertise only verified services, regions and qualifications.
+- Production project: `FixMyDoor Services`, service `fixmydoorservices`, branch `main`, domain `fixmydoor.ca`, volume `/data`. Live environment display name is `openssl rand -base64 32`; a separate environment named `production` also exists. Resolve IDs before any operation.
+- Staging project `66faefcb-b523-47b4-b91c-b96126953e39`, environment `78c4b506-61e1-4792-937c-c4ca7133d3a4`, service `76e8013f-fb71-4aad-8e3b-4c852a3e07c3`. Stage only on the dedicated security branch.
+- Current mission authorizes development, tests, commits and staging deployments. Production merges/deploys, secrets, volumes, DNS, billing and real messages require separate explicit approval.
+- Read `docs/PROJECT-STATUS.md` first. Architecture and commercial sequence: `docs/ARCHITECTURE.md`. Release/recovery/containment: `docs/SECURITY-OPERATIONS.md` and `docs/RELEASE-PROCESS.md`.
+- Required release gate: typecheck, all Node tests, Prisma generate/validate, disposable SQLite migrations/recovery, clean Docker build/image inspection, desktop/phone/tablet Playwright, staged booking/admin/private attachments/tracking/SEO/messaging checks and restart persistence.
+- Vite must proxy to Express; never reintroduce duplicate authentication or booking handlers. Local APIs listen on loopback. Use synthetic credentials/data and no outbound providers.

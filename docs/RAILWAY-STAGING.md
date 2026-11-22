@@ -16,7 +16,7 @@ The reviewed security implementation commit is `31f05ae58f3886769d91dc974c9fa4a4
 
 Railway metadata showed the domain-serving FixMyDoor service connected to `GillyPhresh/fixmydoor` branch `main` with auto-deploy enabled. A second service in the separately named `production` environment also has a GitHub trigger for `main`. A push to a dedicated staging branch does not match those triggers. Confirm the environment naming with the owner before release; do not rename or change either environment as part of staging setup.
 
-Railway is deprecating `railway.json`/`railway.toml` config-as-code: existing services may use it only until 2026-12-01, and new services cannot opt into that mechanism. For a newly created staging service, configure Dockerfile builder, health check `/api/health` (300-second timeout), and restart policy in Railway service settings and verify them in deployment details. Do not assume this repository's `railway.json` will configure a new service.
+Railway is deprecating `railway.json`/`railway.toml` config-as-code: existing services may use it only until 2026-12-01, and new services cannot opt into that mechanism. For a newly created staging service, configure Dockerfile builder, health check `/api/health` (300-second timeout), and restart policy in Railway service settings and verify them in deployment details. The security branch now retires the legacy file; production main retains its copy until its separately approved transition.
 
 ## Service configuration
 

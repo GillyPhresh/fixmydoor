@@ -1,0 +1,15 @@
+# Security release process
+
+Production is gated by owner approval. The security branch may deploy only to the isolated staging project. Confirm production GitHub triggers still watch main immediately before push. Commit only reviewed source/tests/docs; preserve unrelated untracked runtime fixtures.
+
+Build Node 24 container from frozen pnpm lockfile with explicit Prisma generation. Run `pnpm check`, `pnpm test`, Prisma validate/deploy/status on disposable SQLite, Docker artifact scan and Playwright browser checks. Audit dependencies; investigate applicable vulnerabilities rather than applying blanket upgrades. Synthetic SMTP verifies transactional sends; staging provider credentials stay absent. Verify exact commit/image/deployment, health, privacy, SEO and restart persistence.
+
+## Railway deadline
+
+Official docs: https://docs.railway.com/config-as-code and https://docs.railway.com/infrastructure-as-code . Legacy files stop being read on 2026-12-01. Production migration needs owner approval. On 2026-11-22 the domain-serving instance had resolved file overrides for builder=DOCKERFILE, health timeout=300, health path=/api/health and ON_FAILURE/retries=10; saved health timeout was null. This confirms a dependency on legacy overrides. Record live resolved file settings and dashboard settings before making changes. Preserve Dockerfile autodetection/path, CMD, health `/api/health` timeout 300, restart ON_FAILURE/retries 10, one replica, region/resources, variables and `/data` mount. Do not move SQLite migrations into pre-deploy: the runtime volume must be mounted.
+
+Supported migration: in a separately linked, isolated directory import with `railway config pull` (never `--include-variables`), preserve unknown variables, or translate with `railway config migrate`. Review generated `.railway/railway.ts`, install its authoring SDK in its own package context, and run `railway config plan`. Review for zero unintended deletes, secrets, volume/source/domain changes. Apply only the exact owner-approved production plan. Alternatively explicitly retain settings in dashboard/API, prove staging deployments no longer use legacy overrides, then retire legacy file in a separately reviewed release. Do not assume a dashboard default preserves a file override. The security branch retires railway.json to prove staging uses saved service settings. Production main retains its file; before approving merge, migrate all production overrides and review the resulting plan. Never merge file retirement before those settings are preserved.
+
+## Local development
+
+`pnpm dev` serves the frontend on loopback; `/api` and `/uploads` proxy to Express on 127.0.0.1:4179. Start `pnpm dev:api` with explicit disposable DATABASE_URL, UPLOAD_DIR, SESSION_SECRET and PORT=4179. Initialize SQLite separately, seed a synthetic admin and leave external integrations unset. Express supplies actual authorization/attachment/tracking behavior; Vite does not implement its own API. Use production Docker browser verification for release privacy headers and route/SEO behavior.

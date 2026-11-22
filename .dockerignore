@@ -59,3 +59,12 @@ dist-check
 dist-server-check
 coverage
 .manus-logs
+
+# Synthetic browser output and traces must never ship
+test-results
+playwright-report
+**/test-results
+**/playwright-report
+
+**/node_modules
+**/.vite

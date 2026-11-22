@@ -2669,7 +2669,8 @@ async function startServer() {
 
   const port = process.env.PORT || 3000;
 
-  server.listen(port, () => {
+  const host = process.env.HOST || (isProduction ? "0.0.0.0" : "127.0.0.1");
+  server.listen(Number(port), host, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
 }
