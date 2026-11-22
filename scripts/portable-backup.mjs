@@ -176,7 +176,7 @@ async function main([operation, mode, artifact, keyFile], env) {
     captureTarget(mode, env);
     const target = path.resolve(artifact);
     if (!target.startsWith(path.resolve(tmpdir()) + path.sep)) fail("CAPTURE_OUTPUT_MUST_BE_TEMPORARY");
-    const key = await readKeyFile(keyFile);
+    const key = await readBackupKey(keyFile);
     try {
       return await createBackup({ source: "/data/fixmydoor.db", media: "/data/uploads", output: target,
         key, revision: env.RAILWAY_GIT_COMMIT_SHA, environment: mode, writersQuiesced: env.FMD_WRITERS_QUIESCED === "yes" });
@@ -185,7 +185,7 @@ async function main([operation, mode, artifact, keyFile], env) {
     }
   }
   if (operation !== "verify" || mode !== "disposable") fail("UNKNOWN_OPERATION");
-  const key = await readKeyFile(keyFile);
+  const key = await readBackupKey(keyFile);
   try {
     return await restoreBackup({ input: artifact, key });
   } finally {
@@ -193,7 +193,7 @@ async function main([operation, mode, artifact, keyFile], env) {
   }
 }
 
-async function readKeyFile(file) {
+export async function readBackupKey(file) {
   const info = await lstat(file);
   if (!info.isFile() || info.size !== 32 ||
       (process.platform !== "win32" && (info.mode & 0o077))) fail("UNSAFE_KEY_FILE");
