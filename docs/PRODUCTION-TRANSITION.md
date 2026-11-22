@@ -1,5 +1,11 @@
 # Production transition approval package
 
+## Phase 5.7 account handoff
+
+The owner reports being signed in to Cloudflare. That browser sign-in is distinct from an R2 S3 credential. The synthetic staging test may run only after verifying `fixmydoor-staging-backups` exists privately and installing separate, temporary bucket-scoped writer and reader credentials into the approved runner. Confirm the bucket's actual jurisdiction and disabled public URLs in the Cloudflare dashboard. Use the synthetic acceptance command below and record the provider object identifier only after independent restore succeeds.
+
+For the first production recovery point, retain the fully quiesced capture procedure until the live runtime and actual storage are separately approved. Verify the production service IDs and the existing `/data` volume. The approved scope must explicitly include `/data/fixmydoor.db` and `/data/uploads`. Capture on Node 24 in private scratch with all writers quiesced. Store only ciphertext in the approved `fixmydoor-production-backups` jurisdiction and prefix. Use owner-held key custody outside Railway and separate temporary PutObject and recovery credentials. Have the independent verifier download the object, check size and SHA-256, decrypt and validate database integrity, migrations and media. Record capture time, revision, verified object identity and retention, then refresh the already approved three-field Railway plan. The production application deployment remains separate.
+
 ## Phase 5.6 provider acceptance and approval boundary
 
 The intended production bucket is `fixmydoor-production-backups` and the synthetic test bucket is `fixmydoor-staging-backups`, both R2 Standard with the development URL, public access and custom domains disabled. The production prefix is `sqlite-media/v1/production/`, with a proposed 30-day lifecycle. No Cloudflare account, bucket, billing state or credentials are verified. Do not use the earlier proposed bucket name. Account discovery found no connected Cloudflare integration, installed Wrangler command or local R2 credentials. Do not provision resources or enable billing without approval.
