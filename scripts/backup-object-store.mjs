@@ -10,6 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { readBackupKey, restoreBackup } from "./portable-backup.mjs";
 import { fileHash } from "./rehearse-staging-recovery.mjs";
+import { acceptanceTarget } from "./r2-acceptance-target.mjs";
 
 const maxBytes = 5_000_000_000;
 const environments = new Set(["synthetic", "staging", "production"]);
@@ -129,8 +130,7 @@ async function expectRoleDenial(send, unexpectedGrant) {
 
 export async function verifySyntheticR2Privacy({ endpoint, bucket, key, writer, reader, request = fetch }) {
   keyDetails("staging", key);
-  if (bucket !== "fixmydoor-staging-backups") throw error("UNAPPROVED_BUCKET");
-  const address = storageAddress(endpoint, false);
+  const address = acceptanceTarget(bucket, endpoint).endpoint;
   const objectUrl = new URL("/" + bucket + "/" + key.split("/").map(encodeURIComponent).join("/"), address);
   const response = await request(objectUrl, {
     method: "GET", headers: { Range: "bytes=0-0" }, redirect: "manual", signal: AbortSignal.timeout(15000),

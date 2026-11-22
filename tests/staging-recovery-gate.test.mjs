@@ -7,6 +7,37 @@ import test from "node:test";
 import { makeStartupGate, runBoundedChild } from "../scripts/staging-recovery-gate.mjs";
 import { configuredBackupBucket, configuredR2Client, createS3BackupClient, verifySyntheticR2Privacy } from "../scripts/backup-object-store.mjs";
 import { stagingSessions } from "../scripts/prepare-r2-staging-sessions.mjs";
+import { approvedAcceptanceTarget } from "../scripts/r2-acceptance-target.mjs";
+
+test("EU provider acceptance is confined to its named bucket, endpoint and synthetic prefix", () => {
+  const id = "a".repeat(32);
+  const env = {
+    FMD_S3_BUCKET: "fixmydoor-production-backups-eu",
+    FMD_S3_ENDPOINT: `https://${id}.eu.r2.cloudflarestorage.com`,
+    FMD_ALLOW_R2_EU_SYNTHETIC_TEST: "approved",
+    FMD_R2_PARENT_WRITE_ID: "b".repeat(32), FMD_R2_PARENT_WRITE_SECRET: "c".repeat(64),
+    FMD_R2_PARENT_READ_ID: "d".repeat(32), FMD_R2_PARENT_READ_SECRET: "e".repeat(64),
+  };
+  assert.equal(approvedAcceptanceTarget(env).jurisdiction, "eu");
+  const sessions = stagingSessions(env, 1795300000);
+  assert.equal(sessions.FMD_ALLOW_R2_EU_SYNTHETIC_TEST, "approved");
+  for (const role of ["READ", "WRITE"]) {
+    const [, payload] = Buffer.from(sessions[`FMD_S3_${role}_TOKEN`], "base64").toString().split(".");
+    const claims = JSON.parse(Buffer.from(payload, "base64url"));
+    assert.deepEqual(claims.paths.prefixPaths, ["sqlite-media/v1/staging/"]);
+    assert.equal(claims.bucket, env.FMD_S3_BUCKET);
+    assert.equal(claims.aud, `${id}.eu.r2.cloudflarestorage.com`);
+  }
+  for (const changed of [
+    { FMD_S3_BUCKET: "fixmydoor-production-backups" },
+    { FMD_S3_ENDPOINT: `https://${id}.r2.cloudflarestorage.com` },
+    { FMD_S3_ENDPOINT: `https://${id}.us.r2.cloudflarestorage.com` },
+    { FMD_ALLOW_R2_STAGING_TEST: "approved" },
+    { FMD_ALLOW_PRODUCTION_CAPTURE: "approved" },
+    { FMD_ALLOW_PRODUCTION_TRANSFER: "approved" },
+    { FMD_ALLOW_R2_EU_SYNTHETIC_TEST: "" },
+  ]) assert.throws(() => approvedAcceptanceTarget({ ...env, ...changed }));
+});
 
 test("R2 local signer issues separate staging-only 15-minute sessions", () => {
   const account = "a".repeat(32);
