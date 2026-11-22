@@ -26,6 +26,36 @@ export async function verifyCommercialBrowser(base, cookie, jobId) {
         page.setDefaultTimeout(12000);
         const response = await page.goto(base + "/admin/commercial");
         assert.equal(response.status(), 200);
+        const customerName = "Property team " + width;
+        await page.getByRole("link", { name: "New customer" }).click();
+        await page.getByLabel("Customer name").fill(customerName);
+        await page
+          .getByLabel("Email", { exact: true })
+          .fill("team@example.invalid");
+        await page.getByLabel("Category").selectOption("Business");
+        await page.getByRole("button", { name: "Save", exact: true }).click();
+        await expect(
+          page.getByRole("heading", { name: customerName })
+        ).toBeVisible();
+        await page.getByRole("link", { name: "Add property" }).click();
+        for (const [field, value] of [
+          ["Property name", "Demo office"],
+          ["Street address", "1 Example Street"],
+          ["City", "Montréal"],
+          ["Province or region", "QC"],
+        ]) {
+          await page.getByLabel(field, { exact: true }).fill(value);
+        }
+        await page.getByRole("button", { name: "Save", exact: true }).click();
+        await expect(
+          page.getByRole("heading", { name: "Demo office" })
+        ).toBeVisible();
+        await page.getByRole("link", { name: "Edit property" }).click();
+        await page
+          .getByLabel("Maintenance notes")
+          .fill("Internal property test");
+        await page.getByRole("button", { name: "Save", exact: true }).click();
+        await expect(page.getByText("Internal property test")).toBeVisible();
         await page
           .getByRole("link", { name: "Remote consultations", exact: true })
           .click();
@@ -42,9 +72,14 @@ export async function verifyCommercialBrowser(base, cookie, jobId) {
           .fill("Browser quote " + width);
         await page.getByLabel("Item description").fill("Door review");
         await page.getByLabel("Unit price (CAD)").fill("12.34");
+        await page.getByLabel("Staff notes").fill("Private quote margin");
         await page.getByLabel("Valid through").fill("2099-01-01");
         await page.getByRole("button", { name: "Save draft" }).click();
         await expect(page.locator(".cm-print")).toContainText("12.34");
+        await page.emulateMedia({ media: "print" });
+        await expect(page.getByText("Private quote margin")).toBeHidden();
+        await expect(page.locator(".cm-print")).toBeVisible();
+        await page.emulateMedia({ media: "screen" });
         await page.getByRole("button", { name: "Français" }).click();
         await expect(
           page.getByRole("heading", { name: "Gestion des services" })
