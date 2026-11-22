@@ -89,35 +89,42 @@ export function configuredR2Client(role, env) {
     secretAccessKey: env[`FMD_S3_${role}_SECRET`], sessionToken: env[`FMD_S3_${role}_TOKEN`] });
 }
 
-export async function verifySyntheticR2Privacy({ endpoint, bucket, key, writer, request = fetch }) {
+async function expectRoleDenial(send, unexpectedGrant) {
+  try {
+    const result = await send();
+    result?.Body?.destroy?.();
+  } catch (cause) {
+    if ([401, 403].includes(httpStatus(cause))) return;
+    throw cause;
+  }
+  throw error(unexpectedGrant);
+}
+
+export async function verifySyntheticR2Privacy({ endpoint, bucket, key, writer, reader, request = fetch }) {
   keyDetails("staging", key);
   if (bucket !== "fixmydoor-staging-backups") throw error("UNAPPROVED_BUCKET");
   const address = storageAddress(endpoint, false);
   const objectUrl = new URL("/" + bucket + "/" + key.split("/").map(encodeURIComponent).join("/"), address);
-  const response = await request(objectUrl, { method: "HEAD", redirect: "manual", signal: AbortSignal.timeout(15000) });
+  const response = await request(objectUrl, {
+    method: "GET", headers: { Range: "bytes=0-0" }, redirect: "manual", signal: AbortSignal.timeout(15000),
+  });
   if (response.status === 400) {
     // R2's US S3 endpoint can reject a missing authorization header with a 400.
-    const detail = await request(objectUrl, {
-      method: "GET", headers: { Range: "bytes=0-0" }, redirect: "manual", signal: AbortSignal.timeout(15000),
-    });
-    if (detail.status !== 400) {
-      await detail.body?.cancel();
-      throw error("ANONYMOUS_OBJECT_ACCESS_NOT_DENIED");
-    }
-    const xml = await detail.text();
+    const xml = await response.text();
     if (!/<Code>InvalidArgument<\/Code>/.test(xml) || !/<Message>Authorization<\/Message>/.test(xml)) {
       throw error("ANONYMOUS_OBJECT_ACCESS_NOT_DENIED");
     }
-  } else if (![401, 403, 404].includes(response.status)) {
-    throw error("ANONYMOUS_OBJECT_ACCESS_NOT_DENIED");
+  } else {
+    await response.body?.cancel();
+    if (![401, 403, 404].includes(response.status)) throw error("ANONYMOUS_OBJECT_ACCESS_NOT_DENIED");
   }
-  try {
-    await writer.send(new HeadObjectCommand({ Bucket: bucket, Key: key }), { abortSignal: AbortSignal.timeout(15000) });
-  } catch (cause) {
-    if ([401, 403].includes(httpStatus(cause))) return { anonymousHttp: response.status, writerReadDenied: true };
-    throw cause;
-  }
-  throw error("WRITER_CAN_READ");
+  await expectRoleDenial(() => writer.send(new GetObjectCommand({ Bucket: bucket, Key: key, Range: "bytes=0-0" }),
+    { abortSignal: AbortSignal.timeout(15000) }), "WRITER_CAN_READ");
+  // Use a separate probe key and conditional PUT so this cannot replace a backup.
+  await expectRoleDenial(() => reader.send(new PutObjectCommand({
+    Bucket: bucket, Key: key + ".reader-permission-probe", IfNoneMatch: "*", Body: Buffer.alloc(0),
+  }), { abortSignal: AbortSignal.timeout(15000) }), "READER_CAN_WRITE");
+  return { anonymousHttp: response.status, writerReadDenied: true, readerWriteDenied: true };
 }
 
 export function createBackupStore({ writer, reader, bucket, environment }) {

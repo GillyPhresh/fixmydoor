@@ -73,4 +73,6 @@ playwright-report
 **/*.fmd
 **/*.fmd-key
 **/fmd-backup-key
+**/fmd-staging-backup-key
+**/r2-staging.env
 **/.fmd-backup-*

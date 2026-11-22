@@ -55,7 +55,7 @@ async function verify() {
     const store = createBackupStore({ reader, writer, bucket, environment: "staging" });
     const result = await store.upload(output, key);
     assert.equal((await store.upload(output, key)).key, result.key);
-    const privacy = await verifySyntheticR2Privacy({ endpoint: env.FMD_S3_ENDPOINT, bucket, key: result.key, writer });
+    const privacy = await verifySyntheticR2Privacy({ endpoint: env.FMD_S3_ENDPOINT, bucket, key: result.key, writer, reader });
     await store.download(result.key, downloaded);
     assert.equal(await fileHash(downloaded), await fileHash(output));
     const restored = await restoreBackup({ input: downloaded, key, parent: root, inspect: async snapshot => {

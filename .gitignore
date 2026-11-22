@@ -13,6 +13,9 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.r2-parents
+r2-staging.env
+fmd-staging-backup-key
 
 # IDE and editor files
 .vscode/
