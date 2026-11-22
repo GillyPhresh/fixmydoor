@@ -55,13 +55,18 @@ function keyDetails(environment, key) {
   return { digest, time };
 }
 
-export function createS3BackupClient(config, { allowLoopback = false } = {}) {
-  const address = new URL(config.endpoint);
+function storageAddress(endpoint, allowLoopback) {
+  const address = new URL(endpoint);
   const allowedR2 = address.protocol === "https:" && !address.port &&
-    /^[a-f0-9]{32}(?:\.(?:eu|fedramp))?\.r2\.cloudflarestorage\.com$/.test(address.hostname);
+    /^[a-f0-9]{32}(?:\.(?:eu|fedramp|us))?\.r2\.cloudflarestorage\.com$/.test(address.hostname);
   const allowedTest = allowLoopback && address.protocol === "http:" && address.hostname === "127.0.0.1" && address.port;
   if (!(allowedR2 || allowedTest) || address.username || address.password ||
       address.pathname !== "/" || address.search || address.hash) throw error("INVALID_STORAGE_ENDPOINT");
+  return address;
+}
+
+export function createS3BackupClient(config, { allowLoopback = false } = {}) {
+  const address = storageAddress(config.endpoint, allowLoopback);
   if (!config.accessKeyId || !config.secretAccessKey) throw error("STORAGE_CREDENTIALS_REQUIRED");
   return new S3Client({
     endpoint: address.origin, region: "auto", forcePathStyle: true, maxAttempts: 1,
@@ -69,6 +74,35 @@ export function createS3BackupClient(config, { allowLoopback = false } = {}) {
     logger: { debug() {}, info() {}, warn() {}, error() {} },
     credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey, sessionToken: config.sessionToken },
   });
+}
+
+export function configuredBackupBucket(environment, env) {
+  scope(environment);
+  const expected = environment === "synthetic" ? "fixmydoor-recovery-synthetic" : `fixmydoor-${environment}-backups`;
+  if (env.FMD_S3_BUCKET !== expected) throw error("UNAPPROVED_BUCKET");
+  return expected;
+}
+
+export function configuredR2Client(role, env) {
+  if (!["READ", "WRITE"].includes(role) || !env[`FMD_S3_${role}_TOKEN`]) throw error("TEMPORARY_CREDENTIALS_REQUIRED");
+  return createS3BackupClient({ endpoint: env.FMD_S3_ENDPOINT, accessKeyId: env[`FMD_S3_${role}_ID`],
+    secretAccessKey: env[`FMD_S3_${role}_SECRET`], sessionToken: env[`FMD_S3_${role}_TOKEN`] });
+}
+
+export async function verifySyntheticR2Privacy({ endpoint, bucket, key, writer, request = fetch }) {
+  keyDetails("staging", key);
+  if (bucket !== "fixmydoor-staging-backups") throw error("UNAPPROVED_BUCKET");
+  const address = storageAddress(endpoint, false);
+  const objectUrl = new URL("/" + bucket + "/" + key.split("/").map(encodeURIComponent).join("/"), address);
+  const response = await request(objectUrl, { method: "HEAD", redirect: "manual", signal: AbortSignal.timeout(15000) });
+  if (![401, 403, 404].includes(response.status)) throw error("ANONYMOUS_OBJECT_ACCESS_NOT_DENIED");
+  try {
+    await writer.send(new HeadObjectCommand({ Bucket: bucket, Key: key }), { abortSignal: AbortSignal.timeout(15000) });
+  } catch (cause) {
+    if ([401, 403].includes(httpStatus(cause))) return { anonymousHttp: response.status, writerReadDenied: true };
+    throw cause;
+  }
+  throw error("WRITER_CAN_READ");
 }
 
 export function createBackupStore({ writer, reader, bucket, environment }) {
@@ -189,15 +223,14 @@ async function main([operation, environment, ...args], env) {
   if (!["upload", "download", "inventory", "check"].includes(operation)) throw error("UNKNOWN_OPERATION");
   if (environment === "production" && env.FMD_ALLOW_PRODUCTION_TRANSFER !== "approved") throw error("UNAPPROVED_TRANSFER_TARGET");
   scope(environment);
-  const bucket = env.FMD_S3_BUCKET ?? "";
-  if (bucket !== `fixmydoor-recovery-${environment === "production" ? "prod" : environment}`) throw error("UNAPPROVED_BUCKET");
-  const credentials = role => createS3BackupClient({ endpoint: env.FMD_S3_ENDPOINT,
-    accessKeyId: env[`FMD_S3_${role}_ID`], secretAccessKey: env[`FMD_S3_${role}_SECRET`],
-    sessionToken: env[`FMD_S3_${role}_TOKEN`] });
-  const reader = credentials("READ");
+  const bucket = configuredBackupBucket(environment, env);
+  const reader = configuredR2Client("READ", env);
   let writer;
   try {
-    if (operation === "upload") writer = credentials("WRITE");
+    if (operation === "upload") {
+      if (env.FMD_S3_WRITE_ID === env.FMD_S3_READ_ID) throw error("DISTINCT_STORAGE_ROLES_REQUIRED");
+      writer = configuredR2Client("WRITE", env);
+    }
     const store = createBackupStore({ reader, writer, bucket, environment });
     if (operation === "inventory") {
       const result = await store.inventory(Date.now(), Number(first ?? "36"));
@@ -227,7 +260,7 @@ async function main([operation, environment, ...args], env) {
       }
     }
     if (!first || !second) throw error("ARTIFACT_ARGUMENTS_REQUIRED");
-    if (operation === "download") return store.download(first, path.resolve(second));
+    if (operation === "download") return await store.download(first, path.resolve(second));
     const key = await readBackupKey(second);
     try { return await store.upload(path.resolve(first), key); }
     finally { key.fill(0); }

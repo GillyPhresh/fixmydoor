@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { lstat, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -55,4 +56,3 @@ try {
   console.error("PORTABLE_STAGING_FAIL", code);
   process.exitCode = 1;
 }
-import assert from "node:assert/strict";
