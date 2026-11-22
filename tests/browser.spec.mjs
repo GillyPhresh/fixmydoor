@@ -54,7 +54,7 @@ for (const viewport of [
       page.getByRole("button", { name: "Send Request", exact: true })
     ).toBeVisible();
     await page.screenshot({ path: `test-results/home-${viewport.width}.png` });
-    await page.goto("/?lang=fr");
+    await page.getByRole("button", { name: "FR", exact: true }).filter({ visible: true }).first().click();
     await expect(page.locator("html")).toHaveAttribute("lang", "fr", {
       timeout: 20000,
     });

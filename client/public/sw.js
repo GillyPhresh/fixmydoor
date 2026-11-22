@@ -1,4 +1,4 @@
-const CACHE_NAME = "fixmydoor-v9";
+const CACHE_NAME = "fixmydoor-v10";
 const URLS_TO_CACHE = [
   "/",
   "/door-repair",

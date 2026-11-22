@@ -60,10 +60,6 @@
       });
   });
 
-  var refreshing = false;
-  navigator.serviceWorker.addEventListener("controllerchange", function () {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
-  });
+  // A controller can change during booking or an admin edit. Never reload and
+  // discard in-progress work; the updated worker applies on future navigation.
 })();
