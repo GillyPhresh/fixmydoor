@@ -1,5 +1,18 @@
 # FixMyDoor engineering guide
 
+## Autonomous engineering policy
+
+- Own technical problems through resolution. Inspect the current repository and runtime state, diagnose the cause, implement the smallest effective fix, run relevant tests and builds, verify adjacent workflows, and continue the original assignment. Change the approach before repeating a failed operation.
+- Use standing authorization for routine engineering in the approved development checkout and isolated staging. This includes bugs, type errors, compatible dependency repairs, local database fixes, security controls, app configuration, tests, documentation, commits, and approved staging deployments. Resolve ordinary technical choices independently.
+- Group related fixes, reuse working code and prior verified evidence, and avoid unnecessary dependencies, services, and recurring costs. Preserve valid work and synthetic fixtures. Keep business expansion features out of security and infrastructure releases.
+- When an external blocker or approval boundary prevents an operation, prepare the exact scoped action and continue independent work. Ask only for the decision or authorization still needed.
+- Report what failed, the cause if verified, what changed, the checks and their results, whether the original objective was reached, and what still blocks it. Update project status when implementation, verified revisions, release gates, or the next authorized work materially change.
+
+## Owner approval boundaries
+
+- Obtain explicit owner authorization for production merges, deployments and Railway mutations, production database or customer file changes, credential rotation, DNS changes, real customer messages, financial transactions, subscription upgrades, significant recurring costs, destructive operations, and external transfers of customer data.
+- Apply existing approvals only to their exact targets, scope, and prerequisites. Staging authorization does not extend to production. Preserve the live service and use synthetic data for development and verification.
+
 ## Project shape
 
 - React and TypeScript client built with Vite (`client/` and `shared/`).
@@ -35,7 +48,7 @@
 
 ## Future platform direction
 
-- Keep future customer/organization, provider/technician, property, service request/job, scheduling, quotation/payment, and geographic eligibility concepts modular.
+- Keep customers, organizations, properties, providers, jobs, scheduling, quotes, payments, dispatch, B2B contracts, subscriptions, remote consultations, and regional eligibility modular.
 - Model regional service eligibility and regulated-trade qualification as data and policy checks; do not hardcode national availability or imply unverified licensing.
 - Build future AI and workflow automation behind auditable, human-reviewable service boundaries. Do not add marketplace, payment, or AI features as part of security-only work.
 
@@ -44,7 +57,6 @@
 - Business goal: grow the Montréal service business into a Canadian multi-service platform. Advertise only verified services, regions and qualifications.
 - Production project: `FixMyDoor Services`, service `fixmydoorservices`, branch `main`, domain `fixmydoor.ca`, volume `/data`. Live environment display name is `openssl rand -base64 32`; a separate environment named `production` also exists. Resolve IDs before any operation.
 - Staging project `66faefcb-b523-47b4-b91c-b96126953e39`, environment `78c4b506-61e1-4792-937c-c4ca7133d3a4`, service `76e8013f-fb71-4aad-8e3b-4c852a3e07c3`. Stage only on the dedicated security branch.
-- Current mission authorizes development, tests, commits and staging deployments. Production merges/deploys, secrets, volumes, DNS, billing and real messages require separate explicit approval.
 - Read `docs/PROJECT-STATUS.md` first. Architecture and commercial sequence: `docs/ARCHITECTURE.md`. Release/recovery/containment: `docs/SECURITY-OPERATIONS.md` and `docs/RELEASE-PROCESS.md`.
 - Review `docs/PRODUCTION-TRANSITION.md` before production work. Phase 5.3 approved a limited backup and settings operation. Railway denied the backup for lack of Pro entitlement, and the configuration apply remains gated by verified recovery protection. Workspace billing and the security release require separate authorization.
 - Phase 5.4 verified encrypted portable recovery on staging. See `docs/SECURITY-OPERATIONS.md` for tooling, key custody and exact production gates. Production capture requires separate approval for access, the Node 24 maintenance runtime, write quiescence and external storage.
