@@ -13,6 +13,7 @@
     "preview": "vite preview --host --port 3000",
     "check": "tsc --noEmit",
     "test:attachments": "node --import tsx --test tests/attachments.integration.test.mjs",
+    "test:migrations": "node --import tsx --test tests/startup-migrations.test.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:prod": "prisma migrate deploy",

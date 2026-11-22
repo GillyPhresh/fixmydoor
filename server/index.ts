@@ -5,7 +5,6 @@ import { createServer } from "http";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { execSync } from "child_process";
 import { randomBytes, randomUUID } from "crypto";
 import { AttachmentError, saveWithAttachments, registerAttachmentRoutes, startAttachmentCleanup } from "./attachments";
 import compression from "compression";
@@ -22,6 +21,7 @@ import { formatBookingDisplayId } from "@shared/booking-code";
 import { serviceCatalog } from "@shared/services";
 import { ghanaBranchSeoPage, normalizeSeoPath, resolveSeoPage, seoRouteAliases, serviceSeoPages, sitemapRoutes } from "@shared/seo";
 import { assertStagingConfiguration, isStagingMode, markHtmlNoIndex, stagingAccessMiddleware, stagingRobotsTxt } from "./staging";
+import { runStartupMigrations } from "./startup";
 
 declare module "express-session" {
   interface SessionData {
@@ -1304,17 +1304,7 @@ if (!sessionSecret || sessionSecret.length < 32) {
 assertStagingConfiguration();
 
 async function startServer() {
-  // Run database migrations in production
-  if (process.env.NODE_ENV === "production") {
-    try {
-      console.log("Running database migrations...");
-      execSync("npx prisma migrate deploy", { stdio: "inherit" });
-      console.log("Database migrations completed.");
-    } catch (error) {
-      console.error("Database migration failed:", error);
-      // Don't exit - the app might still work if schema is up to date
-    }
-  }
+  await runStartupMigrations(process.env.NODE_ENV);
 
   try {
     console.log("Checking database compatibility...");
@@ -2684,4 +2674,8 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+startServer().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : "Unknown startup failure";
+  console.error("[FATAL] Server startup failed; application will not listen:", message);
+  process.exit(1);
+});

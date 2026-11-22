@@ -1,24 +1,28 @@
 # Isolated Railway staging runbook
 
-This runbook is for the committed FixMyDoor security revision. It does not authorize a Railway deployment, DNS change, or production edit.
+This runbook covers the authorized deployment of FixMyDoor security staging. Production, its domain, environment, services, volumes, and data remain out of scope.
 
 ## Isolation boundary
 
-Create a **separate Railway project** named for staging, with a single web service built from the Dockerfile and a new, empty volume mounted at `/data`. Do not duplicate the production environment or copy its variables/volume. Railway private networking is isolated by project/environment; a separate project also prevents the staging service from resolving production services over Railway's private network. Keep the service private until the release owner has reviewed the intended public-domain/access configuration.
+Create a **separate Railway project** named `FixMyDoor Services - Staging`, with environment `staging`, service `fixmydoor-staging`, and a new, empty volume mounted at `/data`. Do not duplicate the production environment or copy its variables/volume. Railway private networking is isolated by project/environment; a separate project also prevents the staging service from resolving production services over Railway's private network. Configure application Basic Auth before connecting the public Railway domain.
 
 Use a Railway-provided `*.up.railway.app` domain only for staging browser tests. Do not attach the business domain or edit Namecheap records. No production Google Search Console, email, Resend, SMS, payment, analytics, or customer data should be configured.
 
 ## Source and deployment gate
 
-The verified source is branch `codex/fixmydoor-security-p0`, commit `cb325e52baab18ef47c19b27638155d6649dc6b2`. The checkout contains untracked synthetic test fixtures, so deploy only this commit from a clean source snapshot. Before connecting GitHub, inspect the Railway production service's source branch and auto-deploy trigger. Do not push this branch until that check proves it cannot deploy production. If the trigger mapping cannot be inspected, do not connect GitHub or push; request an owner with Railway access to confirm it.
+Publish the reviewed commit on branch `codex/fixmydoor-security-p0` to `GillyPhresh/fixmydoor` using a normal push. Before pushing, record the final local commit and confirm the remote `main` ref has not changed. Do not include local synthetic fixtures, private runtime files, databases, WAL/SHM files, environment files, or secrets.
+
+Railway metadata showed the domain-serving FixMyDoor service connected to `GillyPhresh/fixmydoor` branch `main` with auto-deploy enabled. A second service in the separately named `production` environment also has a GitHub trigger for `main`. A push to a dedicated staging branch does not match those triggers. Confirm the environment naming with the owner before release; do not rename or change either environment as part of staging setup.
+
+Railway is deprecating `railway.json`/`railway.toml` config-as-code: existing services may use it only until 2026-12-01, and new services cannot opt into that mechanism. For a newly created staging service, configure Dockerfile builder, health check `/api/health` (300-second timeout), and restart policy in Railway service settings and verify them in deployment details. Do not assume this repository's `railway.json` will configure a new service.
 
 ## Service configuration
 
-- Builder: Dockerfile (`railway.json`); start: `pnpm start` via Docker `CMD`.
-- Health check: `/api/health`, timeout 300 seconds per `railway.json`.
+- Builder: Dockerfile, selected in Railway service settings; the Dockerfile starts `pnpm start` (`node dist/index.js`).
+- Health check: `/api/health`, timeout 300 seconds, configured in Railway service settings.
 - Runtime: `NODE_ENV=production`; listen on Railway's `PORT`.
 - New persistent volume: mount at `/data` (never reuse production volume).
-- Database: `DATABASE_URL=file:/data/fixmydoor.db`; Prisma's checked-in migration history is applied at startup. Attachment rows are stored in SQLite; legacy uploads use `UPLOAD_DIR` if configured, otherwise `/data/uploads` in the production runtime.
+- Database: `DATABASE_URL=file:/data/fixmydoor.db`; Prisma's checked-in SQLite migration history is applied at startup. A mandatory production migration failure aborts startup before the HTTP server listens. Attachment rows are stored in SQLite; legacy uploads use `UPLOAD_DIR` if configured, otherwise `/data/uploads` in the production runtime.
 - Use fresh, unique values for `SESSION_SECRET`, `STAGING_BASIC_AUTH_USERNAME`, `STAGING_BASIC_AUTH_PASSWORD`, `DEFAULT_ADMIN_USERNAME`, and `DEFAULT_ADMIN_PASSWORD`. Set `STAGING_MODE=true`, `CREATE_DEFAULT_ADMIN=true` only for initial synthetic admin creation, then set it false after first startup. The staging Basic Auth password must be at least 24 characters. Rotate the temporary staging admin password through the app after login.
 - Set `PUBLIC_SITE_URL` and `VITE_PUBLIC_SITE_URL` to the Railway staging URL and `ADMIN_URL` to its `/admin` URL. Set `VITE_DISABLE_ANALYTICS=true` in the staging service variables; the Dockerfile declares this as a build `ARG`, so Railway passes it into the Vite build. Do not set `VITE_GA_MEASUREMENT_ID`.
 - Leave `RESEND_API_KEY`, `RESEND_AUDIENCE_ID`, `RESEND_SETUP_AUTOMATION_EVENTS`, `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `BUSINESS_EMAIL`, `ADMIN_EMAIL`, and promotional provider variables unset. Booking and transactional dispatch must be verified first with the local mocked SMTP suite. Add an isolated mail sink only if the owner approves a separately provisioned staging service.
@@ -28,14 +32,16 @@ The verified source is branch `codex/fixmydoor-security-p0`, commit `cb325e52baa
 
 ## Deployment and verification sequence
 
-1. An owner creates the separate Railway project, web service, and empty `/data` volume. Confirm the project/environment name and that the service has no production variables or resource references.
-2. Confirm production source branch/trigger settings without changing them. Only then may the owner authorize connecting the staging project to the verified commit/branch. Set up deployment manually; review the exact staged changes before applying.
-3. Set the variable names above with new staging-only values. Confirm `STAGING_MODE=true`, `/data` mount, no production integrations, and no custom business domain.
-4. Deploy and inspect build/start logs for successful `prisma migrate deploy`, database compatibility checks, admin initialization, and healthy `/api/health`.
-5. Confirm unauthenticated `/` returns 401; Railway health returns healthy with noindex/no-store; authenticated pages use a staging canonical URL, noindex metadata/header, and no Google verification tag. Confirm `robots.txt` disallows `/` and `sitemap.xml` is not submitted to search engines.
-6. With synthetic data only, test booking with/without photos, admin login/logout, authorized/unauthorized attachment reads, tracking privacy, push disabled, and transactional email using an isolated sink. Check mobile browser and console/network errors.
-7. Restart the service and verify synthetic booking/attachment persistence on the new volume. Re-run `/api/health`, migration status, and the same smoke checks.
-8. Retain deployment ID, migration logs, test results, and rollback image reference. Do not point the production domain or production branch to this service.
+1. Recheck production source branches and triggers without changing them. Both FixMyDoor deployment triggers must remain on `main`.
+2. Create the separate Railway project, `staging` environment, app service, and empty `/data` volume. Confirm there are no production variables or resource references.
+3. Configure Dockerfile builder, `/api/health` health check (300-second timeout), one replica, and restart policy in Railway's supported service settings. Do not rely on `railway.json` for a new service.
+4. Generate the Railway-provided domain. Set fresh staging-only values for the variables above, using that domain for all public URL settings. Keep email, SMS, marketing, payment, analytics, and push integrations disconnected.
+5. Connect the app service to the verified commit on `codex/fixmydoor-security-p0`; inspect build/start logs for successful `prisma migrate deploy`, database compatibility checks, admin initialization, and healthy `/api/health`.
+6. After the synthetic administrator is initialized, set `CREATE_DEFAULT_ADMIN=false` and redeploy. Confirm the staging domain remains protected by Basic Auth.
+7. Confirm unauthenticated `/` returns 401; health returns only operational status with noindex/no-store; authenticated pages use the staging canonical URL, noindex metadata/header, and no Google verification tag. Confirm `robots.txt` disallows `/`.
+8. With synthetic data only, test booking with/without photos, admin login/logout, authorized/unauthorized attachment reads, tracking privacy, push disabled, promotional sends disabled, and customer communications without real delivery. Check mobile layout and browser console/network errors.
+9. Restart only the staging service and verify synthetic booking/attachment persistence on its new volume. Re-run `/api/health`, migration checks, and smoke tests.
+10. Record the deployed commit SHA, deployment ID, migration logs, test results, resource configuration, and rollback image. Do not point the production domain or production branch to this service.
 
 ## Rollback
 
