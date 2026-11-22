@@ -1,5 +1,5 @@
-# Use Node.js 20 LTS Alpine for smaller image size
-FROM node:20-alpine
+# Use Node.js 24 LTS Alpine for smaller image size
+FROM node:24-alpine
 
 # Install security updates and runtime libraries required by Prisma
 RUN apk update && apk upgrade && apk add --no-cache dumb-init openssl
