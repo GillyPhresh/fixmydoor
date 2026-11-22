@@ -4,7 +4,7 @@
 
 React/Vite + Express modular monolith, Prisma 4.16 + SQLite, Docker/Railway. Production main remains 025c5f9756aa8556af5a1a2a36e74fd0c3f33ddf. Work only in fixmydoor-p0-secure / codex/fixmydoor-security-p0. Original workspace and untracked runtime fixtures are preserved.
 
-Staging baseline entering this mission: `e7dc533e48c71120dcf490b0e85c28b20d15e737`, deployment `eba920fa-42e0-4bd7-b767-5af10af5e586` (SUCCESS). Current verified staging revision: `a55d8a01e268a2cd78aef77c6c8c5d65a44598da`, deployment `488d9aea-a648-44bf-98e0-ccfefe176bc8` (SUCCESS). Project/environment/service IDs are in AGENTS.md. SQLite and private attachment BLOBs persist on the independent `/data` volume; no PostgreSQL or Redis. The health JSON `environment: "production"` is `NODE_ENV` runtime mode, not the Railway project/environment identity.
+Phase 5.1 staging browser-tested revision: `a55d8a01e268a2cd78aef77c6c8c5d65a44598da`, deployment `488d9aea-a648-44bf-98e0-ccfefe176bc8` (SUCCESS). Phase 5.2 verified live recovery on `74313ebca5e4b4f0375b4a6a8d1140827596fb47`. The follow-up commit restores normal startup and records evidence. Project/environment/service IDs are in AGENTS.md. SQLite and private attachment BLOBs persist on the independent `/data` volume. The health JSON `environment: "production"` indicates `NODE_ENV`.
 
 ## Current milestone
 
@@ -22,11 +22,11 @@ Prepare security release candidate; production remains approval-gated. Node 24 u
 
 ## Remaining release gates
 
-**SECURITY RELEASE CANDIDATE NOT READY.** The lockfile updates have passed local checks and the Docker migration rehearsal, but staging redeployment/browser verification is still required. Live staging-schema recovery remains blocked: Railway SSH and volume file browsing require a registered SSH key; Railway returned “No SSH keys found.” Railway’s documented volume browser is file access, not remote command execution, and a live SQLite file download would not prove an online WAL-safe backup. The local staging-only recovery script and synthetic WAL/token/BLOB/legacy/published-file restoration tests pass, but they do not prove a live staging-volume restore. No account key was created or registered.
+**STAGING RECOVERY PASSED. PRODUCTION RELEASE GATED.** Deployment `9abd67e0-216a-4ef3-a2e2-693b16084b05` backed up and restored the actual staging SQLite schema in temporary storage with no change to its source database. Eight bookings, three attachments and ten migrations passed validation. The restored app passed tracking and media checks. Existing staging media was empty. Synthetic filesystem media, a committed WAL fixture, missing attachments and damaged copies were verified in rehearsal tests. The normal Docker startup was restored for the final candidate.
 
 High / time-sensitive: read-only Railway inspection confirmed serving service `fixmydoorservices` remains on branch `main`, latest successful deployment `29809266-fe37-4e27-abfa-e46ce5b2aa92` at production commit `025c5f9756aa8556af5a1a2a36e74fd0c3f33ddf`, with `fixmydoor.ca` and `www.fixmydoor.ca` on port 8080 and the 500 MB `fixmydoorservices-volume` mounted at `/data` in `us-west2`. Effective deployment configuration uses Dockerfile builder/path `/Dockerfile`, `/api/health` timeout 300, one replica and ON_FAILURE/retries 10. The saved config API omits the timeout and restart fields, while `main:railway.json` supplies them. Before 2026-12-01 preserve those settings through the supported service settings/IaC workflow and review an exact plan. Staging has an independent 5 GB `/data` volume and is on a separate project. Do not merge until production migration is owner-approved. No production configuration was changed.
 
-Critical owner release prerequisite: verified production backup, legacy-file inventory/compatibility rehearsal and credential exposure review/rotation decision. No production customer data was accessed and no incident is asserted. Scope includes existing links and photos; do not delete legacy files or invalidate tokens.
+Critical owner release prerequisite: the production volume API reported no schedules or recovery points. Verify an authorized production backup, privately inventory legacy files, and review credential exposure before approving deployment. The read-only Railway IaC preview showed exactly three saved settings changes and no resource additions or removals. See [the production approval package](PRODUCTION-TRANSITION.md).
 
 ## Owner release decisions
 
