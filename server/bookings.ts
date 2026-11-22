@@ -21,8 +21,7 @@ const OPTIONAL_TEXT_FIELDS = [
   "budget",
 ] as const;
 const MAX_PHOTO_COUNT = 3;
-const MAX_PHOTO_LENGTH = 2_500_000;
-const STORED_MEDIA_PATTERN = /^\/uploads\/[a-z0-9-]+\.(png|jpe?g|webp)$/i;
+export const privatePhotoPattern = /^attachment:[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
 function validateOptionalText(body: any, field: (typeof OPTIONAL_TEXT_FIELDS)[number], maxLength = 180) {
@@ -38,17 +37,7 @@ function validatePhotos(photos: unknown) {
     return false;
   }
 
-  return photos.every((photo) => {
-    if (typeof photo !== "string") {
-      return false;
-    }
-
-    if (STORED_MEDIA_PATTERN.test(photo)) {
-      return true;
-    }
-
-    return photo.length <= MAX_PHOTO_LENGTH && /^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=\s]+$/i.test(photo);
-  });
+  return new Set(photos).size === photos.length && photos.every(photo => typeof photo === "string" && privatePhotoPattern.test(photo));
 }
 
 function parseJsonArray<T>(value: string | null | undefined, fallback: T[] = []): T[] {
@@ -79,7 +68,7 @@ export function toBooking(record: any): Booking {
     preferredDate: record.preferredDate ?? undefined,
     message: record.message ?? undefined,
     customerToken: record.customerToken ?? undefined,
-    photos: parseJsonArray<string>(record.photos),
+    photos: parseJsonArray<string>(record.photos).map((_, index) => "/api/admin/bookings/" + encodeURIComponent(record.id) + "/photos/" + index),
     city: record.city ?? undefined,
     country: record.country ?? undefined,
     timeZone: record.timeZone ?? undefined,
@@ -213,7 +202,7 @@ export function getClientIdForContact(booking: Pick<BookingRequest, "phone" | "e
   return `FMD-C${digest}`;
 }
 
-export async function saveBooking(booking: BookingRequest): Promise<Booking> {
+export async function saveBooking(booking: BookingRequest, db: Pick<typeof prisma, "booking"> = prisma): Promise<Booking> {
   const statusHistory: BookingStatusHistoryEntry[] = [
     {
       status: "PENDING",
@@ -253,7 +242,7 @@ export async function saveBooking(booking: BookingRequest): Promise<Booking> {
     statusHistory: serializeStatusHistory(statusHistory),
   };
 
-  const result = await prisma.booking.create({
+  const result = await db.booking.create({
     data: sanitizedBooking as any,
   });
 

@@ -6,7 +6,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { execSync } from "child_process";
-import { createCipheriv, createECDH, createHmac, createPrivateKey, createSign, generateKeyPairSync, randomBytes, randomUUID } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
+import { AttachmentError, saveWithAttachments, registerAttachmentRoutes, startAttachmentCleanup } from "./attachments";
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -24,6 +25,7 @@ import { ghanaBranchSeoPage, normalizeSeoPath, resolveSeoPage, seoRouteAliases, 
 declare module "express-session" {
   interface SessionData {
     adminId?: string;
+    uploadOwner?: string;
   }
 }
 
@@ -42,43 +44,7 @@ type SiteEventPayload = {
   message: string;
   url?: string;
 };
-type PushPayload = {
-  title: string;
-  message: string;
-  url?: string;
-  icon?: string;
-  badge?: string;
-};
 const siteEventClients = new Set<Response>();
-type PushAudience = "visitor" | "admin";
-type StoredPushSubscription = {
-  endpoint: string;
-  expirationTime?: number | null;
-  keys: {
-    p256dh: string;
-    auth: string;
-  };
-  audiences?: PushAudience[];
-  audience?: PushAudience;
-  createdAt: string;
-  updatedAt: string;
-};
-type PushNotificationLogEntry = {
-  id: string;
-  title: string;
-  message: string;
-  audience?: PushAudience | "all";
-  sentAt: string;
-  delivered: number;
-  failed: number;
-};
-const socialPlatformLabels = {
-  instagram: "Instagram",
-  x: "X (Twitter)",
-  facebook: "Facebook",
-} as const;
-const socialClickNoticeCooldown = new Map<string, number>();
-const SOCIAL_CLICK_NOTICE_COOLDOWN_MS = 2 * 60 * 1000;
 const mediaTypes: Record<string, { extension: string; kind: "image" | "video" | "document" }> = {
   "image/png": { extension: "png", kind: "image" },
   "image/jpeg": { extension: "jpg", kind: "image" },
@@ -141,9 +107,10 @@ function saveDataUrlMedia(dataUrl: unknown, options: { allowVideo: boolean; allo
     throw new Error("Media file is too large");
   }
 
-  fs.mkdirSync(uploadDir, { recursive: true });
+  const publicDir = path.join(uploadDir, "published");
+  fs.mkdirSync(publicDir, { recursive: true });
   const fileName = `${Date.now()}-${randomUUID()}.${mediaType.extension}`;
-  fs.writeFileSync(path.join(uploadDir, fileName), buffer, { flag: "wx" });
+  fs.writeFileSync(path.join(publicDir, fileName), buffer, { flag: "wx" });
 
   return {
     url: `/uploads/${fileName}`,
@@ -161,631 +128,7 @@ function escapeHtml(value: unknown) {
     .replace(/'/g, "&#39;");
 }
 
-function base64UrlEncode(value: Buffer | string) {
-  return Buffer.from(value).toString("base64url");
-}
-
-function base64UrlDecode(value: string) {
-  return Buffer.from(value, "base64url");
-}
-
-function getPushStorePath(fileName: string) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  return path.join(uploadDir, fileName);
-}
-
-function loadJsonFile<T>(fileName: string, fallback: T): T {
-  try {
-    const filePath = getPushStorePath(fileName);
-    if (!fs.existsSync(filePath)) {
-      return fallback;
-    }
-
-    return JSON.parse(fs.readFileSync(filePath, "utf8")) as T;
-  } catch (error) {
-    console.error(`Failed to load ${fileName}:`, error);
-    return fallback;
-  }
-}
-
-function saveJsonFile<T>(fileName: string, data: T) {
-  fs.writeFileSync(getPushStorePath(fileName), JSON.stringify(data, null, 2), "utf8");
-}
-
-function getVapidKeys() {
-  const existing = loadJsonFile<{ publicKey: string; privateKey: string } | null>("push-vapid-keys.json", null);
-  if (existing?.publicKey && existing?.privateKey) {
-    return existing;
-  }
-
-  const generated = (generateKeyPairSync as any)("ec", {
-    namedCurve: "prime256v1",
-    publicKeyEncoding: { format: "jwk" },
-    privateKeyEncoding: { format: "jwk" },
-  }) as { publicKey: JsonWebKey; privateKey: JsonWebKey };
-
-  const publicKey = Buffer.concat([
-    Buffer.from([4]),
-    base64UrlDecode(generated.publicKey.x || ""),
-    base64UrlDecode(generated.publicKey.y || ""),
-  ]).toString("base64url");
-  const privateKey = generated.privateKey.d || "";
-  const keys = { publicKey, privateKey };
-  saveJsonFile("push-vapid-keys.json", keys);
-  return keys;
-}
-
-function loadPushSubscriptions() {
-  const savedSubscriptions = loadJsonFile<StoredPushSubscription[]>("push-subscriptions.json", []);
-  const subscriptions = dedupePushSubscriptions(savedSubscriptions);
-  if (subscriptions.length !== savedSubscriptions.length) {
-    saveJsonFile("push-subscriptions.json", subscriptions);
-  }
-  return subscriptions;
-}
-
-function savePushSubscriptions(subscriptions: StoredPushSubscription[]) {
-  saveJsonFile("push-subscriptions.json", dedupePushSubscriptions(subscriptions));
-}
-
-function loadPushNotificationLog() {
-  return loadJsonFile<PushNotificationLogEntry[]>("push-notification-log.json", []);
-}
-
-function savePushNotificationLog(entries: PushNotificationLogEntry[]) {
-  saveJsonFile("push-notification-log.json", entries.slice(0, 20));
-}
-
-function isValidPushSubscription(value: any): value is Omit<StoredPushSubscription, "createdAt" | "updatedAt"> {
-  return Boolean(
-    value &&
-    typeof value.endpoint === "string" &&
-    value.endpoint.startsWith("https://") &&
-    value.keys &&
-    typeof value.keys.p256dh === "string" &&
-    typeof value.keys.auth === "string"
-  );
-}
-
-function normalizePushAudience(value: unknown): PushAudience {
-  return value === "admin" ? "admin" : "visitor";
-}
-
-function getPushAudiences(subscription: StoredPushSubscription): PushAudience[] {
-  const audiences = subscription.audiences?.length ? subscription.audiences : [subscription.audience || "visitor"];
-  return Array.from(new Set(audiences.map(normalizePushAudience)));
-}
-
-function dedupePushSubscriptions(subscriptions: StoredPushSubscription[]) {
-  const uniqueSubscriptions = new Map<string, StoredPushSubscription>();
-
-  subscriptions.forEach((subscription) => {
-    if (!subscription?.endpoint) {
-      return;
-    }
-
-    const endpoint = subscription.endpoint.trim();
-    const existing = uniqueSubscriptions.get(endpoint);
-    const audiences = Array.from(new Set([
-      ...(existing ? getPushAudiences(existing) : []),
-      ...getPushAudiences(subscription),
-    ]));
-
-    uniqueSubscriptions.set(endpoint, {
-      ...existing,
-      ...subscription,
-      endpoint,
-      audiences,
-      audience: subscription.audience || existing?.audience || audiences[0] || "visitor",
-      createdAt: existing?.createdAt || subscription.createdAt || new Date().toISOString(),
-      updatedAt: subscription.updatedAt || existing?.updatedAt || new Date().toISOString(),
-    });
-  });
-
-  return Array.from(uniqueSubscriptions.values());
-}
-
-function getPushSubscriberCounts(subscriptions = loadPushSubscriptions()) {
-  return {
-    subscriberCount: subscriptions.length,
-    visitorSubscriberCount: subscriptions.filter((subscription) => matchesPushAudience(subscription, "visitor")).length,
-    adminSubscriberCount: subscriptions.filter((subscription) => matchesPushAudience(subscription, "admin")).length,
-  };
-}
-
-function matchesPushAudience(subscription: StoredPushSubscription, audience?: PushAudience | "all") {
-  if (!audience || audience === "all") {
-    return true;
-  }
-
-  return getPushAudiences(subscription).includes(audience);
-}
-
-function hkdfExpand(prk: Buffer, info: Buffer | string, length: number) {
-  const buffers: Buffer[] = [];
-  let previous = Buffer.alloc(0);
-  let counter = 1;
-
-  while (Buffer.concat(buffers).length < length) {
-    previous = createHmac("sha256", prk)
-      .update(previous)
-      .update(typeof info === "string" ? Buffer.from(info) : info)
-      .update(Buffer.from([counter++]))
-      .digest();
-    buffers.push(previous);
-  }
-
-  return Buffer.concat(buffers).subarray(0, length);
-}
-
-function createVapidJwt(subscriptionEndpoint: string) {
-  const { publicKey, privateKey } = getVapidKeys();
-  const audience = new URL(subscriptionEndpoint).origin;
-  const header = base64UrlEncode(JSON.stringify({ typ: "JWT", alg: "ES256" }));
-  const payload = base64UrlEncode(JSON.stringify({
-    aud: audience,
-    exp: Math.floor(Date.now() / 1000) + 12 * 60 * 60,
-    sub: "mailto:booking@fixmydoor.ca",
-  }));
-  const signingInput = `${header}.${payload}`;
-  const publicKeyBuffer = base64UrlDecode(publicKey);
-  const jwk = {
-    kty: "EC",
-    crv: "P-256",
-    x: publicKeyBuffer.subarray(1, 33).toString("base64url"),
-    y: publicKeyBuffer.subarray(33, 65).toString("base64url"),
-    d: privateKey,
-  };
-  const key = createPrivateKey({ key: jwk, format: "jwk" });
-  const signature = createSign("sha256").update(signingInput).end().sign({ key, dsaEncoding: "ieee-p1363" });
-
-  return {
-    publicKey,
-    token: `${signingInput}.${base64UrlEncode(signature)}`,
-  };
-}
-
-function encryptPushPayload(subscription: StoredPushSubscription, payload: string) {
-  const receiverPublicKey = base64UrlDecode(subscription.keys.p256dh);
-  const authSecret = base64UrlDecode(subscription.keys.auth);
-  const salt = randomBytes(16);
-  const localCurve = createECDH("prime256v1");
-  localCurve.generateKeys();
-  const senderPublicKey = localCurve.getPublicKey();
-  const sharedSecret = localCurve.computeSecret(receiverPublicKey);
-  const prkKey = createHmac("sha256", authSecret).update(sharedSecret).digest();
-  const keyInfo = Buffer.concat([
-    Buffer.from("WebPush: info\0"),
-    receiverPublicKey,
-    senderPublicKey,
-  ]);
-  const ikm = hkdfExpand(prkKey, keyInfo, 32);
-  const prk = createHmac("sha256", salt).update(ikm).digest();
-  const cek = hkdfExpand(prk, "Content-Encoding: aes128gcm\0", 16);
-  const nonce = hkdfExpand(prk, "Content-Encoding: nonce\0", 12);
-  const plaintext = Buffer.concat([Buffer.from(payload), Buffer.from([2])]);
-  const cipher = createCipheriv("aes-128-gcm", cek, nonce);
-  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final(), cipher.getAuthTag()]);
-  const recordSize = Buffer.alloc(4);
-  recordSize.writeUInt32BE(4096, 0);
-  const header = Buffer.concat([salt, recordSize, Buffer.from([senderPublicKey.length]), senderPublicKey]);
-
-  return Buffer.concat([header, encrypted]);
-}
-
-async function sendPushNotification(subscription: StoredPushSubscription, payload: PushPayload) {
-  const vapid = createVapidJwt(subscription.endpoint);
-  const body = encryptPushPayload(subscription, JSON.stringify(payload));
-  const response = await fetch(subscription.endpoint, {
-    method: "POST",
-    headers: {
-      Authorization: `vapid t=${vapid.token}, k=${vapid.publicKey}`,
-      "Content-Encoding": "aes128gcm",
-      "Content-Type": "application/octet-stream",
-      TTL: "86400",
-      Urgency: "normal",
-    },
-    body,
-  });
-
-  return response;
-}
-
-async function sendPushNotificationToSubscribers(
-  payload: PushPayload,
-  options: { audience?: PushAudience | "all"; log?: boolean } = {},
-) {
-  const subscriptions = loadPushSubscriptions();
-  const targetSubscriptions = subscriptions.filter((subscription) => matchesPushAudience(subscription, options.audience));
-  let delivered = 0;
-  let failed = 0;
-  const deadEndpoints = new Set<string>();
-
-  await Promise.all(targetSubscriptions.map(async (subscription) => {
-    try {
-      const response = await sendPushNotification(subscription, payload);
-      if (response.ok) {
-        delivered += 1;
-        return;
-      }
-
-      failed += 1;
-      if ([404, 410].includes(response.status)) {
-        deadEndpoints.add(subscription.endpoint);
-      }
-    } catch (error) {
-      failed += 1;
-      console.error("Push send error:", error);
-    }
-  }));
-
-  if (deadEndpoints.size > 0) {
-    savePushSubscriptions(subscriptions.filter((subscription) => !deadEndpoints.has(subscription.endpoint)));
-  }
-
-  const logEntry: PushNotificationLogEntry = {
-    id: randomUUID(),
-    title: payload.title,
-    message: payload.message,
-    audience: options.audience || "all",
-    sentAt: new Date().toISOString(),
-    delivered,
-    failed,
-  };
-
-  if (options.log) {
-    savePushNotificationLog([logEntry, ...loadPushNotificationLog()]);
-  }
-
-  return {
-    ...logEntry,
-    subscriberCount: loadPushSubscriptions().filter((subscription) => matchesPushAudience(subscription, options.audience)).length,
-  };
-}
-
-function queuePushNotification(
-  payload: PushPayload,
-  options: { audience?: PushAudience | "all"; log?: boolean } = {},
-) {
-  sendPushNotificationToSubscribers(payload, options).catch((error) => {
-    console.error("Queued push notification failed:", error);
-  });
-}
-
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-const WEEKEND_PROMOTION_STATE_FILE = "weekend-promotion-state.json";
-const WEEKEND_PROMOTION_CHECK_MS = 60 * 60 * 1000;
-const WEEKEND_PROMOTION_START_HOUR = 9;
-
-let bookingReminderSweepRunning = false;
-let weekendPromotionSweepRunning = false;
-
-type WeekendPromotionState = {
-  lastSentWeekendKey?: string;
-  lastSentAt?: string;
-  sentHolidayKeys?: Record<string, string>;
-};
-
-async function sendDueBookingReminders() {
-  if (bookingReminderSweepRunning) {
-    return;
-  }
-
-  bookingReminderSweepRunning = true;
-  try {
-    const reminderCandidates = (await prisma.booking.findMany({
-      where: {
-        reminderAt: { not: null },
-        reminderSentAt: null,
-        status: { notIn: ["COMPLETED", "CANCELLED"] },
-      },
-      orderBy: { reminderAt: "asc" },
-      take: 25,
-    } as any)).map(toBooking).filter((booking) => isReminderDue(booking));
-
-    for (const booking of reminderCandidates) {
-      const displayId = formatBookingDisplayId(booking);
-      const appointmentReminder = isTwoHourAppointmentReminder(booking);
-      queuePushNotification({
-        title: appointmentReminder ? `Job in 2 hours: ${booking.name}` : `Reminder: ${booking.name}`,
-        message: buildAdminReminderMessage(booking, displayId),
-        url: "/admin",
-        icon: "/icons/admin-icon-v2-192x192.png",
-        badge: "/icons/admin-icon-v2-96x96.png",
-      }, { audience: "admin", log: true });
-
-      await prisma.booking.update({
-        where: { id: booking.id },
-        data: { reminderSentAt: new Date().toISOString() } as any,
-      });
-    }
-  } catch (error) {
-    console.error("Booking reminder sweep failed:", error);
-  } finally {
-    bookingReminderSweepRunning = false;
-  }
-}
-
-function startBookingReminderSweep() {
-  void sendDueBookingReminders();
-  const reminderTimer = setInterval(() => {
-    void sendDueBookingReminders();
-  }, 60 * 1000);
-  reminderTimer.unref?.();
-}
-
-function getMontrealDateParts(date = new Date()) {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Toronto",
-    weekday: "short",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hour12: false,
-  });
-  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
-
-  return {
-    weekday: parts.weekday || "",
-    year: parts.year || "",
-    month: parts.month || "",
-    day: parts.day || "",
-    hour: Number(parts.hour || 0),
-  };
-}
-
-function getCurrentMontrealWeekendKey(date = new Date()) {
-  const parts = getMontrealDateParts(date);
-  if (!["Sat", "Sun"].includes(parts.weekday) || parts.hour < WEEKEND_PROMOTION_START_HOUR) {
-    return null;
-  }
-
-  const saturdayDate = parts.weekday === "Sun"
-    ? new Date(date.getTime() - 24 * 60 * 60 * 1000)
-    : date;
-  const saturdayParts = getMontrealDateParts(saturdayDate);
-
-  return `${saturdayParts.year}-${saturdayParts.month}-${saturdayParts.day}`;
-}
-
-function getYmdFromUtcDate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function getFixedHolidayKey(year: number, month: number, day: number) {
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-function getNthWeekdayOfMonth(year: number, month: number, weekday: number, occurrence: number) {
-  const firstDay = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
-  const offset = (weekday - firstDay + 7) % 7;
-  return getFixedHolidayKey(year, month, 1 + offset + (occurrence - 1) * 7);
-}
-
-function getLastWeekdayBefore(year: number, month: number, day: number, weekday: number) {
-  const date = new Date(Date.UTC(year, month - 1, day));
-  while (date.getUTCDay() !== weekday) {
-    date.setUTCDate(date.getUTCDate() - 1);
-  }
-  return getYmdFromUtcDate(date);
-}
-
-function getEasterSundayKey(year: number) {
-  const a = year % 19;
-  const b = Math.floor(year / 100);
-  const c = year % 100;
-  const d = Math.floor(b / 4);
-  const e = b % 4;
-  const f = Math.floor((b + 8) / 25);
-  const g = Math.floor((b - f + 1) / 3);
-  const h = (19 * a + b - d - g + 15) % 30;
-  const i = Math.floor(c / 4);
-  const k = c % 4;
-  const l = (32 + 2 * e + 2 * i - h - k) % 7;
-  const m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const month = Math.floor((h + l - 7 * m + 114) / 31);
-  const day = ((h + l - 7 * m + 114) % 31) + 1;
-  return getFixedHolidayKey(year, month, day);
-}
-
-function getCanadianHolidayForMontrealDate(parts: ReturnType<typeof getMontrealDateParts>) {
-  const year = Number(parts.year);
-  if (!Number.isFinite(year)) {
-    return null;
-  }
-
-  const easterSunday = new Date(`${getEasterSundayKey(year)}T12:00:00.000Z`);
-  const goodFriday = new Date(easterSunday);
-  goodFriday.setUTCDate(easterSunday.getUTCDate() - 2);
-  const easterMonday = new Date(easterSunday);
-  easterMonday.setUTCDate(easterSunday.getUTCDate() + 1);
-
-  const holidays: Record<string, { name: string; message: string }> = {
-    [getFixedHolidayKey(year, 1, 1)]: {
-      name: "New Year's Day",
-      message: "Happy New Year from FixMyDoor Services. If your home or office needs door, lock, furniture, or hardware help this season, send us photos and details.",
-    },
-    [getYmdFromUtcDate(goodFriday)]: {
-      name: "Good Friday",
-      message: "Wishing you a peaceful Good Friday. If the long weekend is a good time to fix a door, lock, cabinet, or furniture issue, FixMyDoor Services can help.",
-    },
-    [getYmdFromUtcDate(easterMonday)]: {
-      name: "Easter Monday",
-      message: "Happy Easter Monday from FixMyDoor Services. Use the holiday break to plan door repairs, furniture fixes, installations, or hardware sourcing.",
-    },
-    [getLastWeekdayBefore(year, 5, 25, 1)]: {
-      name: "Victoria Day",
-      message: "Happy Victoria Day. If you are using the long weekend to improve your home, FixMyDoor Services can help with doors, locks, furniture, and hardware.",
-    },
-    [getFixedHolidayKey(year, 6, 24)]: {
-      name: "Saint-Jean-Baptiste Day",
-      message: "Bonne Saint-Jean-Baptiste. FixMyDoor Services is available for Montreal door repairs, lock help, furniture installation, and hardware sourcing.",
-    },
-    [getFixedHolidayKey(year, 7, 1)]: {
-      name: "Canada Day",
-      message: "Happy Canada Day from FixMyDoor Services. If the holiday gives you time to fix your door, lock, cabinet, or furniture, send us the details.",
-    },
-    [getNthWeekdayOfMonth(year, 8, 1, 1)]: {
-      name: "Civic Holiday",
-      message: "Happy long weekend from FixMyDoor Services. It is a good time to handle loose doors, cabinet hardware, furniture setup, or repair planning.",
-    },
-    [getNthWeekdayOfMonth(year, 9, 1, 1)]: {
-      name: "Labour Day",
-      message: "Happy Labour Day. FixMyDoor Services is ready to help Montreal customers with door repairs, hardware, lock work, and furniture service.",
-    },
-    [getFixedHolidayKey(year, 9, 30)]: {
-      name: "National Day for Truth and Reconciliation",
-      message: "On this day of reflection, FixMyDoor Services remains available for respectful, practical door, lock, furniture, and hardware support.",
-    },
-    [getNthWeekdayOfMonth(year, 10, 1, 2)]: {
-      name: "Thanksgiving",
-      message: "Happy Thanksgiving from FixMyDoor Services. If family visits reveal a door, lock, cabinet, or furniture issue, we can help you plan the fix.",
-    },
-    [getFixedHolidayKey(year, 11, 11)]: {
-      name: "Remembrance Day",
-      message: "On Remembrance Day, FixMyDoor Services sends respectful greetings and remains available for door, lock, furniture, and hardware requests.",
-    },
-    [getFixedHolidayKey(year, 12, 25)]: {
-      name: "Christmas Day",
-      message: "Merry Christmas from FixMyDoor Services. Wishing you a safe home, strong doors, secure locks, and a peaceful holiday season.",
-    },
-    [getFixedHolidayKey(year, 12, 26)]: {
-      name: "Boxing Day",
-      message: "Happy Boxing Day. If you are planning home repairs, furniture setup, door work, or hardware replacement, FixMyDoor Services can help.",
-    },
-  };
-
-  return holidays[`${parts.year}-${parts.month}-${parts.day}`] || null;
-}
-
-async function sendCustomerEngagementCampaign(payload: PushPayload) {
-  const { visitorSubscriberCount } = getPushSubscriberCounts();
-  if (visitorSubscriberCount > 0) {
-    await sendPushNotificationToSubscribers(payload, { audience: "visitor", log: true });
-    broadcastSiteEvent({ type: "notification", title: payload.title, message: payload.message, url: payload.url });
-  }
-
-  await sendCustomerEmailBroadcast(payload, "notification");
-}
-
-async function sendWeekendPromotionIfDue() {
-  if (weekendPromotionSweepRunning) {
-    return;
-  }
-
-  weekendPromotionSweepRunning = true;
-  try {
-    const todayParts = getMontrealDateParts();
-    const state = loadJsonFile<WeekendPromotionState>(WEEKEND_PROMOTION_STATE_FILE, {});
-    const holiday = todayParts.hour >= WEEKEND_PROMOTION_START_HOUR ? getCanadianHolidayForMontrealDate(todayParts) : null;
-
-    if (holiday) {
-      const holidayKey = `${todayParts.year}-${todayParts.month}-${todayParts.day}-${holiday.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-      if (!state.sentHolidayKeys?.[holidayKey]) {
-        const payload: PushPayload = {
-          title: `${holiday.name} greetings`,
-          message: holiday.message,
-          url: "/#booking-form",
-          icon: "/icons/main-icon-v2-192x192.png",
-          badge: "/icons/main-icon-v2-96x96.png",
-        };
-        await sendCustomerEngagementCampaign(payload);
-        saveJsonFile<WeekendPromotionState>(WEEKEND_PROMOTION_STATE_FILE, {
-          ...state,
-          sentHolidayKeys: {
-            ...(state.sentHolidayKeys || {}),
-            [holidayKey]: new Date().toISOString(),
-          },
-          lastSentAt: new Date().toISOString(),
-        });
-      }
-      return;
-    }
-
-    const weekendKey = getCurrentMontrealWeekendKey();
-    if (!weekendKey) {
-      return;
-    }
-
-    if (state.lastSentWeekendKey === weekendKey) {
-      return;
-    }
-
-    const payload: PushPayload = {
-      title: "Weekend home fix reminder",
-      message: "Happy weekend from FixMyDoor Services. If you have time to fix a loose door, lock, cabinet, furniture setup, or hardware issue, send us photos and we will guide you.",
-      url: "/#booking-form",
-      icon: "/icons/main-icon-v2-192x192.png",
-      badge: "/icons/main-icon-v2-96x96.png",
-    };
-
-    await sendCustomerEngagementCampaign(payload);
-    saveJsonFile<WeekendPromotionState>(WEEKEND_PROMOTION_STATE_FILE, {
-      ...state,
-      lastSentWeekendKey: weekendKey,
-      lastSentAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("Weekend promotion sweep failed:", error);
-  } finally {
-    weekendPromotionSweepRunning = false;
-  }
-}
-
-function startWeekendPromotionSweep() {
-  void sendWeekendPromotionIfDue();
-  const weekendTimer = setInterval(() => {
-    void sendWeekendPromotionIfDue();
-  }, WEEKEND_PROMOTION_CHECK_MS);
-  weekendTimer.unref?.();
-}
-
-const CUSTOMER_EMAIL_BROADCAST_LIMIT = Math.max(1, Math.min(500, Number(process.env.CUSTOMER_EMAIL_BROADCAST_LIMIT || 120)));
-
-function queueCustomerEmailBroadcast(
-  payload: Pick<PushPayload, "title" | "message" | "url">,
-  type: "advert" | "notification" = "notification",
-) {
-  setTimeout(() => {
-    sendCustomerEmailBroadcast(payload, type).catch((error) => {
-      console.error("Queued customer email broadcast failed:", error);
-    });
-  }, 0);
-}
-
-async function sendCustomerEmailBroadcast(
-  payload: Pick<PushPayload, "title" | "message" | "url">,
-  type: "advert" | "notification",
-) {
-  const bookings = await prisma.$queryRawUnsafe<Array<{ email: string; customerConsent: boolean | number; emailOptOut?: boolean | number }>>(
-    `SELECT "email", "customerConsent", COALESCE("emailOptOut", 0) AS "emailOptOut" FROM "Booking" ORDER BY "createdAt" DESC LIMIT 1000`,
-  );
-  const uniqueEmails = Array.from(new Set(
-    bookings
-      .filter((booking) => booking.customerConsent && !booking.emailOptOut && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(booking.email || ""))
-      .map((booking) => booking.email.trim().toLowerCase()),
-  )).slice(0, CUSTOMER_EMAIL_BROADCAST_LIMIT);
-
-  let sent = 0;
-  let failed = 0;
-  for (const email of uniqueEmails) {
-    const ok = await emailService.sendCustomerBroadcastEmail(email, {
-      title: payload.title,
-      message: payload.message,
-      url: payload.url,
-      type,
-    });
-    if (ok) {
-      sent += 1;
-    } else {
-      failed += 1;
-    }
-  }
-
-  console.log("Customer email broadcast finished", { type, sent, failed, total: uniqueEmails.length });
-}
-
 function isInternationalBooking(booking: Booking) {
   const country = (booking.country || "").trim().toLowerCase();
   const scope = (booking.requestScope || "").trim().toLowerCase();
@@ -1991,8 +1334,7 @@ async function startServer() {
 
   // Initialize email service
   emailService.initialize();
-  startBookingReminderSweep();
-  startWeekendPromotionSweep();
+  startAttachmentCleanup();
 
   // Security middleware
   app.use(helmet({
@@ -2040,7 +1382,8 @@ async function startServer() {
     res.setHeader("X-Download-Options", "noopen");
     res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
 
-    if (ADMIN_SENSITIVE_PATH_PATTERN.test(req.path)) {
+    if (ADMIN_SENSITIVE_PATH_PATTERN.test(req.path) || /^\/(?:track|api\/media|uploads)(?:\/|$)/i.test(req.path)) {
+      res.setHeader("Referrer-Policy", "no-referrer");
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
       res.setHeader("Pragma", "no-cache");
       res.setHeader("Expires", "0");
@@ -2163,13 +1506,10 @@ async function startServer() {
   }, 60 * 60 * 1000);
   sessionCleanupTimer.unref?.();
 
-  app.use(express.json({ limit: "30mb" }));
-  fs.mkdirSync(uploadDir, { recursive: true });
-  app.use("/uploads", express.static(uploadDir, {
-    maxAge: isProduction ? "30d" : 0,
-  }));
-  app.use("/api/media", uploadLimiter);
+  app.use("/api/media", uploadLimiter, express.json({ limit: "7200kb" }));
   app.use("/api/admin/media", uploadLimiter);
+  app.use(express.json({ limit: "30mb" }));
+  registerAttachmentRoutes(app, requireAuth, uploadDir);
 
   // Auth middleware
   function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -2226,37 +1566,6 @@ async function startServer() {
       "Thank you,",
       "FixMyDoor Services",
     ].join("\n");
-  }
-
-  async function createReviewSmsDraftForBooking(booking: Booking) {
-    if (!booking.phone?.trim()) {
-      return false;
-    }
-
-    const existingDrafts = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
-      `SELECT "id" FROM "SmsDraft" WHERE "bookingId" = ? AND "message" LIKE ? LIMIT 1`,
-      booking.id,
-      "%g.page/r/CeZinY_kV0VcEAE/review%",
-    );
-
-    if (existingDrafts.length > 0) {
-      return false;
-    }
-
-    const id = randomUUID();
-    const clientId = booking.clientId || getClientIdForContact({ phone: booking.phone, email: booking.email || "" });
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "SmsDraft" ("id", "clientId", "bookingId", "clientName", "phone", "message", "status", "createdAt")
-       VALUES (?, ?, ?, ?, ?, ?, 'PENDING', CURRENT_TIMESTAMP)`,
-      id,
-      clientId,
-      booking.id,
-      booking.name || "Client",
-      booking.phone,
-      getReviewRequestMessage(booking).slice(0, 480),
-    );
-
-    return true;
   }
 
   async function backfillMissingClientIds() {
@@ -2467,96 +1776,16 @@ async function startServer() {
     });
   });
 
-  app.get("/api/push/public-key", (_req, res) => {
-    try {
-      return res.json({ publicKey: getVapidKeys().publicKey });
-    } catch (error) {
-      console.error("Push public key error:", error);
-      return res.status(500).json({ success: false, error: "Push notifications are not available right now" });
-    }
-  });
-
-  app.post("/api/push/subscribe", (req, res) => {
-    if (!isValidPushSubscription(req.body)) {
-      return res.status(400).json({ success: false, error: "Invalid push subscription" });
-    }
-
-    const now = new Date().toISOString();
-    const subscriptions = loadPushSubscriptions();
-    const existingIndex = subscriptions.findIndex((subscription) => subscription.endpoint === req.body.endpoint);
-    const requestedAudience = normalizePushAudience(req.body.audience);
-    const existingAudiences = existingIndex >= 0
-      ? subscriptions[existingIndex].audiences?.length
-        ? subscriptions[existingIndex].audiences
-        : [subscriptions[existingIndex].audience || "visitor"]
-      : [];
-    const audiences = Array.from(new Set([...existingAudiences, requestedAudience]));
-    const nextSubscription: StoredPushSubscription = {
-      endpoint: req.body.endpoint,
-      expirationTime: req.body.expirationTime ?? null,
-      keys: req.body.keys,
-      audiences,
-      audience: requestedAudience,
-      createdAt: existingIndex >= 0 ? subscriptions[existingIndex].createdAt : now,
-      updatedAt: now,
-    };
-
-    if (existingIndex >= 0) {
-      subscriptions[existingIndex] = nextSubscription;
-    } else {
-      subscriptions.push(nextSubscription);
-    }
-
-    savePushSubscriptions(subscriptions);
-    const subscriberCounts = getPushSubscriberCounts();
-    return res.json({
-      success: true,
-      ...subscriberCounts,
-      audience: requestedAudience,
-      audiences,
-    });
-  });
-
-  app.get("/api/admin/notifications", requireAuth, (_req, res) => {
-    const subscriptions = loadPushSubscriptions();
-    const subscriberCounts = getPushSubscriberCounts(subscriptions);
-    return res.json({
-      ...subscriberCounts,
-      notifications: loadPushNotificationLog(),
-      publicKeyReady: Boolean(getVapidKeys().publicKey),
-    });
-  });
-
-  app.post("/api/admin/notifications/send", requireAuth, async (req, res) => {
-    const title = String(req.body?.title || "").trim().slice(0, 90);
-    const message = String(req.body?.message || "").trim().slice(0, 240);
-    const url = String(req.body?.url || "/").trim() || "/";
-    const audience = req.body?.audience === "admin" || req.body?.audience === "visitor" ? req.body.audience : "all";
-
-    if (!title || !message) {
-      return res.status(400).json({ success: false, error: "Title and message are required" });
-    }
-
-    const logEntry = await sendPushNotificationToSubscribers({
-      title,
-      message,
-      url,
-      icon: audience === "admin" ? "/icons/admin-icon-v2-192x192.png" : "/icons/main-icon-v2-192x192.png",
-      badge: audience === "admin" ? "/icons/admin-icon-v2-96x96.png" : "/icons/main-icon-v2-96x96.png",
-    }, { audience, log: true });
-    broadcastSiteEvent({ type: "notification", title, message, url });
-    if (audience !== "admin") {
-      queueCustomerEmailBroadcast({ title, message, url }, "notification");
-    }
-
-    return res.json({
-      success: true,
-      delivered: logEntry.delivered,
-      failed: logEntry.failed,
-      subscriberCount: logEntry.subscriberCount,
-      notification: logEntry,
-    });
-  });
+  // Legacy push grants and keys are retired. No registration, network delivery or fan-out.
+  const pushUnavailable: express.RequestHandler = (_req, res) => {
+    res.status(503).json({ enabled: false, error: "Web Push is paused. Use the staff dashboard." });
+  };
+  app.get("/api/push/public-key", pushUnavailable);
+  app.post("/api/push/subscribe", pushUnavailable);
+  app.post("/api/admin/push/subscribe", requireAuth, pushUnavailable);
+  app.delete("/api/push/subscribe", (_req, res) => res.sendStatus(204));
+  app.get("/api/admin/notifications", requireAuth, (_req, res) => res.json({ enabled: false, subscriberCount: 0, adminSubscriberCount: 0, visitorSubscriberCount: 0, notifications: [], publicKeyReady: false }));
+  app.post("/api/admin/notifications/send", requireAuth, pushUnavailable);
 
   app.get("/api/admin/sms-drafts", requireAuth, async (req, res) => {
     const status = req.query.status === "SENT" ? "SENT" : req.query.status === "ALL" ? "ALL" : "PENDING";
@@ -2668,41 +1897,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/social-click", (req, res) => {
-    const platform = String(req.body?.platform || "").trim().toLowerCase();
-    if (!Object.prototype.hasOwnProperty.call(socialPlatformLabels, platform)) {
-      return res.status(400).json({ success: false, error: "Invalid social platform" });
-    }
-
-    const platformLabel = socialPlatformLabels[platform as keyof typeof socialPlatformLabels];
-    const page = String(req.body?.page || "/").replace(/[^\w\-./#?=&]/g, "").slice(0, 140) || "/";
-    const ipKey = `${req.ip || req.socket.remoteAddress || "unknown"}:${platform}`;
-    const now = Date.now();
-    const nextAllowedAt = socialClickNoticeCooldown.get(ipKey) || 0;
-    const shouldNotify = now >= nextAllowedAt;
-
-    if (shouldNotify) {
-      socialClickNoticeCooldown.set(ipKey, now + SOCIAL_CLICK_NOTICE_COOLDOWN_MS);
-      queuePushNotification({
-        title: `${platformLabel} link opened`,
-        message: `A visitor opened FixMyDoor Services on ${platformLabel} from ${page}. Montreal, Quebec social lead.`,
-        url: "/admin",
-        icon: "/icons/admin-icon-v2-192x192.png",
-        badge: "/icons/admin-icon-v2-96x96.png",
-      }, { audience: "admin", log: false });
-    }
-
-    return res.json({ success: true, notified: shouldNotify });
-  });
-
-  app.post("/api/media", async (req, res) => {
-    try {
-      const media = saveDataUrlMedia(req.body?.dataUrl, { allowVideo: false, maxBytes: 1_800_000 });
-      return res.status(201).json({ success: true, ...media });
-    } catch (error: any) {
-      return res.status(400).json({ success: false, error: error?.message || "Invalid media upload" });
-    }
-  });
+  app.post("/api/social-click", (_req, res) => res.json({ success: true, notified: false }));
 
   app.post("/api/admin/media", requireAuth, async (req, res) => {
     try {
@@ -2730,19 +1925,6 @@ async function startServer() {
 
     try {
       const item = await createContentItem(req.body);
-      if (item.active) {
-        const payload: SiteEventPayload = {
-          type: item.category === "advert" ? "advert" : "notification",
-          title: item.category === "advert" ? "New FixMyDoor Services advert" : "New FixMyDoor Services website update",
-          message: item.title,
-          url: item.category === "advert" ? "/#booking-form" : "/",
-        };
-        queuePushNotification(payload, { audience: "visitor", log: true });
-        if (item.category === "advert") {
-          broadcastSiteEvent(payload);
-          queueCustomerEmailBroadcast(payload, "advert");
-        }
-      }
       return res.status(201).json({ success: true, item });
     } catch (error) {
       console.error("Content creation error:", error);
@@ -2758,19 +1940,6 @@ async function startServer() {
 
     try {
       const item = await updateContentItem(id, req.body);
-      if (item.active) {
-        const payload: SiteEventPayload = {
-          type: item.category === "advert" ? "advert" : "notification",
-          title: item.category === "advert" ? "Updated FixMyDoor Services advert" : "Updated FixMyDoor Services website content",
-          message: item.title,
-          url: item.category === "advert" ? "/#booking-form" : "/",
-        };
-        queuePushNotification(payload, { audience: "visitor", log: true });
-        if (item.category === "advert") {
-          broadcastSiteEvent(payload);
-          queueCustomerEmailBroadcast(payload, "advert");
-        }
-      }
       return res.json({ success: true, item });
     } catch (error) {
       console.error("Content update error:", error);
@@ -2852,7 +2021,6 @@ async function startServer() {
           message: `${review.rating}-star review from ${review.name}`,
           url: "/#testimonials",
         };
-        queuePushNotification(payload, { audience: "visitor", log: true });
         broadcastSiteEvent(payload);
       }
 
@@ -2886,7 +2054,6 @@ async function startServer() {
           message: `${review.rating}-star review from ${review.name}`,
           url: "/#testimonials",
         };
-        queuePushNotification(payload, { audience: "visitor", log: true });
         broadcastSiteEvent(payload);
       }
       return res.json({ success: true, review });
@@ -2919,14 +2086,8 @@ async function startServer() {
     }
 
     try {
-      const savedBooking = await saveBooking(booking) as Booking;
+      const savedBooking = await saveWithAttachments(booking, req.session.uploadOwner);
       const trackingUrl = savedBooking.customerToken ? `${getPublicBaseUrl()}/track/${savedBooking.customerToken}` : "";
-      emailService.syncResendContactForBooking(savedBooking).catch((error) =>
-        console.error("Failed to sync Resend contact:", error)
-      );
-      emailService.sendResendAutomationEvent("fixmydoor.booking_created", savedBooking).catch((error) =>
-        console.error("Failed to send Resend booking event:", error)
-      );
       const emailPromise = sendBookingEmailsWithStatus(savedBooking);
       const emailStatus = await Promise.race([
         emailPromise,
@@ -2939,13 +2100,6 @@ async function startServer() {
         });
       }
 
-      queuePushNotification({
-        title: "New customer request",
-        message: `${formatBookingDisplayId(savedBooking)} - ${savedBooking.name} requested ${savedBooking.repairType}`,
-        url: "/admin",
-        icon: "/icons/admin-icon-v2-192x192.png",
-        badge: "/icons/admin-icon-v2-96x96.png",
-      }, { audience: "admin", log: false });
 
       return res.status(201).json({
         success: true,
@@ -2953,7 +2107,8 @@ async function startServer() {
         email: emailStatus,
       });
     } catch (error) {
-      console.error("Booking creation error:", error);
+      if (error instanceof AttachmentError) return res.status(400).json({ error: error.message });
+      console.error("Booking creation failed");
       return res.status(500).json({ success: false, error: "Failed to create booking" });
     }
   });
@@ -2981,33 +2136,18 @@ async function startServer() {
     try {
       const booking = await prisma.booking.findUnique({
         where: { customerToken: token },
+        select: { repairType: true, preferredDate: true, status: true, appointmentTime: true, quoteAmount: true, invoiceStatus: true, paymentStatus: true, statusHistory: true },
       });
 
       if (!booking) {
         return res.status(404).json({ success: false, error: "Booking not found" });
       }
 
-      const safeBooking = toBooking(booking);
-      return res.json({
-        booking: {
-          id: safeBooking.id,
-          clientId: safeBooking.clientId,
-          name: safeBooking.name,
-          repairType: safeBooking.repairType,
-          preferredDate: safeBooking.preferredDate,
-          status: safeBooking.status,
-          appointmentTime: safeBooking.appointmentTime,
-          quoteAmount: safeBooking.quoteAmount,
-          invoiceStatus: safeBooking.invoiceStatus,
-          paymentStatus: safeBooking.paymentStatus,
-          staffAssigned: safeBooking.staffAssigned,
-          statusHistory: safeBooking.statusHistory,
-          createdAt: safeBooking.createdAt,
-          updatedAt: safeBooking.updatedAt,
-        },
-      });
+      const { statusHistory, ...details } = booking;
+      const history = parseStatusHistory(statusHistory).filter(entry => validateBookingStatus(entry.status) && Number.isFinite(Date.parse(entry.changedAt))).map(({ status, changedAt }) => ({ status, changedAt: new Date(changedAt).toISOString() }));
+      return res.json({ booking: { ...details, statusHistory: history } });
     } catch (error) {
-      console.error("Booking tracking error:", error);
+      console.error("Booking tracking lookup failed");
       return res.status(500).json({ success: false, error: "Failed to load booking status" });
     }
   });
@@ -3221,7 +2361,6 @@ async function startServer() {
         history.push({
           status,
           changedAt: new Date().toISOString(),
-          note: cleanOptionalText(update.adminNotes, 300) || "Status updated by admin",
         } as BookingStatusHistoryEntry);
       }
 
@@ -3271,41 +2410,11 @@ async function startServer() {
       }
       const normalizedBooking = toBooking(booking);
 
-      emailService.syncResendContactForBooking(normalizedBooking).catch((error) =>
-        console.error("Failed to sync Resend contact:", error)
-      );
-
-      if (requestedEmailOptOut === true) {
-        emailService.sendResendAutomationEvent("fixmydoor.email_stopped", normalizedBooking).catch((error) =>
-          console.error("Failed to send Resend email stopped event:", error)
-        );
-      }
-
-      if (status && status !== previousStatus) {
-        emailService.sendResendAutomationEvent("fixmydoor.status_updated", normalizedBooking, {
-          previous_status: previousStatus,
-          next_status: nextStatus,
-        }).catch((error) =>
-          console.error("Failed to send Resend status event:", error)
-        );
-      }
-
       if (status && status !== previousStatus && !normalizedBooking.emailOptOut) {
         emailService.sendStatusUpdate(normalizedBooking).catch(err =>
           console.error("Failed to send status update email:", err)
         );
 
-        if (nextStatus === "COMPLETED") {
-          emailService.sendResendAutomationEvent("fixmydoor.job_completed", normalizedBooking).catch((error) =>
-            console.error("Failed to send Resend completed event:", error)
-          );
-          emailService.sendReviewRequest(normalizedBooking).catch(err =>
-            console.error("Failed to send review request email:", err)
-          );
-          createReviewSmsDraftForBooking(normalizedBooking).catch(err =>
-            console.error("Failed to create review SMS draft:", err)
-          );
-        }
       } else if (status && status !== previousStatus && normalizedBooking.emailOptOut) {
         console.log(`Customer email skipped for ${formatBookingDisplayId(normalizedBooking)} because email is stopped`);
       }
@@ -3450,6 +2559,9 @@ async function startServer() {
   const sendIndexHtml = (res: express.Response, pagePath = "/") => {
     try {
       const html = fs.readFileSync(indexHtmlPath, "utf8");
+      if (/^\/track\//i.test(pagePath)) {
+        return res.type("html").send(replaceMetaContent(replacePublicUrlTokens(html), "name", "robots", "noindex, nofollow, noarchive"));
+      }
       res.type("html").send(renderIndexHtmlForPath(html, pagePath));
     } catch (error) {
       console.error("Failed to render index.html:", error);
@@ -3549,7 +2661,7 @@ async function startServer() {
 
   // Handle client-side routing - serve index.html for all routes
   app.get("*", (req, res) => {
-    res.setHeader("Cache-Control", isProduction ? "no-store" : "no-cache");
+    res.setHeader("Cache-Control", /^\/track\//i.test(req.path) ? "private, no-store" : isProduction ? "no-store" : "no-cache");
     if (!isKnownClientRoute(req.path)) {
       res.status(404);
     }

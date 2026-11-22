@@ -83,7 +83,7 @@ const bookingSchema = z.object({
   deliveryNeeded: z.string().optional(),
   installationNeeded: z.string().optional(),
   budget: z.string().optional(),
-  securityAnswer: z.string().refine((value) => value === "verified-customer", "Please confirm that you are a real customer"),
+  securityAnswer: z.string().refine((value): boolean => value === "verified-customer", "Please confirm that you are a real customer"),
   customerConsent: z.boolean().refine(Boolean, "Please confirm that FixMyDoor Services can contact you about this request"),
 });
 
@@ -1852,12 +1852,13 @@ export default function Home() {
       });
 
     try {
-      const previews = await Promise.all(validFiles.map(async (file) => {
+      await axios.post("/api/media/session");
+      const images = await Promise.all(validFiles.map(async (file) => {
         const dataUrl = await compressBookingPhoto(file).catch(() => readFile(file));
-        const response = await axios.post<{ url: string }>("/api/media", { dataUrl, fileName: file.name });
-        return response.data.url;
+        return dataUrl;
       }));
-      setPhotoPreviews(previews);
+      const response = await axios.post<{ refs: string[] }>("/api/media", { images, replace: photoPreviews });
+      setPhotoPreviews(response.data.refs);
     } catch (error) {
       toast.error("Unable to upload one of the selected photos.");
       console.error("Photo read error:", error);

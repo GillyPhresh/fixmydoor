@@ -18,6 +18,7 @@ import { getSmsUrl, getWhatsAppUrl, normalizePhoneForMessaging } from "@shared/p
 import { serviceCatalog } from "@shared/services";
 
 const ADMIN_NOTIFICATION_CHOICE_KEY = "fixmydoor-admin-push-choice-v1";
+const promotionalSmsDispatchEnabled = false;
 const ADMIN_REMINDER_WATCH_DISMISS_KEY = "fixmydoor-admin-reminder-watch-dismissed-v1";
 const SECURITY_AUTH_DRAFT_KEY = "fixmydoor-security-authorization-draft-v1";
 
@@ -1178,6 +1179,11 @@ export default function Admin() {
   };
 
   const openBulkSmsComposer = () => {
+    if (!promotionalSmsDispatchEnabled) {
+      toast.error("SMS sending is paused until customer communication consent is verified.");
+      return;
+    }
+
     const message = smsMessage.trim();
     if (!message) {
       toast.error("Write the SMS message before sending.");
@@ -1217,7 +1223,7 @@ export default function Admin() {
       setSmsDrafts((currentDrafts) => [...(response.data.drafts || []), ...currentDrafts]);
       setSmsSelectedBookingIds([]);
       setSmsManualNumbers("");
-      toast.success(`Saved ${response.data.drafts?.length || contacts.length} SMS message${contacts.length === 1 ? "" : "s"} for Richard to send.`);
+      toast.success(`Saved ${response.data.drafts?.length || contacts.length} SMS draft${contacts.length === 1 ? "" : "s"}. Sending is paused until customer communication consent is verified.`);
     } catch (err: any) {
       toast.error(err?.response?.data?.error || "Failed to save SMS message");
     } finally {
@@ -1226,6 +1232,11 @@ export default function Admin() {
   };
 
   const openSavedSmsDraft = (draft: SmsDraft) => {
+    if (!promotionalSmsDispatchEnabled) {
+      toast.error("SMS sending is paused until customer communication consent is verified.");
+      return;
+    }
+
     const normalizedPhone = normalizePhoneForMessaging(draft.phone, "Canada");
     if (!normalizedPhone) {
       toast.error("This saved SMS does not have a valid phone number.");

@@ -644,58 +644,11 @@ class EmailService {
   }
 
   async syncResendContactForBooking(booking: Booking) {
-    const audienceId = this.getResendAudienceId();
-    if (!this.canUseResend() || !audienceId || !booking.email?.trim() || !booking.customerConsent) {
-      return false;
-    }
-
-    const { firstName, lastName } = splitCustomerName(booking.name);
-    const body = {
-      email: booking.email.trim().toLowerCase(),
-      first_name: firstName || undefined,
-      last_name: lastName || undefined,
-      unsubscribed: booking.emailOptOut === true,
-      properties: getResendContactProperties(booking),
-      segments: parseEnvIdList(process.env.RESEND_CONTACT_SEGMENT_IDS),
-      topics: parseEnvIdList(process.env.RESEND_CONTACT_TOPIC_IDS).map((topic) => ({
-        ...topic,
-        subscription: booking.emailOptOut ? "opt_out" : "opt_in",
-      })),
-    };
-
-    try {
-      return await this.resendRequest(`/audiences/${encodeURIComponent(audienceId)}/contacts`, body, "Create Resend contact");
-    } catch (createError) {
-      const message = summarizeEmailError(createError);
-      if (!/already|exist|duplicate|409/i.test(message)) {
-        console.warn("Resend contact sync failed:", message);
-        return false;
-      }
-
-      try {
-        return await this.resendRequest(`/audiences/${encodeURIComponent(audienceId)}/contacts/${encodeURIComponent(booking.email.trim().toLowerCase())}`, body, "Update Resend contact", "PATCH");
-      } catch (updateError) {
-        console.warn("Resend contact update failed:", summarizeEmailError(updateError));
-        return false;
-      }
-    }
+    return false;
   }
 
   async sendResendAutomationEvent(event: "fixmydoor.booking_created" | "fixmydoor.status_updated" | "fixmydoor.job_completed" | "fixmydoor.email_stopped", booking: Booking, extra: Record<string, string | number | boolean> = {}) {
-    if (!this.canUseResend() || !booking.email?.trim() || !booking.customerConsent) {
-      return false;
-    }
-
-    try {
-      return await this.resendRequest("/events/send", {
-        event,
-        email: booking.email.trim().toLowerCase(),
-        payload: getResendEventPayload(booking, extra),
-      }, `Send ${event}`);
-    } catch (error) {
-      console.warn("Resend automation event failed:", summarizeEmailError(error));
-      return false;
-    }
+    return false;
   }
 
   private async sendEmail(options: Record<string, any>, label: string, onError?: (error: unknown) => void) {
@@ -1012,132 +965,11 @@ class EmailService {
   }
 
   async sendReviewRequest(booking: Booking) {
-    if (!this.canSendEmail()) {
-      console.warn("Review request email skipped because email service is not initialized");
-      return false;
-    }
-
-    if (!booking.email?.trim()) {
-      console.warn("Review request email skipped because customer email is missing");
-      return false;
-    }
-
-    const businessEmail = getBusinessEmail();
-    const useResend = this.getProviderName() === "resend";
-    const logoAttachment = useResend ? undefined : getLogoAttachment();
-    const bookingDisplayId = formatBookingDisplayId(booking);
-    const jobLabel = getReviewJobLabel(booking.repairType);
-    const subject = "How was your FixMyDoor Services job?";
-    const text = [
-      `Hi ${booking.name},`,
-      "",
-      `Thank you for choosing FixMyDoor Services for your ${jobLabel}.`,
-      "If you were happy with the work, please leave us an honest Google review. Your feedback helps other customers in Montreal find reliable door, lock, furniture, and hardware help.",
-      "",
-      `Review link: ${GOOGLE_REVIEW_URL}`,
-      "",
-      "Thank you,",
-      "FixMyDoor Services",
-    ].join("\n");
-    const html = `
-      <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;background:#fffaf2;border:1px solid #ead8bf;border-radius:20px;overflow:hidden;">
-        <div style="background:#2f241c;padding:22px;text-align:center;">
-          ${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px", hosted: useResend })}
-        </div>
-        <div style="padding:26px;color:#3a281f;">
-          <p style="margin:0 0 10px;color:#b46532;font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">Completed service follow-up</p>
-          <h1 style="color:#6B4423;margin:0 0 14px;">Thank you for choosing FixMyDoor Services</h1>
-          <p>Hi ${escapeHtml(booking.name)},</p>
-          <p>Thank you for choosing FixMyDoor Services for your ${escapeHtml(jobLabel)}.</p>
-          <p>If you were happy with the work, please leave us an honest Google review. Your feedback helps other customers in Montreal find reliable door, lock, furniture, and hardware help.</p>
-          <div style="background:#F5F1E8;padding:16px;border-radius:14px;margin:20px 0;">
-            <p style="margin:0;"><strong>Booking ID:</strong> ${escapeHtml(bookingDisplayId)}</p>
-          </div>
-          <p><a href="${GOOGLE_REVIEW_URL}" style="display:inline-block;background:#b46532;color:#ffffff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:800;">Leave an honest Google review</a></p>
-          <p style="font-size:14px;color:#6f6258;">Thank you,<br><strong>FixMyDoor Services</strong><br><a href="mailto:${escapeHtml(businessEmail)}" style="color:#b46532;">${escapeHtml(businessEmail)}</a><br>+1 (438) 347-1823</p>
-        </div>
-      </div>
-    `;
-
-    try {
-      const sent = await this.sendEmail({
-        from: this.config?.from,
-        to: booking.email,
-        replyTo: businessEmail,
-        subject,
-        text,
-        html,
-        ...getCustomerEmailMetadata("review", bookingDisplayId),
-        attachments: logoAttachment ? [logoAttachment] : undefined,
-      }, "Review request", (error) => {
-        this.lastSendError = summarizeEmailError(error);
-      });
-      if (!sent) {
-        return false;
-      }
-      console.log(`Review request email sent to ${booking.email}`);
-      return true;
-    } catch (error) {
-      console.error("Failed to send review request email:", error);
-      return false;
-    }
+    return false;
   }
 
   async sendCustomerBroadcastEmail(to: string, payload: { title: string; message: string; url?: string; type?: "advert" | "notification" }) {
-    if (!this.canSendEmail()) {
-      console.warn("Email service not initialized");
-      return false;
-    }
-
-    const businessEmail = getBusinessEmail();
-    const useResend = this.getProviderName() === "resend";
-    const logoAttachment = useResend ? undefined : getLogoAttachment();
-    const title = sanitizeSingleLine(payload.title, 90) || "FixMyDoor Services update";
-    const message = cleanBodyText(payload.message, 600) || "A new FixMyDoor Services update is available.";
-    const url = payload.url ? normalizePublicUrl(payload.url) || `${getPublicBaseUrl()}${payload.url.startsWith("/") ? payload.url : `/${payload.url}`}` : getPublicBaseUrl();
-    const subjectPrefix = payload.type === "advert" ? "New FixMyDoor Services offer" : "FixMyDoor Services update";
-    const html = `
-      <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;background:#fffaf2;border:1px solid #ead8bf;border-radius:20px;overflow:hidden;">
-        <div style="background:#2f241c;padding:22px;text-align:center;">
-          ${renderEmailLogo(logoAttachment, { marginBottom: "0", textSize: "28px", hosted: useResend })}
-        </div>
-        <div style="padding:26px;color:#3a281f;">
-          <p style="margin:0 0 10px;color:#b46532;font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;">${escapeHtml(subjectPrefix)}</p>
-          <h1 style="color:#6B4423;margin:0 0 14px;">${escapeHtml(title)}</h1>
-          <p style="font-size:16px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(message)}</p>
-          <p><a href="${escapeHtml(url)}" style="display:inline-block;background:#b46532;color:#ffffff;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:800;">View Update</a></p>
-          <p style="font-size:13px;line-height:1.5;color:#6f6258;">You are receiving this because you previously contacted FixMyDoor Services. To stop receiving service updates, reply STOP to this email.</p>
-          <p style="font-size:14px;color:#3a281f;">FixMyDoor Services<br><a href="mailto:${escapeHtml(businessEmail)}" style="color:#b46532;">${escapeHtml(businessEmail)}</a><br>+1 (438) 347-1823</p>
-        </div>
-      </div>
-    `;
-
-    try {
-      return await this.sendEmail({
-        from: this.config?.from,
-        to,
-        replyTo: businessEmail,
-        subject: `${subjectPrefix}: ${title}`,
-        text: [
-          title,
-          "",
-          message,
-          "",
-          `View update: ${url}`,
-          "",
-          "You are receiving this because you previously contacted FixMyDoor Services. To stop receiving service updates, reply STOP to this email.",
-          `Contact: ${businessEmail} | +1 (438) 347-1823`,
-        ].join("\n"),
-        html,
-        ...getCustomerEmailMetadata("broadcast", title),
-        attachments: logoAttachment ? [logoAttachment] : undefined,
-      }, "Customer update broadcast", (error) => {
-        this.lastSendError = summarizeEmailError(error);
-      });
-    } catch (error) {
-      console.error("Failed to send customer update email:", error);
-      return false;
-    }
+    return false;
   }
 
   async sendTestEmail(to = getBusinessEmail()) {

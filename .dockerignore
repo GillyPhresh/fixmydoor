@@ -4,6 +4,8 @@ dist
 .git
 .env
 .env.*
+**/.env
+**/.env.*
 *.log
 dev-server.log
 
@@ -13,6 +15,10 @@ dev-server.log
 *.sqlite
 *.sqlite3
 prisma/prisma
+**/*.db
+**/*.db-journal
+**/*.sqlite
+**/*.sqlite3
 
 # Editor and OS files.
 .vscode
@@ -25,3 +31,31 @@ Thumbs.db
 coverage
 .cache
 .webdev
+uploads
+**/uploads
+data
+**/data
+runtime
+**/runtime
+*.sqlite-wal
+*.sqlite-shm
+*.db-wal
+*.db-shm
+**/*.sqlite-wal
+**/*.sqlite-shm
+**/*.db-wal
+**/*.db-shm
+*.bak
+*.backup
+*.tmp
+*.temp
+*.local
+**/*.bak
+**/*.backup
+**/*.tmp
+**/*.temp
+**/*.local
+dist-check
+dist-server-check
+coverage
+.manus-logs

@@ -12,6 +12,7 @@
     "start": "node dist/index.js",
     "preview": "vite preview --host --port 3000",
     "check": "tsc --noEmit",
+    "test:attachments": "node --import tsx --test tests/attachments.integration.test.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:prod": "prisma migrate deploy",
@@ -50,12 +51,12 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@types/bcrypt": "^6.0.0",
     "@types/express-session": "^1.19.0",
-    "axios": "^1.16.1",
+    "axios": "^1.20.0",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "compression": "^1.7.4",
+    "compression": "^1.8.2",
     "embla-carousel-react": "^8.6.0",
     "express": "^4.21.2",
     "express-rate-limit": "^7.1.5",
@@ -65,18 +66,19 @@
     "input-otp": "^1.4.2",
     "lucide-react": "^0.453.0",
     "next-themes": "^0.4.6",
-    "nodemailer": "^8.0.7",
+    "nodemailer": "^10.0.13",
     "react": "^19.2.1",
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.2.1",
     "react-hook-form": "^7.64.0",
     "react-resizable-panels": "^3.0.6",
+    "sharp": "^0.35.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
-    "zod": "^4.1.12"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@builder.io/vite-plugin-jsx-loc": "^0.1.1",
@@ -109,9 +111,13 @@
     },
     "overrides": {
       "express>path-to-regexp": "0.1.13",
-      "express>qs": "6.14.2",
-      "qs": "6.14.2",
-      "tailwindcss>nanoid": "3.3.7"
+      "express>qs": "6.16.1",
+      "qs": "6.16.1",
+      "tailwindcss>nanoid": "3.3.7",
+      "express>body-parser": "1.20.9",
+      "express>proxy-addr": "2.0.8",
+      "follow-redirects": "1.16.3",
+      "form-data": "4.0.6"
     }
   }
 }

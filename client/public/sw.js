@@ -1,8 +1,6 @@
-const CACHE_NAME = "fixmydoor-v7";
+const CACHE_NAME = "fixmydoor-v8";
 const URLS_TO_CACHE = [
   "/",
-  "/admin",
-  "/admin/notify",
   "/door-repair",
   "/entry-door-installation",
   "/furniture-repair",
@@ -54,6 +52,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  const isPrivate = /^\/(?:track\/|admin(?:\/|$))/.test(requestUrl.pathname);
+  if (isPrivate) return;
   const isNavigation = event.request.mode === "navigate";
   const isStaticAsset = /\.(?:js|css|png|jpe?g|webp|gif|svg|ico|woff2?|json|xml|mp4|webm|ogg)$/i.test(requestUrl.pathname);
 

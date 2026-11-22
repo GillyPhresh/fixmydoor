@@ -26,6 +26,7 @@ model Booking {
   message            String?
   status             String      @default("PENDING")
   customerToken      String?     @unique
+  attachments        Attachment[]
   photos             String?
   dimensions         String?
   quantity           String?
@@ -129,4 +130,16 @@ model ContentItem {
   @@index([category])
   @@index([active])
   @@index([sortOrder])
+}
+
+model Attachment {
+  id String @id
+  owner String?
+  bookingId String?
+  booking Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  image Bytes
+  createdAt DateTime @default(now())
+
+  @@index([owner, createdAt])
+  @@index([bookingId])
 }

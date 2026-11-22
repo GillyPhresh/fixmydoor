@@ -53,9 +53,10 @@ function GhanaBranchRoute() {
 
 function GoogleAnalytics() {
   const [location] = useLocation();
+  const isPrivatePath = /^\/(?:track\/|admin(?:\/|$))/.test(location);
 
   useEffect(() => {
-    if (!GA_MEASUREMENT_ID || !/^G-[A-Z0-9]+$/i.test(GA_MEASUREMENT_ID)) {
+    if (isPrivatePath || !GA_MEASUREMENT_ID || !/^G-[A-Z0-9]+$/i.test(GA_MEASUREMENT_ID)) {
       return;
     }
 
@@ -72,18 +73,18 @@ function GoogleAnalytics() {
     };
     window.gtag("js", new Date());
     window.gtag("config", GA_MEASUREMENT_ID, { send_page_view: false });
-  }, []);
+  }, [isPrivatePath]);
 
   useEffect(() => {
-    if (!GA_MEASUREMENT_ID || !window.gtag) {
+    if (isPrivatePath || !GA_MEASUREMENT_ID || !window.gtag) {
       return;
     }
 
     window.gtag("event", "page_view", {
-      page_path: location,
+      page_path: location.startsWith("/track/") ? "/track/:token" : location,
       page_title: document.title,
     });
-  }, [location]);
+  }, [location, isPrivatePath]);
 
   return null;
 }
