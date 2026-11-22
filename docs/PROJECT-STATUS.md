@@ -22,6 +22,8 @@ Prepare security release candidate; production remains approval-gated. Node 24 u
 
 ## Remaining release gates
 
+**Phase 5.3 production preparation is incomplete.** The owner approved the backup and configuration operations. Railway rejected the manual backup because the workspace lacks Pro backup entitlement. Read-back showed no recovery points and no schedules, so the prerequisite for applying the configuration was unmet. Production remains on main at `025c5f9`. The owner must resolve backup eligibility or amend the backup prerequisite. The security candidate remains `1dcd2ef30fce7338b8d9f62346b804f1aa754a71` on successful staging deployment `e765fa2f-e694-4641-b534-9dba0549bda9`. See [PRODUCTION-TRANSITION.md](PRODUCTION-TRANSITION.md) for the API error and scope.
+
 **STAGING RECOVERY PASSED. PRODUCTION RELEASE GATED.** Deployment `9abd67e0-216a-4ef3-a2e2-693b16084b05` backed up and restored the actual staging SQLite schema in temporary storage with no change to its source database. Eight bookings, three attachments and ten migrations passed validation. The restored app passed tracking and media checks. Existing staging media was empty. Synthetic filesystem media, a committed WAL fixture, missing attachments and damaged copies were verified in rehearsal tests. The normal Docker startup was restored for the final candidate.
 
 High / time-sensitive: read-only Railway inspection confirmed serving service `fixmydoorservices` remains on branch `main`, latest successful deployment `29809266-fe37-4e27-abfa-e46ce5b2aa92` at production commit `025c5f9756aa8556af5a1a2a36e74fd0c3f33ddf`, with `fixmydoor.ca` and `www.fixmydoor.ca` on port 8080 and the 500 MB `fixmydoorservices-volume` mounted at `/data` in `us-west2`. Effective deployment configuration uses Dockerfile builder/path `/Dockerfile`, `/api/health` timeout 300, one replica and ON_FAILURE/retries 10. The saved config API omits the timeout and restart fields, while `main:railway.json` supplies them. Before 2026-12-01 preserve those settings through the supported service settings/IaC workflow and review an exact plan. Staging has an independent 5 GB `/data` volume and is on a separate project. Do not merge until production migration is owner-approved. No production configuration was changed.
@@ -30,7 +32,7 @@ Critical owner release prerequisite: the production volume API reported no sched
 
 ## Owner release decisions
 
-Approve production backup/restore ownership, retention/RPO/RTO, volume snapshot and credential exposure review/rotation if warranted, legacy-file preservation, provider-side campaign suppression and exact configuration migration. No confirmed customer incident is asserted.
+Resolve Railway backup entitlement, then run the already approved sequence with fresh target and plan checks. Separately authorize independent database/media backup access, legacy inventory, evidence and provider review, and the application release. Confirm retention and recovery objectives. No confirmed customer incident is asserted.
 
 ## Next commercial milestone
 

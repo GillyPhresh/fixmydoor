@@ -28,7 +28,19 @@ Public and legacy files should be immutable during the filesystem copy. The pre/
 
 ### Railway volume backup feature
 
-The live production volume API returned no schedules and no recovery points on 2026-11-22. See [the production approval package](PRODUCTION-TRANSITION.md) for the exact target, backup options and owner decisions.
+The live production volume API returned no schedules and no recovery points on 2026-11-22. The approved create request was rejected by Railway because the workspace lacks Pro backup entitlement. See [the production approval package](PRODUCTION-TRANSITION.md) for the exact target and decision.
+
+### Independent production backup approval gate
+
+Agree on the execution identity, maintenance window and encrypted retention destination first. The staging rehearsal command checks staging IDs and must remain staging-only. For production, use a separately reviewed command scoped to the live volume. Record the current deployment and stop booking, attachment, CMS and background writers for the capture window. Open the production SQLite source read-only and use SQLite's online backup API, then copy the full upload tree while writers remain quiesced. Record SQLite checksum, a relative-path media SHA-256 manifest, capture time and migration checksums in the restricted backup. Compare the copied media to the source manifest before reopening writes. Keep paths and record identifiers out of the report.
+
+Verify the encrypted artifact by restoring it to an isolated destination with outbound integrations disabled. Check integrity, foreign keys, migration history, protected counts and digests for booking IDs, tracking identifiers and photos. Rehearse the candidate migration on the copy. The new migration creates the Attachment table and indexes with a foreign key to Booking, without rewriting existing booking IDs or photo references. Inventory legacy file and inline references privately, verify staff-only access and published CMS availability, and preserve missing-file handling. Stop on unexplained schema drift, missing required media, or failed integrity checks.
+
+### Evidence review and provider checks
+
+With owner-approved access, preserve applicable deployment revisions and metadata, then review selected historic request logs locally for runtime file, subscription, upload and tracking routes. Record UTC ranges, HTTP outcomes, response metadata and aggregation limits. Redact tokens, addresses and other personal data. A successful request alone does not establish which data was delivered. If VAPID private material was exposed or exposure cannot be ruled out, coordinate revocation of affected subscriptions and rotation with the owner. Rotate other credentials only if the evidence calls for it.
+
+In Resend, review scheduled Broadcasts, active Automations and their event triggers, audience segments and suppression rules. Identify campaigns triggered by a booking, status change, contact sync or content publication. Obtain approval to pause promotional broadcasts and automations or exclude contacts lacking marketing consent. Preserve opt-outs and transactional booking and service updates. Record the reviewed items and outstanding owner actions without exporting contact lists or sending messages.
 
 ## Rollback
 
