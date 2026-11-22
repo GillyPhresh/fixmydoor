@@ -103,6 +103,11 @@ export function createS3BackupClient(config, { allowLoopback = false } = {}) {
 
 export function configuredBackupBucket(environment, env) {
   scope(environment);
+  if (environment === "synthetic") {
+    const target = acceptanceTarget(env.FMD_S3_BUCKET, env.FMD_S3_ENDPOINT);
+    if (env[target.approval] !== "approved" || env.FMD_ALLOW_PRODUCTION_TRANSFER || env.FMD_ALLOW_PRODUCTION_CAPTURE) throw error("UNAPPROVED_BUCKET");
+    return target.bucket;
+  }
   const expected = environment === "synthetic" ? "fixmydoor-recovery-synthetic" : `fixmydoor-${environment}-backups`;
   if (environment === "production" && env.FMD_S3_BUCKET === "fixmydoor-production-backups-eu" &&
       env.FMD_ALLOW_PRODUCTION_TRANSFER === "approved" &&
@@ -128,8 +133,8 @@ async function expectRoleDenial(send, unexpectedGrant) {
   throw error(unexpectedGrant);
 }
 
-export async function verifySyntheticR2Privacy({ endpoint, bucket, key, writer, reader, request = fetch }) {
-  keyDetails("staging", key);
+export async function verifySyntheticR2Privacy({ endpoint, bucket, key, writer, reader, environment = "staging", request = fetch }) {
+  keyDetails(environment, key);
   const address = acceptanceTarget(bucket, endpoint).endpoint;
   const objectUrl = new URL("/" + bucket + "/" + key.split("/").map(encodeURIComponent).join("/"), address);
   const response = await request(objectUrl, {

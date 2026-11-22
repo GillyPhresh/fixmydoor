@@ -19,7 +19,8 @@ const hash = data => createHash("sha256").update(data).digest("hex");
 
 async function verify() {
   const env = process.env;
-  const { bucket, jurisdiction } = approvedAcceptanceTarget(env);
+  const { bucket, jurisdiction, approval } = approvedAcceptanceTarget(env);
+  const environment = bucket === "fixmydoor-production-backups-eu" ? "synthetic" : "staging";
   if (env.FMD_S3_WRITE_ID === env.FMD_S3_READ_ID) {
     throw Object.assign(new Error("Distinct reader and writer required"), { code: "DISTINCT_STORAGE_ROLES_REQUIRED" });
   }
@@ -28,7 +29,7 @@ async function verify() {
   const key = await readBackupKey(keyFile);
   let root, db, reader, writer;
   try {
-    root = await mkdtemp(path.join(tmpdir(), "fmd-r2-staging-"));
+    root = await mkdtemp(path.join(tmpdir(), `fmd-r2-${environment}-`));
     reader = configuredR2Client("READ", env);
     writer = configuredR2Client("WRITE", env);
     const source = path.join(root, "fixture.db"), media = path.join(root, "uploads");
@@ -49,11 +50,11 @@ async function verify() {
       .run(id, "Synthetic R2 test", "5145550110", "r2-test@example.invalid", "Synthetic", "Door repair", tracking,
         JSON.stringify(["attachment:" + photo, "/uploads/legacy.jpg"]));
     db.prepare("INSERT INTO Attachment (id,bookingId,image) VALUES (?,?,?)").run(photo, id, image);
-    await createBackup({ source, media, output, key, revision, environment: "staging", writersQuiesced: true });
-    const store = createBackupStore({ reader, writer, bucket, environment: "staging" });
+    await createBackup({ source, media, output, key, revision, environment, writersQuiesced: true });
+    const store = createBackupStore({ reader, writer, bucket, environment });
     const result = await store.upload(output, key);
     assert.equal((await store.upload(output, key)).key, result.key);
-    const privacy = await verifySyntheticR2Privacy({ endpoint: env.FMD_S3_ENDPOINT, bucket, key: result.key, writer, reader });
+    const privacy = await verifySyntheticR2Privacy({ endpoint: env.FMD_S3_ENDPOINT, bucket, key: result.key, writer, reader, environment });
     await store.download(result.key, downloaded);
     assert.equal(await fileHash(downloaded), await fileHash(output));
     const restored = await restoreBackup({ input: downloaded, key, parent: root, inspect: async snapshot => {
@@ -66,7 +67,7 @@ async function verify() {
       assert.equal(await fileHash(path.join(snapshot, "uploads", "published", "cms.jpg")), hash(image));
       await smoke(snapshot);
     } });
-    console.log("R2_STAGING_VERIFIED", JSON.stringify({ bucket, jurisdiction, key: result.key, bytes: result.bytes, ...privacy, ...restored, appSmoke: true }));
+    console.log("R2_SYNTHETIC_VERIFIED", JSON.stringify({ bucket, jurisdiction, environment, approval, key: result.key, bytes: result.bytes, ...privacy, ...restored, appSmoke: true }));
   } finally {
     db?.close();
     reader?.destroy();

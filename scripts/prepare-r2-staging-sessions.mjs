@@ -4,12 +4,12 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { approvedAcceptanceTarget } from "./r2-acceptance-target.mjs";
 
-const prefix = "sqlite-media/v1/staging/";
 const actionsByRole = { WRITE: ["PutObject"], READ: ["HeadObject", "GetObject"] };
 const toBase64Url = value => Buffer.from(JSON.stringify(value)).toString("base64url");
 
 export function stagingSessions(env, issuedAt = Math.floor(Date.now() / 1000)) {
   const { endpoint, account, bucket, approval } = approvedAcceptanceTarget(env);
+  const prefix = bucket === "fixmydoor-production-backups-eu" ? "sqlite-media/v1/synthetic/" : "sqlite-media/v1/staging/";
   if (env.FMD_R2_PARENT_WRITE_ID === env.FMD_R2_PARENT_READ_ID) throw new Error("Distinct staging parent tokens required");
 
   const values = { FMD_S3_ENDPOINT: endpoint, FMD_S3_BUCKET: bucket, [approval]: "approved" };

@@ -24,7 +24,8 @@ test("EU provider acceptance is confined to its named bucket, endpoint and synth
   for (const role of ["READ", "WRITE"]) {
     const [, payload] = Buffer.from(sessions[`FMD_S3_${role}_TOKEN`], "base64").toString().split(".");
     const claims = JSON.parse(Buffer.from(payload, "base64url"));
-    assert.deepEqual(claims.paths.prefixPaths, ["sqlite-media/v1/staging/"]);
+    assert.deepEqual(claims.paths.prefixPaths, ["sqlite-media/v1/synthetic/"]);
+    assert.deepEqual(claims.actions, role === "WRITE" ? ["PutObject"] : ["HeadObject", "GetObject"]);
     assert.equal(claims.bucket, env.FMD_S3_BUCKET);
     assert.equal(claims.aud, `${id}.eu.r2.cloudflarestorage.com`);
   }
