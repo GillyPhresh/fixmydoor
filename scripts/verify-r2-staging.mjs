@@ -18,8 +18,12 @@ const hash = data => createHash("sha256").update(data).digest("hex");
 
 async function verify() {
   const env = process.env;
-  if (env.FMD_ALLOW_R2_STAGING_TEST !== "approved" || env.FMD_ALLOW_PRODUCTION_TRANSFER ||
-      env.FMD_S3_WRITE_ID === env.FMD_S3_READ_ID) throw new Error("Staging approval and separate roles required");
+  if (env.FMD_ALLOW_R2_STAGING_TEST !== "approved" || env.FMD_ALLOW_PRODUCTION_TRANSFER) {
+    throw Object.assign(new Error("Staging test must be explicitly approved"), { code: "UNAPPROVED_R2_STAGING_TEST" });
+  }
+  if (env.FMD_S3_WRITE_ID === env.FMD_S3_READ_ID) {
+    throw Object.assign(new Error("Distinct reader and writer required"), { code: "DISTINCT_STORAGE_ROLES_REQUIRED" });
+  }
   const [keyFile, revision] = process.argv.slice(2);
   if (!keyFile || !/^[a-f0-9]{40}$/.test(revision ?? "")) throw new Error("Expected a staging key file and exact commit");
   const bucket = configuredBackupBucket("staging", env);

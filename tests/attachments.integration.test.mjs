@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { spawn } from "node:child_process";
 import { createServer as createNetServer } from "node:net";
+import { DatabaseSync } from "node:sqlite";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -69,6 +70,12 @@ before(async () => {
   const cli = path.join(process.cwd(), "node_modules", "prisma", "build", "index.js");
   const initialized = spawnSync(process.execPath, [cli, "db", "push", "--skip-generate"], { encoding: "utf8", env: { ...process.env, CI: "true", RUST_LOG: "debug" } });
   assert.equal(initialized.status, 0, `${initialized.stdout}\n${initialized.stderr}`);
+  const fixture = new DatabaseSync(databasePath);
+  try {
+    assert.equal(fixture.prepare("PRAGMA journal_mode=WAL").get().journal_mode, "wal");
+  } finally {
+    fixture.close();
+  }
 
   ({ prisma } = await import("../server/prisma.ts"));
   ({ saveWithAttachments, registerAttachmentRoutes } = await import("../server/attachments.ts"));
@@ -116,6 +123,7 @@ after(async () => {
   if (root) await rm(root, { recursive: true, force: true });
   if (databasePath) await rm(databasePath, { force: true });
   if (databasePath) await rm(`${databasePath}-journal`, { force: true });
+  if (databasePath) await Promise.all(["-wal", "-shm"].map(suffix => rm(databasePath + suffix, { force: true })));
   await Promise.all(["batch2-synthetic.db", "migration-history-test.db"].flatMap(name => ["", "-journal", "-wal", "-shm"].map(suffix => rm(path.join(process.cwd(), "prisma", `${name}${suffix}`), { force: true }))));
 });
 
@@ -322,9 +330,12 @@ test("real app preserves booking, tracking, admin auth, and private-photo workfl
   assert.equal((await fetch(`${appUrl}/api/bookings`, { headers: { cookie: adminCookie } })).status, 401);
 
   const renewedLogin = await fetch(`${appUrl}/api/auth/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ username: "synthetic-admin", password: "SyntheticPass2026" }) });
+  assert.equal(renewedLogin.status, 200);
   const expiringCookie = renewedLogin.headers.get("set-cookie").split(";")[0];
-  const session = await prisma.session.findFirst({ orderBy: { updatedAt: "desc" } });
-  await prisma.session.update({ where: { sid: session.sid }, data: { expiresAt: new Date(Date.now() - 1000) } });
+  await renewedLogin.json();
+  const sid = /^s:([^.]+)\./.exec(decodeURIComponent(expiringCookie.slice(expiringCookie.indexOf("=") + 1)))?.[1];
+  assert.ok(sid, "renewed login returns its signed session cookie");
+  await prisma.session.update({ where: { sid }, data: { expiresAt: new Date(Date.now() - 1000) } });
   assert.equal((await fetch(`${appUrl}/api/bookings`, { headers: { cookie: expiringCookie } })).status, 401);
 });
 
