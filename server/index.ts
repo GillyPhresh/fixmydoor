@@ -7,7 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, randomUUID } from "crypto";
 import { AttachmentError, saveWithAttachments, registerAttachmentRoutes, startAttachmentCleanup } from "./attachments";
-import { createBackupWindow, scheduleStagingBackupDrill } from "./backup-window";
+import { createBackupWindow, scheduleStagingBackupDrill, stagingBackupDrillEnabled } from "./backup-window";
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -1307,6 +1307,12 @@ assertStagingConfiguration();
 async function startServer() {
   const backupWindow = createBackupWindow();
   await runStartupMigrations(process.env.NODE_ENV);
+  if (stagingBackupDrillEnabled()) {
+    const [before] = await prisma.$queryRaw<{ journal_mode: string }[]>`PRAGMA journal_mode`;
+    const [after] = await prisma.$queryRaw<{ journal_mode: string }[]>`PRAGMA journal_mode=WAL`;
+    if (after?.journal_mode !== "wal") throw new Error("Staging online backup requires WAL");
+    console.log("ONLINE_BACKUP_STAGING_WAL", before?.journal_mode, after.journal_mode);
+  }
 
   try {
     console.log("Checking database compatibility...");

@@ -31,7 +31,8 @@ try {
       console.log("ONLINE_BACKUP_RESTORED", JSON.stringify(restore));
     } else throw new Error("Unknown staging drill phase");
   } finally { key.fill(0); }
-} catch {
-  console.error("ONLINE_BACKUP_CHILD_FAILED");
+} catch (cause) {
+  const code = typeof cause.code === "string" && /^[A-Z_]+$/.test(cause.code) ? cause.code : "VERIFICATION_FAILED";
+  console.error("ONLINE_BACKUP_CHILD_FAILED", code);
   process.exitCode = 1;
 }

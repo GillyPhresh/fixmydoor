@@ -26,6 +26,11 @@ function stageTarget(env: NodeJS.ProcessEnv) {
     env.RAILWAY_SERVICE_ID === "76e8013f-fb71-4aad-8e3b-4c852a3e07c3";
 }
 
+export function stagingBackupDrillEnabled() {
+  return process.platform === "linux" && process.env.FMD_STAGING_ONLINE_BACKUP_DRILL === "true" &&
+    stageTarget(process.env) && process.env.DATABASE_URL === "file:/data/fixmydoor.db";
+}
+
 function runDrill(phase: "capture" | "verify", directory: string, timeout: number) {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(process.execPath, ["scripts/rehearse-live-capture.mjs", phase, directory], {
@@ -53,7 +58,7 @@ function runDrill(phase: "capture" | "verify", directory: string, timeout: numbe
 }
 
 export function scheduleStagingBackupDrill(window: BackupWindow) {
-  if (process.platform !== "linux" || process.env.FMD_STAGING_ONLINE_BACKUP_DRILL !== "true" || !stageTarget(process.env)) return;
+  if (!stagingBackupDrillEnabled()) return;
   // One attempt after staging starts serving requests. No trigger is exposed over HTTP.
   setTimeout(() => {
     void (async () => {
