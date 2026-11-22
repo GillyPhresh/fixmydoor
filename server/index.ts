@@ -7,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, randomUUID } from "crypto";
 import { AttachmentError, saveWithAttachments, registerAttachmentRoutes, startAttachmentCleanup } from "./attachments";
+import { createBackupWindow, scheduleStagingBackupDrill } from "./backup-window";
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -1304,6 +1305,7 @@ if (!sessionSecret || sessionSecret.length < 32) {
 assertStagingConfiguration();
 
 async function startServer() {
+  const backupWindow = createBackupWindow();
   await runStartupMigrations(process.env.NODE_ENV);
 
   try {
@@ -1899,6 +1901,12 @@ async function startServer() {
   app.post("/api/social-click", (_req, res) => res.json({ success: true, notified: false }));
 
   app.post("/api/admin/media", requireAuth, async (req, res) => {
+    // The only filesystem upload writer is synchronous. It cannot overlap
+    // the gate transition on the same event loop.
+    if (backupWindow.mediaPaused) {
+      return res.set("Retry-After", "30").set("Cache-Control", "no-store")
+        .status(503).json({ success: false, error: "Media uploads are briefly paused. Please retry." });
+    }
     try {
       const media = saveDataUrlMedia(req.body?.dataUrl, { allowVideo: true, allowDocument: true, maxBytes: 20_000_000 });
       return res.status(201).json({ success: true, ...media });
@@ -2671,6 +2679,7 @@ async function startServer() {
 
   const host = process.env.HOST || (isProduction ? "0.0.0.0" : "127.0.0.1");
   server.listen(Number(port), host, () => {
+    scheduleStagingBackupDrill(backupWindow);
     console.log(`Server running on http://localhost:${port}/`);
   });
 }

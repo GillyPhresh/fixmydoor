@@ -96,9 +96,9 @@ async function decrypt(envelope, archive, key) {
   }
 }
 
-export async function createBackup({ source, media, output, key, revision, environment, writersQuiesced }) {
+export async function createBackup({ source, media, output, key, revision, environment, writersQuiesced, stagingMediaGate }) {
   validateKey(key);
-  if (writersQuiesced !== true || !/^[0-9a-f]{40}$/.test(revision) ||
+  if (!(writersQuiesced === true || (environment === "staging" && stagingMediaGate === true)) || !/^[0-9a-f]{40}$/.test(revision) ||
       !["synthetic", "staging", "production"].includes(environment)) fail("CAPTURE_CONTEXT_REQUIRED");
   if (!(await lstat(source)).isFile() || path.resolve(source) !== await realpath(source) ||
       !(await lstat(media)).isDirectory() || path.resolve(media) !== await realpath(media)) fail("UNSAFE_SOURCE_PATH");
@@ -114,6 +114,9 @@ export async function createBackup({ source, media, output, key, revision, envir
     const before = await mediaManifest(media);
     const snapshot = path.join(payload, "snapshot.db");
     db = new DatabaseSync(source, { readOnly: true });
+    if (stagingMediaGate && db.prepare("PRAGMA journal_mode").get().journal_mode !== "wal") {
+      fail("ONLINE_CAPTURE_REQUIRES_WAL");
+    }
     db.exec("PRAGMA busy_timeout=5000; BEGIN");
     // Establish the read snapshot before invoking SQLite's online backup API.
     db.prepare("SELECT count(*) FROM sqlite_master").get();
@@ -122,6 +125,7 @@ export async function createBackup({ source, media, output, key, revision, envir
     await cp(media, path.join(payload, "uploads"), { recursive: true, errorOnExist: true, force: false });
     if (!same(before, await mediaManifest(media))) fail("MEDIA_CHANGED_DURING_CAPTURE");
     const manifest = { version: 1, createdAt: new Date().toISOString(), revision, environment,
+      captureMode: stagingMediaGate ? "wal-with-media-gate" : "all-writers-quiesced",
       databaseHash: await fileHash(snapshot), database: sqliteMetadata(snapshot), media: before };
     await writeFile(path.join(payload, "manifest.json"), JSON.stringify(manifest), { mode: 0o600, flag: "wx" });
     await verifyBackupPayload(payload);
