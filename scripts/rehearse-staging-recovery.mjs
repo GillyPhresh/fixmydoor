@@ -12,13 +12,13 @@ import { DatabaseSync, backup } from "node:sqlite";
 
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
 
-async function fileHash(file) {
+export async function fileHash(file) {
   const hash = createHash("sha256");
   for await (const chunk of createReadStream(file)) hash.update(chunk);
   return hash.digest("hex");
 }
 
-async function mediaManifest(directory, allowMissing = false) {
+export async function mediaManifest(directory, allowMissing = false) {
   const result = [];
   async function walk(relative) {
     const entries = await readdir(path.join(directory, relative), { withFileTypes: true })
@@ -65,7 +65,7 @@ async function verifyRestore(directory, expected) {
   }
 }
 
-async function smoke(directory) {
+export async function smoke(directory) {
   const { default: sharp } = await import("sharp");
   const { default: bcrypt } = await import("bcrypt");
   const image = await sharp({ create: { width: 12, height: 12, channels: 3, background: "orange" } }).jpeg().toBuffer();
