@@ -19,7 +19,7 @@ const hash = data => createHash("sha256").update(data).digest("hex");
 async function verify() {
   const env = process.env;
   if (env.FMD_ALLOW_R2_STAGING_TEST !== "approved" || env.FMD_ALLOW_PRODUCTION_TRANSFER) {
-    throw Object.assign(new Error("Staging test must be explicitly approved"), { code: "UNAPPROVED_R2_STAGING_TEST" });
+    throw Object.assign(new Error("Staging test must be explicitly approved"), { code: "UNAPPROVED_STORAGE_STAGING_TEST" });
   }
   if (env.FMD_S3_WRITE_ID === env.FMD_S3_READ_ID) {
     throw Object.assign(new Error("Distinct reader and writer required"), { code: "DISTINCT_STORAGE_ROLES_REQUIRED" });
