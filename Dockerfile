@@ -46,4 +46,5 @@ EXPOSE 3000
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start the application
-CMD ["pnpm", "start"]
+# Run the one-off rehearsal before the staging application starts accepting writes.
+CMD ["sh", "-c", "if [ \"$RAILWAY_SERVICE_ID\" = \"76e8013f-fb71-4aad-8e3b-4c852a3e07c3\" ]; then timeout 120 node scripts/rehearse-staging-recovery.mjs || echo STAGING_RECOVERY_UNSUCCESSFUL; fi; exec pnpm start"]

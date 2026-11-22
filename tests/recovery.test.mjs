@@ -4,6 +4,40 @@ import { DatabaseSync, backup } from "node:sqlite";
 import { mkdtemp, mkdir, writeFile, readFile, cp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { isStagingRecoveryTarget, rehearse } from "../scripts/rehearse-staging-recovery.mjs";
+
+test("rehearsal preserves a committed WAL snapshot and rejects damaged restores", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "fixmydoor-recovery-tool-"));
+  const file = path.join(root, "source.db");
+  const db = new DatabaseSync(file);
+  try {
+    db.exec(`
+      PRAGMA journal_mode=WAL;
+      PRAGMA wal_autocheckpoint=0;
+      CREATE TABLE Booking(id TEXT PRIMARY KEY, customerToken TEXT, photos TEXT);
+      CREATE TABLE Attachment(id TEXT PRIMARY KEY, bookingId TEXT REFERENCES Booking(id), image BLOB);
+      CREATE TABLE ContentItem(id TEXT, image TEXT, accentImage TEXT);
+      CREATE TABLE _prisma_migrations(migration_name TEXT, checksum TEXT, finished_at TEXT, rolled_back_at TEXT);
+      INSERT INTO Booking VALUES ('synthetic', 'synthetic-token', '[]');
+      INSERT INTO Attachment VALUES ('photo', 'synthetic', X'0123');
+      INSERT INTO _prisma_migrations VALUES ('synthetic', 'checksum', 'done', NULL);
+    `);
+    assert.ok((await readFile(file + "-wal")).length > 32);
+    const media = path.join(root, "media");
+    await mkdir(path.join(media, "published"), { recursive: true });
+    await writeFile(path.join(media, "legacy.jpg"), "legacy fixture");
+    await writeFile(path.join(media, "published", "public.jpg"), "public fixture");
+    assert.deepEqual(await rehearse(file, media, { runApp: false }), {
+      bookings: 1, attachments: 1, migrations: 1, mediaFiles: 2,
+      integrity: "ok", foreignKeys: "ok", corruptAndIncompleteRejected: true, appSmoke: false,
+    });
+    assert.equal(db.prepare("SELECT customerToken FROM Booking").get().customerToken, "synthetic-token");
+    assert.equal(isStagingRecoveryTarget({ STAGING_MODE: "true", DATABASE_URL: "file:/data/fixmydoor.db" }), false);
+  } finally {
+    db.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test("consistent online SQLite backup restores committed WAL, attachment bytes and quiesced media", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "fixmydoor-recovery-"));
