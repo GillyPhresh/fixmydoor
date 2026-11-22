@@ -1,4 +1,4 @@
-const CACHE_NAME = "fixmydoor-v8";
+const CACHE_NAME = "fixmydoor-v9";
 const URLS_TO_CACHE = [
   "/",
   "/door-repair",
@@ -30,7 +30,6 @@ self.addEventListener("install", (event) => {
     caches.open(CACHE_NAME).then((cache) => cache.addAll(URLS_TO_CACHE))
   );
 });
-
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all([
@@ -132,34 +131,4 @@ self.addEventListener("notificationclick", (event) => {
       await self.clients.openWindow(absoluteUrl);
     }
   })());
-});
-
-self.addEventListener("push", (event) => {
-  let payload = {
-    title: "FixMyDoor Services",
-    message: "You have a new FixMyDoor Services update.",
-    url: "/"
-  };
-
-  if (event.data) {
-    try {
-      payload = { ...payload, ...event.data.json() };
-    } catch {
-      payload.message = event.data.text();
-    }
-  }
-
-  event.waitUntil(
-    self.registration.showNotification(payload.title || "FixMyDoor Services", {
-      body: payload.message || "You have a new FixMyDoor Services update.",
-      icon: payload.icon || "/icons/main-icon-v2-192x192.png",
-      badge: payload.badge || "/icons/main-icon-v2-96x96.png",
-      tag: "fixmydoor-services-update",
-      renotify: true,
-      silent: false,
-      timestamp: Date.now(),
-      vibrate: [180, 80, 180],
-      data: { url: payload.url || "/" }
-    })
-  );
 });

@@ -60,6 +60,8 @@ import {
   technicianImage,
 } from "./homeContent";
 
+const PUBLIC_PUSH_NOTIFICATIONS_ENABLED = false;
+
 const bookingSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().min(10, "Please enter a valid phone number"),
@@ -665,6 +667,8 @@ export default function Home() {
   }, []);
 
   const notifyVisitor = useCallback((event: SiteUpdateEvent) => {
+    if (!PUBLIC_PUSH_NOTIFICATIONS_ENABLED) return;
+
     toast.message(event.title, {
       description: event.message,
       action: event.url
@@ -708,6 +712,8 @@ export default function Home() {
   }, []);
 
   const enableNotifications = useCallback(async () => {
+    if (!PUBLIC_PUSH_NOTIFICATIONS_ENABLED) return;
+
     if (!("Notification" in window)) {
       toast.error("Browser notifications are not available on this device.");
       return;
@@ -770,6 +776,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!PUBLIC_PUSH_NOTIFICATIONS_ENABLED) {
+      setNotificationSupported(false);
+      setNotificationsEnabled(false);
+      setNotificationPromptOpen(false);
+      setNotificationPromptLoading(false);
+      return;
+    }
+
     const supported = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
     setNotificationSupported(supported);
 
@@ -1952,6 +1966,8 @@ export default function Home() {
   };
 
   const requestNotificationsFromHumanConfirmation = () => {
+    if (!PUBLIC_PUSH_NOTIFICATIONS_ENABLED) return;
+
     const canRequestNotifications = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
     if (
       canRequestNotifications &&
