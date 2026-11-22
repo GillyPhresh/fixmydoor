@@ -14,6 +14,7 @@ declare global {
 }
 
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+const ANALYTICS_DISABLED = import.meta.env.VITE_DISABLE_ANALYTICS === "true";
 
 const Home = lazy(() => import("./pages/Home"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -56,7 +57,7 @@ function GoogleAnalytics() {
   const isPrivatePath = /^\/(?:track\/|admin(?:\/|$))/.test(location);
 
   useEffect(() => {
-    if (isPrivatePath || !GA_MEASUREMENT_ID || !/^G-[A-Z0-9]+$/i.test(GA_MEASUREMENT_ID)) {
+    if (ANALYTICS_DISABLED || isPrivatePath || !GA_MEASUREMENT_ID || !/^G-[A-Z0-9]+$/i.test(GA_MEASUREMENT_ID)) {
       return;
     }
 
@@ -76,7 +77,7 @@ function GoogleAnalytics() {
   }, [isPrivatePath]);
 
   useEffect(() => {
-    if (isPrivatePath || !GA_MEASUREMENT_ID || !window.gtag) {
+    if (ANALYTICS_DISABLED || isPrivatePath || !GA_MEASUREMENT_ID || !window.gtag) {
       return;
     }
 

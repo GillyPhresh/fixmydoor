@@ -21,6 +21,7 @@ import type { Booking, BookingStatusHistoryEntry, BookingUpdateRequest } from "@
 import { formatBookingDisplayId } from "@shared/booking-code";
 import { serviceCatalog } from "@shared/services";
 import { ghanaBranchSeoPage, normalizeSeoPath, resolveSeoPage, seoRouteAliases, serviceSeoPages, sitemapRoutes } from "@shared/seo";
+import { assertStagingConfiguration, isStagingMode, markHtmlNoIndex, stagingAccessMiddleware, stagingRobotsTxt } from "./staging";
 
 declare module "express-session" {
   interface SessionData {
@@ -1020,10 +1021,14 @@ function renderIndexHtmlForPath(template: string, pagePath = "/") {
     html = html.replace(/    <noscript>[\s\S]*?<\/noscript>/, serviceFallbackContent);
   }
 
-  return structuredData ? html.replace("</head>", `${structuredData}\n  </head>`) : html;
+  const rendered = structuredData ? html.replace("</head>", `${structuredData}\n  </head>`) : html;
+  return isStagingMode ? markHtmlNoIndex(rendered) : rendered;
 }
 
 function renderRobotsTxt() {
+  const stagingRules = stagingRobotsTxt();
+  if (stagingRules) return stagingRules;
+
   return [
     "User-agent: *",
     "Disallow: /admin",
@@ -1296,6 +1301,8 @@ if (!sessionSecret || sessionSecret.length < 32) {
   process.exit(1);
 }
 
+assertStagingConfiguration();
+
 async function startServer() {
   // Run database migrations in production
   if (process.env.NODE_ENV === "production") {
@@ -1375,6 +1382,8 @@ async function startServer() {
       preload: true,
     },
   }));
+
+  app.use(stagingAccessMiddleware);
 
   app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");

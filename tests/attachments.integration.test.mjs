@@ -310,7 +310,8 @@ test("real app preserves booking, tracking, admin auth, and private-photo workfl
   const appSource = await readFile(path.join(process.cwd(), "client/src/App.tsx"), "utf8");
   const homeSource = await readFile(path.join(process.cwd(), "client/src/pages/Home.tsx"), "utf8");
   const workerSource = await readFile(path.join(process.cwd(), "client/public/sw.js"), "utf8");
-  assert.match(appSource, /if \(isPrivatePath \|\| !GA_MEASUREMENT_ID/);
+  assert.match(appSource, /const ANALYTICS_DISABLED = import\.meta\.env\.VITE_DISABLE_ANALYTICS === "true";/);
+  assert.match(appSource, /if \(ANALYTICS_DISABLED \|\| isPrivatePath \|\| !GA_MEASUREMENT_ID/);
   assert.ok(homeSource.includes("const PUBLIC_PUSH_NOTIFICATIONS_ENABLED = false;"));
   assert.ok(!workerSource.includes('self.addEventListener("push"'));
   assert.ok(workerSource.includes("const isPrivate = /^\\/(?:track\\/|admin(?:\\/|$))/.test(requestUrl.pathname);"));

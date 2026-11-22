@@ -30,6 +30,12 @@ COPY . .
 # Generate Prisma client
 RUN pnpm prisma:generate
 
+# Railway exposes Dockerfile build variables only when declared as ARGs.
+# These are public client build settings, never secrets; the analytics opt-out
+# is evaluated by Vite and is not persisted into the runtime image environment.
+ARG VITE_DISABLE_ANALYTICS=false
+ARG VITE_GA_MEASUREMENT_ID=
+
 # Build the application
 RUN pnpm build
 
