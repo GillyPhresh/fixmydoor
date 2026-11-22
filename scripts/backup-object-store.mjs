@@ -95,7 +95,22 @@ export async function verifySyntheticR2Privacy({ endpoint, bucket, key, writer, 
   const address = storageAddress(endpoint, false);
   const objectUrl = new URL("/" + bucket + "/" + key.split("/").map(encodeURIComponent).join("/"), address);
   const response = await request(objectUrl, { method: "HEAD", redirect: "manual", signal: AbortSignal.timeout(15000) });
-  if (![401, 403, 404].includes(response.status)) throw error("ANONYMOUS_OBJECT_ACCESS_NOT_DENIED");
+  if (response.status === 400) {
+    // R2's US S3 endpoint can reject a missing authorization header with a 400.
+    const detail = await request(objectUrl, {
+      method: "GET", headers: { Range: "bytes=0-0" }, redirect: "manual", signal: AbortSignal.timeout(15000),
+    });
+    if (detail.status !== 400) {
+      await detail.body?.cancel();
+      throw error("ANONYMOUS_OBJECT_ACCESS_NOT_DENIED");
+    }
+    const xml = await detail.text();
+    if (!/<Code>InvalidArgument<\/Code>/.test(xml) || !/<Message>Authorization<\/Message>/.test(xml)) {
+      throw error("ANONYMOUS_OBJECT_ACCESS_NOT_DENIED");
+    }
+  } else if (![401, 403, 404].includes(response.status)) {
+    throw error("ANONYMOUS_OBJECT_ACCESS_NOT_DENIED");
+  }
   try {
     await writer.send(new HeadObjectCommand({ Bucket: bucket, Key: key }), { abortSignal: AbortSignal.timeout(15000) });
   } catch (cause) {

@@ -8,10 +8,35 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import { createBackup, restoreBackup } from "../scripts/portable-backup.mjs";
-import { createBackupStore, createS3BackupClient, retentionPlan } from "../scripts/backup-object-store.mjs";
+import { createBackupStore, createS3BackupClient, retentionPlan, verifySyntheticR2Privacy } from "../scripts/backup-object-store.mjs";
 import { startFakeS3 } from "./support/backup-s3-fake.mjs";
 
 const run = promisify(execFile);
+
+test("R2 privacy check distinguishes missing authorization from a generic HTTP 400", async () => {
+  const methods = [];
+  const options = {
+    endpoint: `https://${"a".repeat(32)}.us.r2.cloudflarestorage.com`,
+    bucket: "fixmydoor-staging-backups",
+    key: `sqlite-media/v1/staging/20261122T010203456Z/${"b".repeat(64)}.fmd`,
+    writer: { async send() { throw { $metadata: { httpStatusCode: 403 } }; } },
+  };
+  const request = (status, detail) => async (url, init) => {
+    assert.equal(url.pathname, `/${options.bucket}/${options.key}`);
+    methods.push(init.method);
+    if (init.method === "HEAD") return new Response(null, { status: 400 });
+    assert.equal(init.headers.Range, "bytes=0-0");
+    return new Response(detail, { status });
+  };
+  const authError = "<Error><Code>InvalidArgument</Code><Message>Authorization</Message></Error>";
+  assert.deepEqual(await verifySyntheticR2Privacy({ ...options, request: request(400, authError) }),
+    { anonymousHttp: 400, writerReadDenied: true });
+  assert.deepEqual(methods, ["HEAD", "GET"]);
+  await assert.rejects(verifySyntheticR2Privacy({ ...options, request: request(400, "Bad request") }),
+    { code: "ANONYMOUS_OBJECT_ACCESS_NOT_DENIED" });
+  await assert.rejects(verifySyntheticR2Privacy({ ...options, request: request(206, "x") }),
+    { code: "ANONYMOUS_OBJECT_ACCESS_NOT_DENIED" });
+});
 
 test("backup keys are independent, never printed, and cannot be overwritten", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "fmd-key-test-"));
