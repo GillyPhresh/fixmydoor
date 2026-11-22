@@ -116,3 +116,5 @@ client/public/__manus__/version.json
 # Browser verification artifacts
 test-results/
 playwright-report/
+*.fmd
+.fmd-backup-*/
