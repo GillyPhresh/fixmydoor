@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createReadStream, createWriteStream } from "node:fs";
-import { link, lstat, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { link, lstat, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { Transform } from "node:stream";
@@ -38,6 +38,7 @@ function scope(environment) {
 }
 
 export function retentionPlan(environment) {
+  if (environment === "production") throw error("PRODUCTION_RETENTION_REQUIRES_REVIEW");
   return { Rules: [{ ID: "fixmydoor-expire-v1", Filter: { Prefix: scope(environment) },
     Status: "Enabled", Expiration: { Days: 30 } }] };
 }
@@ -53,6 +54,29 @@ function keyDetails(environment, key) {
   const time = Date.parse(`${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}T${stamp.slice(9, 11)}:${stamp.slice(11, 13)}:${stamp.slice(13, 15)}.${stamp.slice(15, 18)}Z`);
   if (!Number.isFinite(time) || new Date(time).toISOString().replace(/[-:.]/g, "") !== stamp) throw error("INVALID_OBJECT_TIME");
   return { digest, time };
+}
+
+// A reviewed receipt is an independently restored object plus any active rollback hold.
+// This policy returns review candidates. Routine credentials never delete objects.
+export function retentionCandidates(environment, { objects, receipts, now = Date.now(), retentionDays = 30 }) {
+  if (!Number.isInteger(retentionDays) || retentionDays < 1 || !Number.isFinite(now)) throw error("INVALID_RETENTION_POLICY");
+  const present = new Map(objects.map(key => [key, keyDetails(environment, key)]));
+  if (present.size !== objects.length) throw error("DUPLICATE_RETENTION_OBJECT");
+  const verified = new Map();
+  for (const receipt of receipts) {
+    const source = present.get(receipt.key);
+    if (!source || source.digest !== receipt.sha256 || !Number.isFinite(receipt.verifiedAt) ||
+        receipt.verifiedAt < source.time || receipt.verifiedAt > now || typeof receipt.rollbackHold !== "boolean" ||
+        verified.has(receipt.key)) throw error("INVALID_RECOVERY_RECEIPT");
+    verified.set(receipt.key, receipt);
+  }
+  const newest = [...verified.keys()].sort((a, b) => present.get(b).time - present.get(a).time || b.localeCompare(a))[0];
+  const cutoff = now - retentionDays * 86_400_000;
+  return {
+    newestVerified: newest ?? null,
+    review: newest ? [...verified.keys()].filter(key => key !== newest && !verified.get(key).rollbackHold && present.get(key).time <= cutoff) : [],
+    unverified: [...present.keys()].filter(key => !verified.has(key)),
+  };
 }
 
 function storageAddress(endpoint, allowLoopback) {
@@ -79,6 +103,9 @@ export function createS3BackupClient(config, { allowLoopback = false } = {}) {
 export function configuredBackupBucket(environment, env) {
   scope(environment);
   const expected = environment === "synthetic" ? "fixmydoor-recovery-synthetic" : `fixmydoor-${environment}-backups`;
+  if (environment === "production" && env.FMD_S3_BUCKET === "fixmydoor-production-backups-eu" &&
+      env.FMD_ALLOW_PRODUCTION_TRANSFER === "approved" &&
+      /^https:\/\/[a-f0-9]{32}\.eu\.r2\.cloudflarestorage\.com\/?$/.test(env.FMD_S3_ENDPOINT ?? "")) return env.FMD_S3_BUCKET;
   if (env.FMD_S3_BUCKET !== expected) throw error("UNAPPROVED_BUCKET");
   return expected;
 }
@@ -241,6 +268,10 @@ async function main([operation, environment, ...args], env) {
     return { generated: true };
   }
   if (operation === "retention-plan") return retentionPlan(environment);
+  if (operation === "retention-review" && args.length === 1) {
+    const manifest = JSON.parse(await readFile(args[0], "utf8"));
+    return retentionCandidates(environment, manifest);
+  }
   const [first, second] = args;
   if (!["upload", "download", "inventory", "check"].includes(operation)) throw error("UNKNOWN_OPERATION");
   if (environment === "production" && env.FMD_ALLOW_PRODUCTION_TRANSFER !== "approved") throw error("UNAPPROVED_TRANSFER_TARGET");

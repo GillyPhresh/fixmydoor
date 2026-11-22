@@ -8,10 +8,27 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import { createBackup, restoreBackup } from "../scripts/portable-backup.mjs";
-import { createBackupStore, createS3BackupClient, retentionPlan, verifySyntheticR2Privacy } from "../scripts/backup-object-store.mjs";
+import { createBackupStore, createS3BackupClient, retentionCandidates, retentionPlan, verifySyntheticR2Privacy } from "../scripts/backup-object-store.mjs";
 import { startFakeS3 } from "./support/backup-s3-fake.mjs";
 
 const run = promisify(execFile);
+
+test("production retention protects the last verified backup and rollback holds", () => {
+  const now = Date.parse("2026-11-22T00:00:00.000Z");
+  const key = (day, digit) => `sqlite-media/v1/production/202610${day}T000000000Z/${digit.repeat(64)}.fmd`;
+  const expired = key("01", "a"), held = key("02", "b"), newest = key("03", "c"), unverified = key("04", "d");
+  const receipt = (object, digit, rollbackHold = false) => ({ key: object, sha256: digit.repeat(64), verifiedAt: now - 1000, rollbackHold });
+  const objects = [expired, held, newest, unverified];
+  const receipts = [receipt(expired, "a"), receipt(held, "b", true), receipt(newest, "c")];
+  assert.deepEqual(retentionCandidates("production", { objects, receipts, now }), {
+    newestVerified: newest, review: [expired], unverified: [unverified],
+  });
+  assert.deepEqual(retentionCandidates("production", { objects, receipts: [], now }), {
+    newestVerified: null, review: [], unverified: objects,
+  });
+  assert.throws(() => retentionCandidates("production", { objects, receipts: [receipt(expired, "b")], now }), { code: "INVALID_RECOVERY_RECEIPT" });
+  assert.throws(() => retentionPlan("production"), { code: "PRODUCTION_RETENTION_REQUIRES_REVIEW" });
+});
 
 test("R2 privacy check distinguishes missing authorization from a generic HTTP 400", async () => {
   const methods = [];
@@ -125,8 +142,8 @@ test("S3 transfer retries interrupted streams and verifies immutable encrypted r
     assert.equal((await store.inventory()).count, 2);
     const later = Date.parse(captured.createdAt) + 48 * 3_600_000;
     assert.equal((await store.inventory(later)).status, "stale");
-    assert.deepEqual(retentionPlan("production").Rules[0], { ID: "fixmydoor-expire-v1",
-      Filter: { Prefix: "sqlite-media/v1/production/" }, Status: "Enabled", Expiration: { Days: 30 } });
+    assert.deepEqual(retentionPlan("staging").Rules[0], { ID: "fixmydoor-expire-v1",
+      Filter: { Prefix: "sqlite-media/v1/staging/" }, Status: "Enabled", Expiration: { Days: 30 } });
     fake.objects.clear(); // Simulate the provider expiring objects. The backup client has no delete command.
     assert.equal((await store.inventory(later)).status, "missing");
   } finally {

@@ -96,23 +96,23 @@ async function decrypt(envelope, archive, key) {
   }
 }
 
-export async function createBackup({ source, media, output, key, revision, environment, writersQuiesced, stagingMediaGate }) {
-  validateKey(key);
+export async function captureBackupPayload({ source, media, directory, revision, environment, writersQuiesced, stagingMediaGate }) {
   if (!(writersQuiesced === true || (environment === "staging" && stagingMediaGate === true)) || !/^[0-9a-f]{40}$/.test(revision) ||
       !["synthetic", "staging", "production"].includes(environment)) fail("CAPTURE_CONTEXT_REQUIRED");
   if (!(await lstat(source)).isFile() || path.resolve(source) !== await realpath(source) ||
       !(await lstat(media)).isDirectory() || path.resolve(media) !== await realpath(media)) fail("UNSAFE_SOURCE_PATH");
-  const mediaRelative = path.relative(media, path.resolve(output));
+  const mediaRelative = path.relative(media, path.resolve(directory));
   if (mediaRelative === "" || (!mediaRelative.startsWith(".." + path.sep) && !path.isAbsolute(mediaRelative))) fail("OUTPUT_INSIDE_MEDIA");
-  const parent = await realpath(path.dirname(output));
-  if (parent !== path.resolve(path.dirname(output))) fail("UNSAFE_OUTPUT_PATH");
-  const dir = await privateDirectory(parent);
+  const info = await lstat(directory);
+  if (!info.isDirectory() || path.resolve(directory) !== await realpath(directory) ||
+      (process.platform !== "win32" && (info.mode & 0o077))) fail("UNSAFE_OUTPUT_PATH");
   let db;
   try {
-    const payload = path.join(dir, "payload");
+    const payload = path.join(directory, "payload");
     await mkdir(payload, { mode: 0o700 });
     const before = await mediaManifest(media);
     const snapshot = path.join(payload, "snapshot.db");
+    const snapshotStarted = performance.now();
     db = new DatabaseSync(source, { readOnly: true });
     if (stagingMediaGate && db.prepare("PRAGMA journal_mode").get().journal_mode !== "wal") {
       fail("ONLINE_CAPTURE_REQUIRES_WAL");
@@ -122,24 +122,53 @@ export async function createBackup({ source, media, output, key, revision, envir
     db.prepare("SELECT count(*) FROM sqlite_master").get();
     await backup(db, snapshot);
     db.exec("ROLLBACK");
+    db.close();
+    db = undefined;
+    const sqliteMs = Math.round(performance.now() - snapshotStarted);
+    const mediaStarted = performance.now();
     await cp(media, path.join(payload, "uploads"), { recursive: true, errorOnExist: true, force: false });
     if (!same(before, await mediaManifest(media))) fail("MEDIA_CHANGED_DURING_CAPTURE");
     const manifest = { version: 1, createdAt: new Date().toISOString(), revision, environment,
       captureMode: stagingMediaGate ? "wal-with-media-gate" : "all-writers-quiesced",
       databaseHash: await fileHash(snapshot), database: sqliteMetadata(snapshot), media: before };
     await writeFile(path.join(payload, "manifest.json"), JSON.stringify(manifest), { mode: 0o600, flag: "wx" });
-    await verifyBackupPayload(payload);
-    const archive = path.join(dir, "payload.tar");
-    const envelope = path.join(dir, "backup.fmd");
+    return { sqliteMs, mediaMs: Math.round(performance.now() - mediaStarted) };
+  } finally {
+    db?.close();
+  }
+}
+
+export async function sealBackupPayload({ directory, output, key }) {
+  validateKey(key);
+  const payload = path.join(directory, "payload");
+  const manifest = await verifyBackupPayload(payload);
+  const started = performance.now();
+  const archive = path.join(directory, "payload.tar");
+  const envelope = path.join(directory, "backup.fmd");
+  try {
     await tar(["-cf", archive, "-C", payload, "manifest.json", "snapshot.db", "uploads"]);
     await encrypt(archive, envelope, key);
     // Publish only a complete encrypted envelope. Hard links refuse replacement.
     await link(envelope, output);
-    return { createdAt: manifest.createdAt, revision, environment, mediaFiles: before.length,
-      migrations: manifest.database.migrations.length, encryptedBytes: (await stat(envelope)).size };
+    return { createdAt: manifest.createdAt, revision: manifest.revision, environment: manifest.environment, mediaFiles: manifest.media.length,
+      migrations: manifest.database.migrations.length, encryptedBytes: (await stat(envelope)).size, sealMs: Math.round(performance.now() - started) };
   } finally {
-    db?.close();
-    await rm(dir, { recursive: true, force: true });
+    await rm(archive, { force: true });
+    await rm(envelope, { force: true });
+  }
+}
+
+export async function createBackup({ output, key, ...capture }) {
+  validateKey(key);
+  const parent = await realpath(path.dirname(output));
+  if (parent !== path.resolve(path.dirname(output))) fail("UNSAFE_OUTPUT_PATH");
+  const directory = await privateDirectory(parent);
+  try {
+    await captureBackupPayload({ ...capture, directory });
+    const { sealMs, ...result } = await sealBackupPayload({ directory, output, key });
+    return result;
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 }
 
@@ -175,6 +204,24 @@ function captureTarget(mode, env) {
 }
 
 async function main([operation, mode, artifact, keyFile], env) {
+  if (operation === "capture-payload" || operation === "seal-payload") {
+    captureTarget(mode, env);
+    const directory = path.resolve(artifact ?? "");
+    if (path.dirname(directory) !== path.resolve(tmpdir()) || !path.basename(directory).startsWith("fmd-handoff-")) {
+      fail("CAPTURE_OUTPUT_MUST_BE_TEMPORARY");
+    }
+    if (operation === "capture-payload") {
+      return captureBackupPayload({ source: "/data/fixmydoor.db", media: "/data/uploads", directory,
+        revision: env.RAILWAY_GIT_COMMIT_SHA, environment: mode, writersQuiesced: env.FMD_WRITERS_QUIESCED === "yes" });
+    }
+    const info = await lstat(directory);
+    if (!info.isDirectory() || (info.mode & 0o077) || directory !== await realpath(directory)) fail("UNSAFE_OUTPUT_PATH");
+    const manifest = JSON.parse(await readFile(path.join(directory, "payload", "manifest.json"), "utf8"));
+    if (manifest.environment !== mode || manifest.revision !== env.RAILWAY_GIT_COMMIT_SHA) fail("CAPTURE_CONTEXT_REQUIRED");
+    const key = await readBackupKey(keyFile);
+    try { return await sealBackupPayload({ directory, output: path.join(directory, "snapshot.fmd"), key }); }
+    finally { key.fill(0); }
+  }
   if (!artifact || !keyFile) fail("USAGE: capture staging|production <artifact> <keyfile> OR verify disposable <artifact> <keyfile>");
   if (operation === "capture") {
     captureTarget(mode, env);

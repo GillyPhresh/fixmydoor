@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
-import { createBackup, restoreBackup, verifyBackupPayload } from "../scripts/portable-backup.mjs";
+import { captureBackupPayload, createBackup, restoreBackup, sealBackupPayload, verifyBackupPayload } from "../scripts/portable-backup.mjs";
 
 test("portable backup preserves committed WAL, legacy and public media through authenticated restore", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "fmd-portable-test-"));
@@ -63,6 +63,17 @@ test("portable backup preserves committed WAL, legacy and public media through a
       await assert.rejects(restoreBackup({ input: damaged, key, parent: root }), { code: "DECRYPT_FAILED" });
     }
     assert.equal(db.prepare("SELECT count(*) AS n FROM Booking").get().n, 1);
+    const held = await mkdtemp(path.join(root, "private-payload-"));
+    const splitArtifact = path.join(root, "split.fmd");
+    await captureBackupPayload({ ...options, directory: held });
+    db.exec("INSERT INTO Booking VALUES ('after-reopening','after-reopening')");
+    await writeFile(path.join(media, "legacy.jpg"), "reopened media write");
+    await sealBackupPayload({ directory: held, output: splitArtifact, key });
+    await restoreBackup({ input: splitArtifact, key, parent: root, inspect: async (restored, manifest) => {
+      assert.equal(manifest.database.bookings, 1);
+      assert.equal(await readFile(path.join(restored, "uploads", "legacy.jpg"), "utf8"), "legacy media bytes");
+    } });
+    assert.equal(db.prepare("SELECT count(*) AS n FROM Booking").get().n, 2);
   } finally {
     db.close();
     key.fill(0);
@@ -70,10 +81,12 @@ test("portable backup preserves committed WAL, legacy and public media through a
   }
 });
 
-test("capture CLI rejects a production target before opening files", () => {
-  const run = spawnSync(process.execPath, ["scripts/portable-backup.mjs", "capture", "production", "unused", "unused"], {
-    encoding: "utf8", env: { ...process.env, FMD_ALLOW_PRODUCTION_CAPTURE: "" },
-  });
-  assert.equal(run.status, 1);
-  assert.match(run.stderr, /BACKUP_FAILED UNAPPROVED_CAPTURE_TARGET/);
+test("capture and seal CLI reject a production target before opening files", () => {
+  for (const operation of ["capture", "capture-payload", "seal-payload"]) {
+    const run = spawnSync(process.execPath, ["scripts/portable-backup.mjs", operation, "production", "unused", "unused"], {
+      encoding: "utf8", env: { ...process.env, FMD_ALLOW_PRODUCTION_CAPTURE: "" },
+    });
+    assert.equal(run.status, 1);
+    assert.match(run.stderr, /BACKUP_FAILED UNAPPROVED_CAPTURE_TARGET/);
+  }
 });

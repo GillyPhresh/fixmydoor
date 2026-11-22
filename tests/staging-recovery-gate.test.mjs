@@ -68,6 +68,11 @@ test("R2 preflight uses the dedicated bucket, scoped sessions and unsigned priva
   const bucket = "fixmydoor-staging-backups";
   const key = "sqlite-media/v1/staging/20261122T120000000Z/" + "b".repeat(64) + ".fmd";
   assert.equal(configuredBackupBucket("production", { FMD_S3_BUCKET: "fixmydoor-production-backups" }), "fixmydoor-production-backups");
+  const eu = { FMD_S3_BUCKET: "fixmydoor-production-backups-eu", FMD_ALLOW_PRODUCTION_TRANSFER: "approved",
+    FMD_S3_ENDPOINT: `https://${"a".repeat(32)}.eu.r2.cloudflarestorage.com` };
+  assert.equal(configuredBackupBucket("production", eu), eu.FMD_S3_BUCKET);
+  assert.throws(() => configuredBackupBucket("production", { ...eu, FMD_ALLOW_PRODUCTION_TRANSFER: "" }), { code: "UNAPPROVED_BUCKET" });
+  assert.throws(() => configuredBackupBucket("production", { ...eu, FMD_S3_ENDPOINT: endpoint }), { code: "UNAPPROVED_BUCKET" });
   assert.throws(() => configuredBackupBucket("staging", { FMD_S3_BUCKET: "fixmydoor-production-backups" }), { code: "UNAPPROVED_BUCKET" });
   assert.throws(() => configuredR2Client("READ", {}), { code: "TEMPORARY_CREDENTIALS_REQUIRED" });
   const client = createS3BackupClient({ endpoint, accessKeyId: "synthetic", secretAccessKey: "synthetic-only" });
