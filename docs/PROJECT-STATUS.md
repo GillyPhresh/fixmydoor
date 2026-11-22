@@ -4,7 +4,7 @@
 
 React/Vite + Express modular monolith, Prisma 4.16 + SQLite, Docker/Railway. Production main remains 025c5f9756aa8556af5a1a2a36e74fd0c3f33ddf. Work only in fixmydoor-p0-secure / codex/fixmydoor-security-p0. Original workspace and untracked runtime fixtures are preserved.
 
-Last verified staging revision before this mission: `e7dc533e48c71120dcf490b0e85c28b20d15e737`, deployment `eba920fa-42e0-4bd7-b767-5af10af5e586` (SUCCESS). Project/environment/service IDs are in AGENTS.md. SQLite and private attachment BLOBs persist on the independent `/data` volume; no PostgreSQL or Redis.
+Staging baseline entering this mission: `e7dc533e48c71120dcf490b0e85c28b20d15e737`, deployment `eba920fa-42e0-4bd7-b767-5af10af5e586` (SUCCESS). Current verified staging revision: `a55d8a01e268a2cd78aef77c6c8c5d65a44598da`, deployment `488d9aea-a648-44bf-98e0-ccfefe176bc8` (SUCCESS). Project/environment/service IDs are in AGENTS.md. SQLite and private attachment BLOBs persist on the independent `/data` volume; no PostgreSQL or Redis. The health JSON `environment: "production"` is `NODE_ENV` runtime mode, not the Railway project/environment identity.
 
 ## Current milestone
 
@@ -13,7 +13,7 @@ Prepare security release candidate; production remains approval-gated. Node 24 u
 ## Verified release evidence
 
 - Dependency update locally verified: pinned-pnpm full audit and production audit both report 0/0/0/0/0 known advisories; typecheck, Prisma generation/validation and 16/16 tests pass. Node 24.22.3 host production build and Docker image build pass. The updated Docker image applies all 10 migrations and reports status up to date on a disposable SQLite database.
-- The updated app dependencies have not yet been deployed to staging or run through the browser suite in this milestone. The last successful staging deployment remains `e7dc533e48c71120dcf490b0e85c28b20d15e737`.
+- The updated dependency build is deployed to isolated staging (`a55d8a0`, `488d9aea…`) and healthy with the SQLite database connected. Playwright passed all 5/5 tests on desktop 1440px, phone 375px and tablet 768px, covering language/navigation, bookings with and without a photo, admin, authorized attachment access, tracking privacy and invalid-upload containment. Synthetic staging only; no real messages were sent.
 - 16/16 Node tests passed on host and Linux Node 24. The final worker regression used read-only mounts of updated tests/public files in the clean runtime image; the final Railway image built the committed worker changes.
 - 5/5 Playwright tests passed against this staging revision: 1440 desktop, 375 phone, 768 tablet, navigation, French switch, real form requests with/without photograph, admin, tracking and failed-upload containment.
 - 15 canonical routes and 8 aliases passed HTTP checks. Basic Auth, private-image denial without staff, robots and analytics/verification isolation passed.
