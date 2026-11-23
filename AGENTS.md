@@ -8,6 +8,13 @@
 - When an external blocker or approval boundary prevents an operation, prepare the exact scoped action and continue independent work. Ask only for the decision or authorization still needed.
 - Report what failed, the cause if verified, what changed, the checks and their results, whether the original objective was reached, and what still blocks it. Update project status when implementation, verified revisions, release gates, or the next authorized work materially change.
 
+## Autonomous product development
+
+- Own the product roadmap during active development sessions. Choose cohesive milestones that improve service delivery, customer experience, reliability, or revenue, and build on the existing React, Express, TypeScript, Prisma, SQLite, and Railway architecture.
+- Implement and verify each milestone before reporting it. Use the visual-development requirements below to demonstrate working features and distinguish local verification, staging verification, and release status.
+- Continue with independent development when an external credential or approval blocks one check. Keep release gates in place and record exactly what remains unverified. Routine engineering decisions do not require another owner prompt.
+- Prioritize quotation-to-payment workflows, qualified technician recruitment, and business service operations. Keep live payments, paid memberships, real communications, new spending, and production changes behind the owner approval boundaries below.
+
 ## Owner approval boundaries
 
 - Obtain explicit owner authorization for production merges, deployments and Railway mutations, production database or customer file changes, credential rotation, DNS changes, real customer messages, financial transactions, subscription upgrades, significant recurring costs, destructive operations, and external transfers of customer data.
