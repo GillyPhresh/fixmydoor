@@ -18,6 +18,7 @@ process.env.DATABASE_URL = `file:${prismaRelative}`;
 
 const { prisma } = await import("../server/prisma.ts");
 const { registerPortal } = await import("../server/portal.ts");
+const { registerCommercial } = await import("../server/commercial.ts");
 const migrations = readdirSync("prisma/migrations", { withFileTypes: true })
   .filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
 const migrationDb = new DatabaseSync(dbFile);
@@ -87,6 +88,7 @@ const staffAuth = (req, res, next) => {
   req.session.adminId = "synthetic-staff";
   next();
 };
+registerCommercial(app, staffAuth);
 const recoveryLinks = new Map();
 registerPortal(app, staffAuth, undefined, async (email, url) => { recoveryLinks.set(email, url); return true; });
 const server = app.listen(0, "127.0.0.1");
@@ -134,7 +136,17 @@ test("customer, organization, technician, AI and membership portal workflows enf
 
   const customerEmail = await invite("CUSTOMER", individualA.id);
   const customerCookie = await login(customerEmail);
+  const depositPath = "/api/admin/commercial/quotes/quote-tech-a/deposit-request";
+  const depositTerms = { terms: { type: "PERCENTAGE", basisPoints: 2500 }, dueOn: "2099-01-01", agreedTermsReference: "Synthetic agreed terms" };
+  assert.equal((await call(depositPath, { method: "PUT", body: depositTerms })).status, 401);
+  const requestedDeposit = await call(depositPath, { method: "PUT", body: depositTerms, staff: true });
+  assert.equal(requestedDeposit.status, 200);
+  assert.ok(requestedDeposit.data.amountCents > 0);
+  assert.deepEqual((await call(depositPath, { method: "PUT", body: depositTerms, staff: true })).data, requestedDeposit.data);
+  assert.equal((await call(depositPath, { method: "PUT", body: { ...depositTerms, dueOn: "2099-02-01" }, staff: true })).status, 409);
+  assert.equal((await call("/api/admin/commercial/quotes/quote-customer-a/deposit-request", { method: "PUT", body: depositTerms, staff: true })).status, 409);
   const customerDashboard = await call("/api/portal/dashboard", { cookie: customerCookie });
+  assert.deepEqual(customerDashboard.data.quotations.find(quote => quote.id === "quote-tech-a").depositRequest, { amountCents: requestedDeposit.data.amountCents, dueOn: depositTerms.dueOn });
   assert.equal(customerDashboard.status, 200);
   assert.deepEqual(customerDashboard.data.bookings.map(booking => booking.id), ["booking-a"]);
   assert.deepEqual(customerDashboard.data.quotations.map(quote => quote.id).sort(), [customerQuote.id, technicianQuoteA.id].sort());

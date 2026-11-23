@@ -196,6 +196,7 @@ model Property {
 }
 
 model Quotation {
+  depositRequest QuotationDeposit?
   consultation RemoteConsultation?
   occurrence MaintenanceOccurrence?
   invoice Invoice?
@@ -576,4 +577,15 @@ model TechnicianMembershipEvent {
   details String @default("")
   createdAt DateTime @default(now())
   @@index([membershipId, createdAt])
+}
+
+model QuotationDeposit {
+  quoteId String @id
+  quote Quotation @relation(fields: [quoteId], references: [id], onDelete: Restrict)
+  amountCents Int
+  basisPoints Int?
+  dueOn String
+  agreedTermsReference String
+  createdBy String
+  createdAt DateTime @default(now())
 }

@@ -1,3 +1,4 @@
+import { calculateDepositCents } from "./deposit-amount";
 import { deliveryRoutes } from "./delivery";
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import express, { RequestHandler, Request, Response } from "express";
@@ -156,6 +157,44 @@ export function registerCommercial(app: express.Express, auth: RequestHandler) {
     next();
   }, auth);
   r.use("/delivery", deliveryRoutes());
+  r.put("/quotes/:id/deposit-request", route(async (req, res) => {
+    const input = z.object({
+      terms: z.discriminatedUnion("type", [
+        z.object({ type: z.literal("FIXED"), cents: z.number().int() }).strict(),
+        z.object({ type: z.literal("PERCENTAGE"), basisPoints: z.number().int() }).strict(),
+      ]),
+      dueOn: z.iso.date(),
+      agreedTermsReference: z.string().trim().min(3).max(160),
+    }).strict().parse(req.body);
+    const quoteId = id.parse(req.params.id);
+    const request = await prisma.$transaction(async tx => {
+      const quote = await tx.quotation.findUniqueOrThrow({
+        where: { id: quoteId },
+        select: { status: true, currency: true, totalCents: true },
+      });
+      if (quote.status !== "ACCEPTED" || quote.currency !== "CAD") {
+        throw new Conflict("Choose an accepted CAD quotation.");
+      }
+      let amountCents: number;
+      try {
+        amountCents = calculateDepositCents(quote.totalCents, input.terms);
+      } catch (error) {
+        if (error instanceof RangeError) throw new Conflict(error.message);
+        throw error;
+      }
+      const basisPoints = input.terms.type === "PERCENTAGE" ? input.terms.basisPoints : null;
+      const record = await tx.quotationDeposit.upsert({
+        where: { quoteId },
+        update: {},
+        create: { quoteId, amountCents, basisPoints, dueOn: input.dueOn, agreedTermsReference: input.agreedTermsReference, createdBy: String(req.session.adminId) },
+      });
+      if (record.amountCents !== amountCents || record.basisPoints !== basisPoints || record.dueOn !== input.dueOn || record.agreedTermsReference !== input.agreedTermsReference) {
+        throw new Conflict("These terms differ from the existing deposit request.");
+      }
+      return record;
+    });
+    res.json({ amountCents: request.amountCents, dueOn: request.dueOn, createdAt: request.createdAt });
+  }));
   r.post(
     "/bookings/:id/consultation",
     route(async (req, res) => {
