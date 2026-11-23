@@ -68,7 +68,8 @@ const bookingA = await prisma.booking.create({ data: { id: "booking-a", name: in
 await prisma.booking.create({ data: { id: "booking-b", name: individualB.name, phone: individualB.phone, email: individualB.email, address: propertyB.address, city: propertyB.city, country: propertyB.country, repairType: "Door repair", message: "Other customer request", status: "CONFIRMED", customerToken: "legacy-customer-b-token", customerId: individualB.id, propertyId: propertyB.id } });
 const customerQuote = await addQuote("quote-customer-a", individualA.id, bookingA.id, "SENT", "Customer A service quote");
 const businessQuote = await addQuote("quote-business-a", businessA.id, null, "SENT", "Business A agreement quote");
-await prisma.invoice.create({ data: { id: "invoice-business-a", number: "INV-PORTAL-A", quoteId: businessQuote.id, customerName: businessA.name, description: "Business A invoice", lines: "[]", subtotalCents: 1000, taxLabel: "QC tax", taxCents: 100, totalCents: 1100, dueOn: "2099-01-01", status: "ISSUED", createdBy: "synthetic-staff" } });
+await prisma.invoice.create({ data: { id: "invoice-business-a", number: "INV-PORTAL-A", quoteId: businessQuote.id, customerName: businessA.name, description: "Business A invoice", lines: "[]", subtotalCents: 1000, taxLabel: "QC tax", taxCents: 100, totalCents: 1100, dueOn: "2099-01-01", status: "PARTIALLY_PAID", issuedAt: new Date(), paidCents: 250, createdBy: "synthetic-staff" } });
+for (const data of [{ invoiceId: "invoice-business-a", method: "CASH", cents: 200, reference: "SYNTHETIC-CASH", actor: "synthetic-staff" }, { invoiceId: "invoice-business-a", method: "SYNTHETIC", cents: 50, reference: "SANDBOX", actor: "sandbox-adapter" }]) await prisma.invoicePayment.create({ data });
 const technicianA = await addTechnician("technician-a", "Technician A", "tech.a@example.invalid");
 const technicianB = await addTechnician("technician-b", "Technician B", "tech.b@example.invalid");
 const technicianQuoteA = await addQuote("quote-tech-a", individualA.id, bookingA.id, "ACCEPTED", "Technician A assigned work");
@@ -180,7 +181,9 @@ test("customer, organization, technician, AI and membership portal workflows enf
   assert.equal(billingDashboard.data.properties.length, 0);
   assert.equal(billingDashboard.data.bookings.length, 0);
   assert.equal(billingDashboard.data.jobs.length, 0);
-  assert.ok(billingDashboard.data.invoices.some(invoice => invoice.id === "invoice-business-a"));
+  const businessInvoice = billingDashboard.data.invoices.find(invoice => invoice.id === "invoice-business-a");
+  assert.deepEqual(businessInvoice.payments.map(({ reference, cents, actor }) => ({ reference, cents, actor })), [{ reference: "SYNTHETIC-CASH", cents: 200, actor: undefined }]);
+  assert.ok(customerDashboard.data.invoices.every(invoice => invoice.id !== businessInvoice.id));
   const billingRequest = await call("/api/portal/requests", { method: "POST", cookie: billingCookie, body: { organizationId: orgAResult.data.id, propertyId: businessPropertyA.id, service: "Maintenance" } });
   assert.equal(billingRequest.status, 409);
 
