@@ -718,7 +718,7 @@ export function registerCommercial(app: express.Express, auth: RequestHandler) {
       res.json(
         await prisma.invoice.findUniqueOrThrow({
           where: { id: req.params.id },
-          include: { payments: { orderBy: { createdAt: "asc" } } },
+          include: { payments: { orderBy: { createdAt: "asc" } }, quote: { select: { depositRequest: { select: { amountCents: true, dueOn: true } } } } },
         })
       );
     })
@@ -1058,7 +1058,7 @@ export function registerCommercial(app: express.Express, auth: RequestHandler) {
           include: {
             lines: { orderBy: { position: "asc" } },
             customer: { select: { id: true, name: true } },
-            property: { select: { id: true, label: true } },
+            property: { select: { id: true, label: true } }, depositRequest: { select: { amountCents: true, dueOn: true, agreedTermsReference: true } },
           },
         })
       )

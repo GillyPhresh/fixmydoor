@@ -38,6 +38,7 @@ type Profile = Omit<Customer, "createdAt"> & {
 type Estimate = Omit<Quotation, "createdAt"> & {
   createdAt: string;
   lines: QuoteLine[];
+  depositRequest?: { amountCents: number; dueOn: string; agreedTermsReference: string } | null;
   customer: { name: string };
   property: { label: string } | null;
 };
@@ -502,6 +503,7 @@ export default function Commercial() {
     totalCents: number;
     taxCents: number;
     paidCents: number;
+    quote?: { depositRequest?: { amountCents: number; dueOn: string } | null };
     payments: {
       id: string;
       method: string;
@@ -835,6 +837,13 @@ export default function Commercial() {
                   <strong>{t("Overdue", "En retard")}</strong>
                 )}
               <strong>Total CAD {money(invoice.data.totalCents)}</strong>
+              {invoice.data.quote?.depositRequest && (
+                <p>
+                  {t("Quotation deposit requested", "Acompte demandé sur le devis")}:{" "}
+                  {money(invoice.data.quote.depositRequest.amountCents)} · {invoice.data.quote.depositRequest.dueOn}
+                  <small> · {t("Only recorded payments reduce the balance.", "Seuls les paiements enregistrés réduisent le solde.")}</small>
+                </p>
+              )}
             </article>
             <button onClick={() => window.print()}>
               {t("Print", "Imprimer")}
@@ -1620,6 +1629,52 @@ export default function Commercial() {
             </article>
             <aside>
               <p>{est.notes}</p>
+              {est.status === "ACCEPTED" && (
+                <section className="cm-card">
+                  <h3>{t("Quotation deposit", "Acompte sur le devis")}</h3>
+                  {est.depositRequest ? (
+                    <>
+                      <p>{money(est.depositRequest.amountCents)} · {est.depositRequest.dueOn}</p>
+                      <p>{est.depositRequest.agreedTermsReference}</p>
+                    </>
+                  ) : (
+                    <form onSubmit={event => {
+                      event.preventDefault();
+                      const fields = new FormData(event.currentTarget);
+                      const value = String(fields.get("depositValue")).replace(",", ".");
+                      const [whole, fraction = ""] = value.split(".");
+                      const scaled = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+                      const terms = fields.get("depositType") === "PERCENTAGE"
+                        ? { type: "PERCENTAGE", basisPoints: scaled }
+                        : { type: "FIXED", cents: scaled };
+                      void save(async () => {
+                        await api.put("/quotes/" + est.id + "/deposit-request", {
+                          terms,
+                          dueOn: fields.get("depositDueOn"),
+                          agreedTermsReference: fields.get("depositAgreement"),
+                        });
+                      });
+                    }}>
+                      <Field label={t("Deposit type", "Type d’acompte")}>
+                        <select name="depositType">
+                          <option value="FIXED">{t("Fixed amount (CAD)", "Montant fixe (CAD)")}</option>
+                          <option value="PERCENTAGE">{t("Percentage", "Pourcentage")}</option>
+                        </select>
+                      </Field>
+                      <Field label={t("Amount or percentage", "Montant ou pourcentage")}>
+                        <Input name="depositValue" required inputMode="decimal" pattern="[0-9]{1,8}([.,][0-9]{1,2})?" />
+                      </Field>
+                      <Field label={t("Deposit due date", "Échéance de l’acompte")}>
+                        <Input name="depositDueOn" type="date" required />
+                      </Field>
+                      <Field label={t("Agreed terms reference", "Référence des conditions convenues")}>
+                        <Input name="depositAgreement" required minLength={3} maxLength={160} />
+                      </Field>
+                      <Button type="submit">{t("Record deposit request", "Enregistrer la demande d’acompte")}</Button>
+                    </form>
+                  )}
+                </section>
+              )}
               {est.status === "ACCEPTED" && (
                 <form
                   onSubmit={event => {
