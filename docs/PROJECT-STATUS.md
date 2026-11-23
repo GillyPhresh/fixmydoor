@@ -2,6 +2,8 @@
 
 ## Commercial expansion · 2026-11-23
 
+Phase 2 application commit `b5a457e1b0021f57ec73eeda08cff5e258e6d568` is running on isolated Railway staging, deployment `53248876-77fe-453d-b8d4-df125ed2bf96`. Live HTTPS tests verified that the Phase 1 synthetic quotation persisted after migration and that dispatch, eligibility, conflict rejection, suspension, private photo access and job completion passed. Local checks passed on Node 24.21.0, including TypeScript, Prisma validation, the production build and all 31 tests with desktop and phone browser coverage enabled. Production remains separately approval-gated.
+
 Phase 1 commit `51f0795` ran on the existing isolated staging service as deployment `a3e7ab61-49ae-4436-9f0f-01003730d525`. Synthetic staff login, remote intake, property and customer linking, quotation creation, sending and acceptance passed over HTTPS. Anonymous access returned 401 with noindex, and robots.txt disallowed crawling. Previous isolated security deployment `bd56fe05-1509-479e-9ddf-d505b898ae59` remains the staging rollback reference. Preserve its volume when reverting the application.
 
 Phase 2 adds the **Service delivery** section under `/admin/commercial`. Open an accepted quotation to create its job. Staff review technician profiles and document the category, geographic scope, evidence reference and expiry before assignment. Only assembly and general maintenance are dispatchable in this pilot. Qualification documents stay with the authorized custodian. Job photos use private SQLite storage and staff authorization. Staff can attach photos before closing a job. The customer tracking link shows only the explicitly entered completion summary for completed linked work. Completing a job records no payment or invoice.
