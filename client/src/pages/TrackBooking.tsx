@@ -1,9 +1,10 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
-import { Calendar, CheckCircle2, Clock, Mail, Phone, UserRound } from "lucide-react";
+import { Calendar, CheckCircle2, Clock, Mail, Phone } from "lucide-react";
 import type { Booking } from "@shared/types";
 
+type TrackedBooking = Pick<Booking,"repairType"|"status"|"preferredDate"|"appointmentTime"|"quoteAmount"|"invoiceStatus"|"paymentStatus"> & {statusHistory: {status: string; changedAt: string}[]; completionSummaries?: string[]};
 const statusCopy: Record<Booking["status"], string> = {
   PENDING: "We received your request and will contact you soon.",
   CONFIRMED: "Your request is confirmed. Please check the appointment details below.",
@@ -24,7 +25,7 @@ function formatDate(value?: string) {
 export default function TrackBooking() {
   const [, params] = useRoute<{ token: string }>("/track/:token");
   const token = params?.token ?? "";
-  const [booking, setBooking] = useState<Booking | null>(null);
+  const [booking, setBooking] = useState<TrackedBooking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -35,7 +36,7 @@ export default function TrackBooking() {
       return;
     }
 
-    axios.get<{ booking: Booking }>(`/api/bookings/track/${token}`)
+    axios.get<{ booking: TrackedBooking }>(`/api/bookings/track/${token}`)
       .then(({ data }) => {
         setBooking(data.booking);
         setError("");
@@ -86,11 +87,7 @@ export default function TrackBooking() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-primary/10 p-4">
-                    <UserRound className="mb-2 h-5 w-5 text-primary" />
-                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-foreground/50">Name</p>
-                    <p className="mt-1 font-semibold text-secondary">{booking.name}</p>
-                  </div>
+                  {booking.completionSummaries?.map((summary,i)=><div key={i} className="rounded-2xl border border-primary/10 p-4"><h3>Completed work</h3><p>{summary}</p></div>)}
                   <div className="rounded-2xl border border-primary/10 p-4">
                     <Clock className="mb-2 h-5 w-5 text-primary" />
                     <p className="text-xs font-bold uppercase tracking-[0.22em] text-foreground/50">Request</p>
@@ -121,7 +118,7 @@ export default function TrackBooking() {
                         <div key={`${entry.status}-${entry.changedAt}-${index}`} className="rounded-2xl bg-background p-4">
                           <p className="font-bold text-secondary">{entry.status.replace("_", " ")}</p>
                           <p className="text-sm text-foreground/60">{formatDate(entry.changedAt)}</p>
-                          {entry.note && <p className="mt-1 text-sm text-foreground/70">{entry.note}</p>}
+
                         </div>
                       ))}
                     </div>

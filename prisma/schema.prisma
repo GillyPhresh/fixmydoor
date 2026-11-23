@@ -187,6 +187,7 @@ model Property {
 }
 
 model Quotation {
+  job Job?
   id String @id @default(cuid())
   customerId String
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
@@ -220,4 +221,84 @@ model QuoteLine {
   quantity Int
   unitCents Int
   @@unique([quotationId, position])
+}
+
+model Technician {
+  id String @id @default(cuid())
+  name String
+  phone String
+  email String
+  province String
+  city String
+  experience String
+  notes String
+  available Boolean @default(false)
+  status String @default("APPLICANT")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  grants ServiceGrant[]
+  jobs Job[]
+}
+model ServiceGrant {
+  id String @id @default(cuid())
+  technicianId String
+  technician Technician @relation(fields:[technicianId],references:[id],onDelete:Restrict)
+  category String
+  province String
+  city String
+  evidence String
+  expiresOn String
+  reviewer String
+  reviewedAt DateTime @default(now())
+  @@unique([technicianId,category,province,city])
+}
+model Job {
+  id String @id @default(cuid())
+  reference String @unique
+  photos JobPhoto[]
+  quoteId String @unique
+  quote Quotation @relation(fields:[quoteId],references:[id],onDelete:Restrict)
+  agreement String
+  category String
+  province String
+  city String
+  location String
+  description String
+  status String @default("DRAFT")
+  technicianId String?
+  technician Technician? @relation(fields:[technicianId],references:[id],onDelete:Restrict)
+  startsAt DateTime?
+  endsAt DateTime?
+  internalNotes String @default("")
+  workPerformed String @default("")
+  labourMinutes Int @default(0)
+  materials String @default("")
+  customerSummary String @default("")
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version Int @default(1)
+  history JobEvent[]
+  @@index([technicianId,status,startsAt])
+}
+model JobPhoto {
+  id String @id @default(cuid())
+  jobId String
+  job Job @relation(fields:[jobId],references:[id],onDelete:Restrict)
+  kind String
+  image Bytes
+  createdAt DateTime @default(now())
+  @@index([jobId])
+}
+model JobEvent {
+  id String @id @default(cuid())
+  jobId String
+  job Job @relation(fields:[jobId],references:[id],onDelete:Restrict)
+  status String
+  technicianId String?
+  startsAt DateTime?
+  endsAt DateTime?
+  actor String
+  createdAt DateTime @default(now())
+  @@index([jobId,createdAt])
 }

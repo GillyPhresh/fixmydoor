@@ -1,3 +1,4 @@
+import {deliveryRoutes} from "./delivery";
 import express, { RequestHandler, Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -140,6 +141,7 @@ export function registerCommercial(app: express.Express, auth: RequestHandler) {
     res.set("Cache-Control", "private, no-store");
     next();
   }, auth);
+  r.use("/delivery",deliveryRoutes());
   r.get(
     "/customers",
     route(async (req, res) => {

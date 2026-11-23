@@ -387,6 +387,11 @@ test("commercial lifecycle uses explicit ownership, integer CAD totals and guard
   assert.equal((await call("/bookings/"+job.id+"/link","PUT",{customerId:other.id,propertyId:null})).status,409);
   const track=await fetch(intake.trackingUrl.replace("/track/","/api/bookings/track/"));
   assert.equal(track.status,200);assert.doesNotMatch(await track.text(),/STAFF ONLY|PRIVATE|customerId|propertyId|quotation/i);
+  const {verifyDelivery}=await import("./helpers/delivery-lifecycle.mjs");
+  await verifyDelivery(call,endpoint,draft,body);
+  const completed=await (await fetch(track.url)).text();
+  assert.match(completed,/Work finished/);
+  assert.doesNotMatch(completed,/PRIVATE JOB|PRIVATE TECH|Assembled|Screws|technicianId|labourMinutes/);
   if(process.env.FMD_COMMERCIAL_BROWSER==="1") {
     const {verifyCommercialBrowser}=await import("./helpers/commercial-browser.mjs");
     await verifyCommercialBrowser(appUrl,cookie,job.id);

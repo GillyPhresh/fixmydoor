@@ -1,4 +1,12 @@
-# Engineering status — 2026-11-22
+# Engineering status
+
+## Commercial expansion · 2026-11-23
+
+Phase 1 commit `51f0795` ran on the existing isolated staging service as deployment `a3e7ab61-49ae-4436-9f0f-01003730d525`. Synthetic staff login, remote intake, property and customer linking, quotation creation, sending and acceptance passed over HTTPS. Anonymous access returned 401 with noindex, and robots.txt disallowed crawling. Previous isolated security deployment `bd56fe05-1509-479e-9ddf-d505b898ae59` remains the staging rollback reference. Preserve its volume when reverting the application.
+
+Phase 2 adds the **Service delivery** section under `/admin/commercial`. Open an accepted quotation to create its job. Staff review technician profiles and document the category, geographic scope, evidence reference and expiry before assignment. Only assembly and general maintenance are dispatchable in this pilot. Qualification documents stay with the authorized custodian. Job photos use private SQLite storage and staff authorization. Staff can attach photos before closing a job. The customer tracking link shows only the explicitly entered completion summary for completed linked work. Completing a job records no payment or invoice.
+
+The delivery migration adds five tables and associated indexes. Roll back the application independently of its additive schema. Preserve delivery records and private photographs for the next compatible deployment. Production release and data migration require separate authorization.
 
 ## Baseline
 

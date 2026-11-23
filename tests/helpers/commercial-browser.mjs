@@ -80,6 +80,20 @@ export async function verifyCommercialBrowser(base, cookie, jobId) {
         await expect(page.getByText("Private quote margin")).toBeHidden();
         await expect(page.locator(".cm-print")).toBeVisible();
         await page.emulateMedia({ media: "screen" });
+        await page.getByRole("link", { name: "Service delivery" }).click();
+        await page.getByLabel("Full name").fill("Browser Tech " + width);
+        await page
+          .getByLabel("Email", { exact: true })
+          .fill("browser@example.invalid");
+        await page.getByLabel("Phone", { exact: true }).fill("5145550199");
+        await page.getByLabel("City", { exact: true }).fill("Montréal");
+        await page.getByLabel("Province", { exact: true }).fill("QC");
+        await page.getByRole("button", { name: "Save technician" }).click();
+        await expect(
+          page.getByRole("heading", {
+            name: "Browser Tech " + width + " · APPLICANT",
+          })
+        ).toBeVisible();
         await page.getByRole("button", { name: "Français" }).click();
         await expect(
           page.getByRole("heading", { name: "Gestion des services" })

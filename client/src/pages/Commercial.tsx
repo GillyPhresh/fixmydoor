@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import axios from "axios";
+import Delivery from "./Delivery";
 import type {
   Customer,
   Property,
@@ -573,6 +574,7 @@ export default function Commercial() {
             {t(...labels)}
           </a>
         ))}
+        <a href="#delivery">{t("Service delivery", "Interventions")}</a>
       </nav>
       {error && <p role="alert">{error}</p>}
       {[rows, request, profile, quote].some(s => s.failed) ? (
@@ -589,6 +591,7 @@ export default function Commercial() {
         <p role="status">{t("Loading…", "Chargement…")}</p>
       ) : null}
       <fieldset className="cm-panel" disabled={busy} key={hash}>
+        {view === "delivery" && <Delivery quoteId={id} t={t} />}
         {directory && (
           <>
             <h2>
@@ -964,6 +967,12 @@ export default function Commercial() {
             </article>
             <aside>
               <p>{est.notes}</p>
+              {est.status === "ACCEPTED" &&
+                link(
+                  t("Create or open job", "Créer ou ouvrir l’intervention"),
+                  "delivery",
+                  est.id
+                )}
               {link(est.customer.name, "customer", est.customerId)} ·{" "}
               <button onClick={() => window.print()}>
                 {t("Print quotation", "Imprimer le devis")}

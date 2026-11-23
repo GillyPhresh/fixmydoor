@@ -12,11 +12,13 @@ test("commercial migration preserves legacy booking, tracking, attachment and st
     db.exec(readFileSync("prisma/migrations/" + m + "/migration.sql", "utf8"));
   }
   try {
-    for (const m of migrations.slice(0, -1)) apply(m);
+    for (const m of migrations.filter(m => m < "20261123000000_commercial"))
+      apply(m);
     db.exec(`INSERT INTO Booking (id,name,phone,email,address,repairType,customerToken,updatedAt) VALUES ('old','Test','111','legacy@example.invalid','Test','Repair','permanent-link',CURRENT_TIMESTAMP);
       INSERT INTO Attachment(id,bookingId,image) VALUES ('photo','old',x'1234');
       INSERT INTO Admin(id,username,password) VALUES ('staff','fixture','unused');`);
-    apply(migrations.at(-1));
+    for (const m of migrations.filter(m => m >= "20261123000000_commercial"))
+      apply(m);
     assert.deepEqual(
       {
         ...db

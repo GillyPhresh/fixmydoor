@@ -25,7 +25,7 @@ async function normalizeImage(bytes: Buffer, declared?: string, maxImageBytes = 
   return image.rotate().resize({ width: 1800, height: 1800, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 80 }).toBuffer();
 }
 
-async function decodeDataUrl(value: unknown, maxImageBytes = maxBytes) {
+export async function decodeDataUrl(value: unknown, maxImageBytes = maxBytes) {
   if (typeof value !== "string" || value.length > Math.ceil(maxImageBytes * 4 / 3) + 64) throw new AttachmentError("Invalid image");
   const match = /^data:image\/(png|jpe?g|webp);base64,([a-z0-9+/]+={0,2})$/i.exec(value);
   if (!match) throw new AttachmentError("Invalid image");

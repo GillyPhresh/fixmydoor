@@ -2151,16 +2151,18 @@ async function startServer() {
     try {
       const booking = await prisma.booking.findUnique({
         where: { customerToken: token },
-        select: { repairType: true, preferredDate: true, status: true, appointmentTime: true, quoteAmount: true, invoiceStatus: true, paymentStatus: true, statusHistory: true },
+        select: { repairType: true, preferredDate: true, status: true, appointmentTime: true, quoteAmount: true, invoiceStatus: true, paymentStatus: true, statusHistory: true,
+          quotations: { where: { job: { status: "COMPLETED" } }, orderBy: { createdAt: "asc" }, select: { job: { select: { customerSummary: true } } } } },
       });
 
       if (!booking) {
         return res.status(404).json({ success: false, error: "Booking not found" });
       }
 
-      const { statusHistory, ...details } = booking;
+      const { statusHistory, quotations, ...details } = booking;
+      const completionSummaries = quotations.flatMap(q => q.job?.customerSummary ? [q.job.customerSummary] : []);
       const history = parseStatusHistory(statusHistory).filter(entry => validateBookingStatus(entry.status) && Number.isFinite(Date.parse(entry.changedAt))).map(({ status, changedAt }) => ({ status, changedAt: new Date(changedAt).toISOString() }));
-      return res.json({ booking: { ...details, statusHistory: history } });
+      return res.json({ booking: { ...details, statusHistory: history, ...(completionSummaries.length ? { completionSummaries } : {}) } });
     } catch (error) {
       console.error("Booking tracking lookup failed");
       return res.status(500).json({ success: false, error: "Failed to load booking status" });
