@@ -70,6 +70,7 @@ async function accountFor(req: Request) {
     },
   });
   if (!account || account.status !== "ACTIVE") return null;
+  if (req.session.portalCredentialVersion !== account.credentialVersion) return null;
   if (account.kind === "TECHNICIAN" && account.technician?.status !== "APPROVED") return null;
   if (account.kind === "ORGANIZATION" && !account.organizationMemberships.length) return null;
   return account;
@@ -121,8 +122,14 @@ async function hasCurrentTechnicianGrant(db: Pick<Prisma.TransactionClient, "ser
   return (await db.serviceGrant.count({ where: { technicianId, category: job.category, province: job.province, city: job.city, expiresOn: { gte: new Date().toISOString().slice(0, 10) } } })) > 0;
 }
 
-export function registerPortal(app: express.Express, requireAdmin: RequestHandler, sendInvitation = (to: string, url: string, kind: "CUSTOMER" | "TECHNICIAN" | "ORGANIZATION") => emailService.sendPortalInvitation(to, url, kind)) {
+export function registerPortal(
+  app: express.Express,
+  requireAdmin: RequestHandler,
+  sendInvitation = (to: string, url: string, kind: "CUSTOMER" | "TECHNICIAN" | "ORGANIZATION") => emailService.sendPortalInvitation(to, url, kind),
+  sendPasswordReset?: (to: string, url: string) => Promise<boolean>,
+) {
   const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false });
+  const recoveryLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false });
   const invitationAcceptLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false });
   const invitationCreateLimit = rateLimit({ windowMs: 15 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false });
   const portal = express.Router();
@@ -168,6 +175,51 @@ export function registerPortal(app: express.Express, requireAdmin: RequestHandle
     res.status(201).json({ success: true, email: account.email, kind: account.kind });
   }));
 
+  portal.post("/auth/recovery", recoveryLimit, safeRoute(async (req, res) => {
+    const { email } = z.object({ email: emailSchema }).strict().parse(req.body);
+    const account = await prisma.portalAccount.findUnique({ where: { email }, select: { id: true, email: true, status: true, kind: true, technician: { select: { status: true } }, organizationMemberships: { where: { status: "ACTIVE", revokedAt: null }, select: { organization: { select: { status: true } } } } } });
+    const eligible = account?.status === "ACTIVE" &&
+      (account.kind !== "TECHNICIAN" || account.technician?.status === "APPROVED") &&
+      (account.kind !== "ORGANIZATION" || account.organizationMemberships.some(membership => membership.organization.status === "ACTIVE"));
+    let recoveryUrl: string | undefined;
+    if (account && eligible) {
+      const now = new Date();
+      const token = randomBytes(32).toString("base64url");
+      const reset = await prisma.$transaction(async tx => {
+        await tx.portalPasswordReset.updateMany({ where: { accountId: account.id, consumedAt: null }, data: { consumedAt: now } });
+        return tx.portalPasswordReset.create({ data: { id: randomUUID(), accountId: account.id, tokenHash: tokenHash(token), expiresAt: new Date(now.getTime() + 30 * 60 * 1000) } });
+      });
+      const candidateUrl = `${portalBaseUrl()}/portal/recover#${token}`;
+      if ((process.env.NODE_ENV === "production" && !isStagingMode) || sendPasswordReset) {
+        let delivered = false;
+        try { delivered = sendPasswordReset ? await sendPasswordReset(account.email, candidateUrl) : await emailService.sendPortalPasswordReset(account.email, candidateUrl); } catch { delivered = false; }
+        if (!delivered) await prisma.portalPasswordReset.update({ where: { id: reset.id }, data: { consumedAt: new Date() } });
+      } else {
+        recoveryUrl = candidateUrl;
+      }
+    }
+    res.status(202).json({ accepted: true, message: "If this account is eligible, recovery instructions will be provided." , ...(recoveryUrl ? { recoveryUrl } : {}) });
+  }));
+
+  portal.post("/auth/recovery/complete", recoveryLimit, safeRoute(async (req, res) => {
+    const { token, password } = z.object({ token: z.string().min(40).max(120), password: passwordSchema }).strict().parse(req.body);
+    const now = new Date();
+    const reset = await prisma.portalPasswordReset.findUnique({ where: { tokenHash: tokenHash(token) }, include: { account: { select: { id: true, status: true, kind: true, credentialVersion: true, technician: { select: { status: true } }, organizationMemberships: { where: { status: "ACTIVE", revokedAt: null }, select: { organization: { select: { status: true } } } } } } } });
+    deny(reset && !reset.consumedAt && reset.expiresAt > now, "This recovery link is invalid or expired.");
+    const account = reset.account;
+    deny(account.status === "ACTIVE" &&
+      (account.kind !== "TECHNICIAN" || account.technician?.status === "APPROVED") &&
+      (account.kind !== "ORGANIZATION" || account.organizationMemberships.some(membership => membership.organization.status === "ACTIVE")), "This account is not eligible for recovery.");
+    const passwordHash = await hashPassword(password);
+    await prisma.$transaction(async tx => {
+      const consumed = await tx.portalPasswordReset.updateMany({ where: { id: reset.id, consumedAt: null, expiresAt: { gt: now } }, data: { consumedAt: now } });
+      deny(consumed.count === 1, "This recovery link is invalid, expired or already used.");
+      await tx.portalAccount.update({ where: { id: account.id }, data: { passwordHash, credentialVersion: { increment: 1 } } });
+      await tx.auditEvent.create({ data: auditData("portal", account.id, "PASSWORD_RECOVERED", "portal_account", account.id) });
+    });
+    res.sendStatus(204);
+  }));
+
   portal.post("/auth/login", authLimit, safeRoute(async (req, res) => {
     const input = z.object({ email: emailSchema, password: z.string().min(1).max(100) }).strict().parse(req.body);
     const account = await prisma.portalAccount.findUnique({ where: { email: input.email }, include: { technician: { select: { status: true } }, organizationMemberships: { where: { status: "ACTIVE", revokedAt: null }, include: { organization: { select: { status: true } } } } } });
@@ -178,6 +230,7 @@ export function registerPortal(app: express.Express, requireAdmin: RequestHandle
     if (!matches || !eligible) { res.status(401).json({ error: "Email or password is incorrect, or portal access is inactive." }); return; }
     await new Promise<void>((resolve, reject) => req.session.regenerate(error => error ? reject(error) : resolve()));
     req.session.portalAccountId = account.id;
+    req.session.portalCredentialVersion = account.credentialVersion;
     req.session.portalKind = account.kind as "CUSTOMER" | "TECHNICIAN" | "ORGANIZATION";
     await new Promise<void>((resolve, reject) => req.session.save(error => error ? reject(error) : resolve()));
     await prisma.portalAccount.update({ where: { id: account.id }, data: { lastLoginAt: new Date() } });

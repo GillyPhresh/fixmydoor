@@ -126,6 +126,7 @@ function Router() {
         <Route path={"/admin/notify"} component={AdminRoute} />
         <Route path={"/track/:token"} component={TrackBookingRoute} />
         <Route path={"/portal/invite"} component={Portal} />
+        <Route path={"/portal/recover"} component={Portal} />
         <Route path={"/portal/login"} component={Portal} />
         <Route path={"/portal"} component={Portal} />
         <Route path={"/404"} component={NotFound} />

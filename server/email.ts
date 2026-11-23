@@ -685,6 +685,26 @@ class EmailService {
     }, "Portal invitation");
   }
 
+  async sendPortalPasswordReset(to: string, resetUrl: string) {
+    if (!this.canSendEmail()) return false;
+    let link: URL;
+    try {
+      link = new URL(resetUrl);
+      if (link.origin !== getPublicBaseUrl() || link.pathname !== "/portal/recover" || !/^[A-Za-z0-9_-]{40,100}$/.test(link.hash.slice(1))) return false;
+    } catch {
+      return false;
+    }
+    const safeUrl = link.toString().replace(/&/g, "&amp;").replace(/\"/g, "&quot;");
+    const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#392c23"><h1>FixMyDoor Services portal</h1><p>A password reset was requested for this account.</p><p>This single-use link expires in 30 minutes. If you did not request it, you can ignore this email.</p><p><a href="${safeUrl}">Reset portal password</a></p></div>`;
+    return this.sendEmail({
+      to,
+      from: getOutboundFromEmail(),
+      subject: "Reset your FixMyDoor Services portal password",
+      text: `A password reset was requested for your FixMyDoor Services portal. This single-use link expires in 30 minutes: ${link.toString()}`,
+      html,
+    }, "Portal password reset");
+  }
+
   async sendBookingConfirmation(booking: Booking) {
     if (!this.canSendEmail()) {
       console.warn("Email service not initialized");

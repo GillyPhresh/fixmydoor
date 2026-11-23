@@ -12,7 +12,7 @@ test("Vite delegates sensitive APIs to Express without a fallback admin or track
 
 test("built Express SPA serves private portal routes directly and keeps them out of search", async () => {
   const source = await readFile("server/index.ts", "utf8");
-  for (const route of ["/admin/portals", "/portal", "/portal/login", "/portal/invite"]) {
+  for (const route of ["/admin/portals", "/portal", "/portal/login", "/portal/invite", "/portal/recover"]) {
     assert.ok(source.includes(`normalizedPath === "${route}"`), `${route} must be in the built client route allowlist`);
   }
   assert.ok(source.includes("portal(?:"));

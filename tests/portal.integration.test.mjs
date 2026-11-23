@@ -86,7 +86,8 @@ const staffAuth = (req, res, next) => {
   req.session.adminId = "synthetic-staff";
   next();
 };
-registerPortal(app, staffAuth);
+const recoveryLinks = new Map();
+registerPortal(app, staffAuth, undefined, async (email, url) => { recoveryLinks.set(email, url); return true; });
 const server = app.listen(0, "127.0.0.1");
 await new Promise(resolve => server.once("listening", resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
@@ -234,4 +235,31 @@ test("customer, organization, technician, AI and membership portal workflows enf
   await prisma.technician.update({ where: { id: technicianB.id }, data: { status: "SUSPENDED" } });
   assert.equal((await call("/api/portal/me", { cookie: techBCookie })).status, 401);
   assert.equal((await prisma.portalAccount.findUnique({ where: { id: techBAccount.id } })).status, "ACTIVE", "technician status alone blocks the portal without changing account status");
+
+  await t.test("password recovery is enumerating-safe, one-time, expiring and revokes existing sessions", async () => {
+    const unknown = await call("/api/portal/auth/recovery", { method: "POST", body: { email: "unknown@example.invalid" } });
+    const requested = await call("/api/portal/auth/recovery", { method: "POST", body: { email: customerEmail } });
+    assert.equal(unknown.status, 202);
+    assert.deepEqual(requested.data, unknown.data, "unknown and eligible addresses receive the same response");
+    const recoveryUrl = recoveryLinks.get(customerEmail);
+    assert.ok(recoveryUrl);
+    const token = new URL(recoveryUrl).hash.slice(1);
+    const customerAccount = await prisma.portalAccount.findUniqueOrThrow({ where: { email: customerEmail } });
+    const resetRecord = await prisma.portalPasswordReset.findFirstOrThrow({ where: { accountId: customerAccount.id } });
+    assert.notEqual(resetRecord.tokenHash, token, "only a hash of the bearer recovery token is stored");
+    assert.ok(resetRecord.expiresAt.getTime() - Date.now() <= 30 * 60 * 1000);
+
+    const changed = await call("/api/portal/auth/recovery/complete", { method: "POST", body: { token, password: "Portal-Recovered-2026!Secure" } });
+    assert.equal(changed.status, 204);
+    assert.equal((await call("/api/portal/me", { cookie: customerCookie })).status, 401, "existing sessions fail after credential version changes");
+    assert.equal((await call("/api/portal/auth/login", { method: "POST", body: { email: customerEmail, password: "Portal-User-2026!Secure" } })).status, 401);
+    assert.equal((await call("/api/portal/auth/login", { method: "POST", body: { email: customerEmail, password: "Portal-Recovered-2026!Secure" } })).status, 200);
+    assert.equal((await call("/api/portal/auth/recovery/complete", { method: "POST", body: { token, password: "Portal-Recovered-2026!Secure" } })).status, 409, "recovery tokens are single-use");
+
+    await call("/api/portal/auth/recovery", { method: "POST", body: { email: customerEmail } });
+    const expiredToken = new URL(recoveryLinks.get(customerEmail)).hash.slice(1);
+    const expiredRecord = await prisma.portalPasswordReset.findFirstOrThrow({ where: { accountId: customerAccount.id }, orderBy: { createdAt: "desc" } });
+    await prisma.portalPasswordReset.update({ where: { id: expiredRecord.id }, data: { expiresAt: new Date(Date.now() - 1000) } });
+    assert.equal((await call("/api/portal/auth/recovery/complete", { method: "POST", body: { token: expiredToken, password: "Portal-Another-2026!Secure" } })).status, 409, "expired recovery tokens cannot change credentials");
+  });
 });

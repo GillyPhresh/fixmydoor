@@ -32,6 +32,7 @@ declare module "express-session" {
     adminId?: string;
     uploadOwner?: string;
     portalAccountId?: string;
+    portalCredentialVersion?: number;
     portalKind?: "CUSTOMER" | "TECHNICIAN" | "ORGANIZATION";
   }
 }
@@ -2614,6 +2615,7 @@ async function startServer() {
       normalizedPath === "/portal" ||
       normalizedPath === "/portal/login" ||
       normalizedPath === "/portal/invite" ||
+      normalizedPath === "/portal/recover" ||
       normalizedPath === "/privacy-policy" ||
       normalizedPath === "/terms-and-conditions" ||
       normalizedPath === ghanaBranchSeoPage.path ||

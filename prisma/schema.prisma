@@ -434,11 +434,13 @@ model PortalAccount {
   passwordHash String
   kind String
   status String @default("ACTIVE")
+  credentialVersion Int @default(0)
   customerId String?
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
   technicianId String? @unique
   technician Technician? @relation(fields: [technicianId], references: [id], onDelete: Restrict)
   organizationMemberships OrganizationMembership[]
+  passwordResets PortalPasswordReset[]
   requestedBookings Booking[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -498,6 +500,18 @@ model PortalInvitation {
   @@index([customerId, acceptedAt])
   @@index([technicianId, acceptedAt])
   @@index([organizationId, acceptedAt])
+}
+
+model PortalPasswordReset {
+  id String @id @default(cuid())
+  accountId String
+  account PortalAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tokenHash String @unique
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([accountId, expiresAt])
+  @@index([expiresAt, consumedAt])
 }
 
 model CommunicationConsent {

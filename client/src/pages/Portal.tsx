@@ -30,7 +30,7 @@ type Dashboard = {
 };
 
 const fr: Record<string, string> = {
-  "Customer portal": "Portail client", "Technician portal": "Portail technicien", "Business portal": "Portail entreprise", "Sign in": "Connexion", "Email address": "Adresse courriel", Password: "Mot de passe", "Full name": "Nom complet", "Create account": "Créer un compte", "Activate your access": "Activer votre accès", "Return to sign in": "Retour à la connexion", "Sign out": "Déconnexion", "English": "English", "Français": "Français", "Welcome back": "Bon retour", "Your services, organized": "Vos services, organisés", "Active services": "Services actifs", "Quotes to review": "Devis à examiner", "Balance due": "Solde dû", Properties: "Propriétés", "Service requests": "Demandes de service", "Request a service": "Demander un service", "Service type": "Type de service", "Visit type": "Type de visite", "On-site service": "Service sur place", "Remote consultation": "Consultation à distance", "Preferred date": "Date souhaitée", "Describe the work": "Décrivez le travail", Submit: "Envoyer", "Your request is in your portal.": "Votre demande est dans votre portail.", Quotations: "Devis", Accept: "Accepter", Decline: "Refuser", Invoices: "Factures", "Online payment is unavailable for this invoice. Contact FixMyDoor to arrange payment.": "Le paiement en ligne n’est pas disponible. Communiquez avec FixMyDoor pour organiser le paiement.", "Service history": "Historique des services", "Communication preferences": "Préférences de communication", "Promotional messages are optional and currently disabled by the business.": "Les communications promotionnelles sont facultatives et désactivées par l’entreprise.", "Save preferences": "Enregistrer les préférences", "Save profile": "Enregistrer le profil", Phone: "Téléphone", "Preferred contact": "Contact préféré", "Choose a property": "Choisir une propriété", "No properties are linked to this account yet.": "Aucune propriété n’est liée à ce compte.", "Contact FixMyDoor to add a property before requesting service.": "Communiquez avec FixMyDoor pour ajouter une propriété avant de demander un service.", "Assigned work": "Travaux assignés", Availability: "Disponibilité", Available: "Disponible", Unavailable: "Indisponible", "Membership foundation": "Adhésion", "No billing is active. Membership plans are records only.": "Aucune facturation n’est active. Les adhésions sont uniquement des dossiers.", "Accept assignment": "Accepter le mandat", "Decline assignment": "Refuser le mandat", "Start work": "Commencer le travail", "Submit completion report": "Envoyer le rapport de fin", "Work performed": "Travaux effectués", Materials: "Matériaux", "Customer summary": "Résumé client", "Labour minutes": "Minutes de travail", "Upload work photo": "Téléverser une photo du travail", "Before photo": "Photo avant", "After photo": "Photo après", "No assigned work right now.": "Aucun travail assigné pour le moment.", "No requests yet.": "Aucune demande pour le moment.", "No quotations to display.": "Aucun devis à afficher.", "No invoices to display.": "Aucune facture à afficher.", "Request additional work": "Demander un autre service", "Update organization profile": "Mettre à jour le profil de l’entreprise", "Organization": "Entreprise", "Membership role": "Rôle", "Upcoming appointment": "Prochain rendez-vous", "Completed": "Terminé", "Pending": "En attente", "In progress": "En cours", "Contact email changes require staff verification.": "Le changement de courriel nécessite une vérification par le personnel.",
+  "Customer portal": "Portail client", "Technician portal": "Portail technicien", "Business portal": "Portail entreprise", "Sign in": "Connexion", "Email address": "Adresse courriel", Password: "Mot de passe", "Full name": "Nom complet", "Create account": "Créer un compte", "Activate your access": "Activer votre accès", "Return to sign in": "Retour à la connexion", "Sign out": "Déconnexion", "English": "English", "Français": "Français", "Welcome back": "Bon retour", "Your services, organized": "Vos services, organisés", "Active services": "Services actifs", "Quotes to review": "Devis à examiner", "Balance due": "Solde dû", Properties: "Propriétés", "Service requests": "Demandes de service", "Request a service": "Demander un service", "Service type": "Type de service", "Visit type": "Type de visite", "On-site service": "Service sur place", "Remote consultation": "Consultation à distance", "Preferred date": "Date souhaitée", "Describe the work": "Décrivez le travail", Submit: "Envoyer", "Your request is in your portal.": "Votre demande est dans votre portail.", Quotations: "Devis", Accept: "Accepter", Decline: "Refuser", Invoices: "Factures", "Online payment is unavailable for this invoice. Contact FixMyDoor to arrange payment.": "Le paiement en ligne n’est pas disponible. Communiquez avec FixMyDoor pour organiser le paiement.", "Service history": "Historique des services", "Communication preferences": "Préférences de communication", "Promotional messages are optional and currently disabled by the business.": "Les communications promotionnelles sont facultatives et désactivées par l’entreprise.", "Save preferences": "Enregistrer les préférences", "Save profile": "Enregistrer le profil", Phone: "Téléphone", "Preferred contact": "Contact préféré", "Choose a property": "Choisir une propriété", "No properties are linked to this account yet.": "Aucune propriété n’est liée à ce compte.", "Contact FixMyDoor to add a property before requesting service.": "Communiquez avec FixMyDoor pour ajouter une propriété avant de demander un service.", "Assigned work": "Travaux assignés", Availability: "Disponibilité", Available: "Disponible", Unavailable: "Indisponible", "Membership foundation": "Adhésion", "No billing is active. Membership plans are records only.": "Aucune facturation n’est active. Les adhésions sont uniquement des dossiers.", "Accept assignment": "Accepter le mandat", "Decline assignment": "Refuser le mandat", "Start work": "Commencer le travail", "Submit completion report": "Envoyer le rapport de fin", "Work performed": "Travaux effectués", Materials: "Matériaux", "Customer summary": "Résumé client", "Labour minutes": "Minutes de travail", "Upload work photo": "Téléverser une photo du travail", "Before photo": "Photo avant", "After photo": "Photo après", "No assigned work right now.": "Aucun travail assigné pour le moment.", "No requests yet.": "Aucune demande pour le moment.", "No quotations to display.": "Aucun devis à afficher.", "No invoices to display.": "Aucune facture à afficher.", "Request additional work": "Demander un autre service", "Update organization profile": "Mettre à jour le profil de l’entreprise", "Organization": "Entreprise", "Membership role": "Rôle", "Upcoming appointment": "Prochain rendez-vous", "Completed": "Terminé", "Pending": "En attente", "In progress": "En cours", "Contact email changes require staff verification.": "Le changement de courriel nécessite une vérification par le personnel.", "Forgot password?": "Mot de passe oublié?", "Recover account": "Récupérer le compte", "Send recovery instructions": "Envoyer les instructions de récupération", "Set a new password": "Définir un nouveau mot de passe", "Complete password reset": "Terminer la réinitialisation", "Recovery link": "Lien de récupération", "Enter the email address linked to your portal account. If eligible, we will provide a recovery link.": "Saisissez l’adresse courriel associée à votre compte. Si celui-ci est admissible, un lien de récupération vous sera fourni.", "Use the verified recovery link sent for your portal account.": "Utilisez le lien de récupération vérifié envoyé pour votre compte.",
 };
 const translate = (language: Language, value: string) => language === "FR" ? fr[value] ?? value : value;
 const money = (cents: number, currency = "CAD") => new Intl.NumberFormat(undefined, { style: "currency", currency }).format(cents / 100);
@@ -55,6 +55,8 @@ export default function Portal() {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [organizationId, setOrganizationId] = useState("");
   const [invitationToken, setInvitationToken] = useState("");
+  const [recoveryToken, setRecoveryToken] = useState("");
+  const [recoveryUrl, setRecoveryUrl] = useState("");
   const [invitationAccepted, setInvitationAccepted] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [error, setError] = useState("");
@@ -89,10 +91,11 @@ export default function Portal() {
   }, [loadDashboard]);
 
   useEffect(() => {
-    if (location === "/portal/invite") {
+    if (location === "/portal/invite" || location === "/portal/recover") {
       const token = window.location.hash.slice(1);
       window.history.replaceState(null, "", window.location.pathname);
-      setInvitationToken(token);
+      if (location === "/portal/invite") setInvitationToken(token);
+      else setRecoveryToken(token);
       return;
     }
     void hydrate();
@@ -120,6 +123,29 @@ export default function Portal() {
     finally { setBusy(false); }
   };
 
+  const onRequestRecovery = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); setError(""); setNotice(""); setRecoveryUrl(""); setBusy(true);
+    const form = new FormData(event.currentTarget);
+    try {
+      const result = await api<{ accepted: boolean; recoveryUrl?: string }>("/api/portal/auth/recovery", "POST", { email: String(form.get("email") || "") });
+      setRecoveryUrl(result.recoveryUrl || "");
+      setNotice("If this account is eligible, recovery instructions will be provided.");
+    } catch (e) { setError(axios.isAxiosError(e) ? e.response?.data?.error || "Recovery could not be started." : "Recovery could not be started."); }
+    finally { setBusy(false); }
+  };
+
+  const onCompleteRecovery = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); setError(""); setNotice(""); setBusy(true);
+    const form = new FormData(event.currentTarget);
+    const password = String(form.get("password") || "");
+    if (password !== String(form.get("confirmPassword") || "")) { setError("The passwords do not match."); setBusy(false); return; }
+    try {
+      await api("/api/portal/auth/recovery/complete", "POST", { token: recoveryToken, password });
+      setRecoveryToken(""); setLocation("/portal/login"); setNotice("Your password was updated. Sign in with your new password.");
+    } catch (e) { setError(axios.isAxiosError(e) ? e.response?.data?.error || "The recovery link is invalid or expired." : "The recovery link is invalid or expired."); }
+    finally { setBusy(false); }
+  };
+
   const logout = async () => {
     await api("/api/portal/auth/logout", "POST").catch(() => undefined);
     setAccount(null); setDashboard(null); setLocation("/portal/login");
@@ -140,12 +166,13 @@ export default function Portal() {
 
   if (!account) {
     const inviteMode = location === "/portal/invite";
+    const recoveryMode = location === "/portal/recover";
     return <main className="portal-page" lang={language === "FR" ? "fr" : "en"}>
       <div className="portal-topline"><a className="portal-brand" href="/">FIXMYDOOR <span>SERVICES</span></a><button className="portal-quiet" onClick={() => setLanguage(language === "EN" ? "FR" : "EN")}>{t(language === "EN" ? "Français" : "English")}</button></div>
       <section className="portal-auth-card">
         <div className="portal-eyebrow">FIXMYDOOR SERVICES</div>
-        <h1>{inviteMode ? t("Activate your access") : t("Your services, organized")}</h1>
-        <p>{inviteMode ? "Create a secure password to activate your staff-issued invitation." : "Access service requests, quotations, appointments and property history in one place."}</p>
+        <h1>{inviteMode ? t("Activate your access") : recoveryMode ? recoveryToken ? t("Set a new password") : t("Recover account") : t("Your services, organized")}</h1>
+        <p>{inviteMode ? "Create a secure password to activate your staff-issued invitation." : recoveryMode ? recoveryToken ? t("Use the verified recovery link sent for your portal account.") : t("Enter the email address linked to your portal account. If eligible, we will provide a recovery link.") : "Access service requests, quotations, appointments and property history in one place."}</p>
         {notice && <div className="portal-notice">{notice}</div>}{error && <div className="portal-error" role="alert">{error}</div>}
         {inviteMode && !invitationToken && !invitationAccepted ? <p className="portal-error">This invitation link is missing or has expired. Ask FixMyDoor staff for a new invitation.</p> : null}
         {inviteMode && invitationToken && !invitationAccepted ? <form className="portal-form" onSubmit={onAcceptInvite}>
@@ -155,12 +182,24 @@ export default function Portal() {
           <Field label="Confirm password"><input name="confirmPassword" required type="password" minLength={12} maxLength={100} autoComplete="new-password" /></Field>
           <button className="portal-primary" disabled={busy}>{busy ? "Working…" : t("Create account")}</button>
         </form> : null}
-        {!inviteMode || invitationAccepted ? <form className="portal-form" onSubmit={onLogin}>
+        {recoveryMode && !recoveryToken ? <form className="portal-form" onSubmit={onRequestRecovery}>
+          <Field label={t("Email address")}><input name="email" type="email" required autoComplete="username" /></Field>
+          <button className="portal-primary" disabled={busy}>{busy ? "Working…" : t("Send recovery instructions")}</button>
+          {recoveryUrl && <a href={recoveryUrl}>{t("Recovery link")}</a>}
+        </form> : null}
+        {recoveryMode && recoveryToken ? <form className="portal-form" onSubmit={onCompleteRecovery}>
+          <Field label={t("Password")}><input name="password" required type="password" minLength={12} maxLength={100} autoComplete="new-password" /></Field>
+          <small>Use at least 12 characters with uppercase, lowercase, number and symbol.</small>
+          <Field label="Confirm password"><input name="confirmPassword" required type="password" minLength={12} maxLength={100} autoComplete="new-password" /></Field>
+          <button className="portal-primary" disabled={busy}>{busy ? "Working…" : t("Complete password reset")}</button>
+        </form> : null}
+        {!inviteMode && !recoveryMode || invitationAccepted ? <form className="portal-form" onSubmit={onLogin}>
           <Field label={t("Email address")}><input name="email" type="email" required autoComplete="username" defaultValue={inviteEmail} /></Field>
           <Field label={t("Password")}><input name="password" type="password" required maxLength={100} autoComplete="current-password" /></Field>
           <button className="portal-primary" disabled={busy}>{busy ? "Working…" : t("Sign in")}</button>
+          <a href="/portal/recover">{t("Forgot password?")}</a>
         </form> : null}
-        <div className="portal-auth-foot">Portal access is issued by FixMyDoor staff. Booking references alone cannot create an account.</div>
+        {recoveryMode ? <a className="portal-auth-foot" href="/portal/login">{t("Return to sign in")}</a> : <div className="portal-auth-foot">Portal access is issued by FixMyDoor staff. Booking references alone cannot create an account.</div>}
       </section>
     </main>;
   }
