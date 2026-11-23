@@ -397,6 +397,8 @@ model PaymentAttempt {
   requestKey String
   provider String
   cents Int
+  checkoutSessionId String? @unique
+  paymentIntentId String? @unique
   refundedCents Int @default(0)
   currency String @default("CAD")
   status String @default("PENDING")

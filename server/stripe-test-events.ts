@@ -56,3 +56,20 @@ export function verifyStripeTestEvent(
     kind: successful ? "SUCCEEDED" as const : event.type === "checkout.session.expired" ? "EXPIRED" as const : "FAILED" as const,
   };
 }
+
+type VerifiedCheckoutEvent = NonNullable<ReturnType<typeof verifyStripeTestEvent>>;
+
+export function assertStripeCheckoutMatchesAttempt(
+  event: VerifiedCheckoutEvent,
+  attempt: { id: string; provider: string; currency: string; cents: number; checkoutSessionId: string | null },
+) {
+  if (
+    attempt.provider !== "STRIPE_TEST" ||
+    attempt.currency !== "CAD" ||
+    attempt.id !== event.attemptId ||
+    attempt.checkoutSessionId !== event.sessionId ||
+    attempt.cents !== event.cents
+  ) {
+    throw new Error("Stripe event does not match its stored checkout attempt.");
+  }
+}

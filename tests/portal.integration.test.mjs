@@ -251,6 +251,22 @@ test("customer, organization, technician, AI and membership portal workflows enf
   assert.equal((await call("/api/portal/me", { cookie: techBCookie })).status, 401);
   assert.equal((await prisma.portalAccount.findUnique({ where: { id: techBAccount.id } })).status, "ACTIVE", "technician status alone blocks the portal without changing account status");
 
+  await t.test("verified Stripe payment settles once and leaves incorrect attempts untouched", async () => {
+    const { settleVerifiedStripeCheckout } = await import("../server/stripe-test-settlement.ts");
+    const attempt = await prisma.paymentAttempt.create({ data: {
+      invoiceId: "invoice-business-a", requestKey: "synthetic-stripe-settlement",
+      provider: "STRIPE_TEST", cents: 400, checkoutSessionId: "cs_test_Settlement",
+    } });
+    const event = { eventId: "evt_Settlement", attemptId: attempt.id, sessionId: "cs_test_Settlement", paymentIntentId: "pi_Settlement", cents: 400, kind: "SUCCEEDED" };
+    await assert.rejects(settleVerifiedStripeCheckout({ ...event, cents: 399 }), /does not match/);
+    assert.equal(await settleVerifiedStripeCheckout(event), "recorded");
+    assert.equal(await settleVerifiedStripeCheckout(event), "duplicate");
+    assert.equal(await settleVerifiedStripeCheckout({ ...event, eventId: "evt_AnotherDelivery" }), "already-settled");
+    assert.equal(await settleVerifiedStripeCheckout({ ...event, eventId: "evt_LateExpiry", kind: "EXPIRED", paymentIntentId: null }), "already-settled");
+    assert.equal((await prisma.invoice.findUniqueOrThrow({ where: { id: "invoice-business-a" } })).paidCents, 650);
+    assert.equal(await prisma.invoicePayment.count({ where: { method: "STRIPE_TEST", reference: "pi_Settlement" } }), 1);
+  });
+
   await t.test("password recovery is enumerating-safe, one-time, expiring and revokes existing sessions", async () => {
     const unknown = await call("/api/portal/auth/recovery", { method: "POST", body: { email: "unknown@example.invalid" } });
     const requested = await call("/api/portal/auth/recovery", { method: "POST", body: { email: customerEmail } });

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import test from "node:test";
-import { verifyStripeTestEvent } from "../server/stripe-test-events.ts";
+import { assertStripeCheckoutMatchesAttempt, verifyStripeTestEvent } from "../server/stripe-test-events.ts";
 
 const secret = "whsec_synthetic_fixture";
 const now = 1_800_000_000;
@@ -36,4 +36,13 @@ test("Stripe events never treat an unpaid Checkout Session or live event as sett
   assert.equal(verifyStripeTestEvent(...signed(unpaid)), null);
   assert.equal(verifyStripeTestEvent(...signed({ ...unpaid, type: "checkout.session.expired" })).kind, "EXPIRED");
   assert.throws(() => verifyStripeTestEvent(...signed({ ...event, livemode: true })));
+});
+
+test("a signed payment cannot settle a different session, attempt, provider, or amount", () => {
+  const checkout = verifyStripeTestEvent(...signed());
+  const attempt = { id: "attempt-1", provider: "STRIPE_TEST", currency: "CAD", cents: 2500, checkoutSessionId: "cs_test_Synthetic" };
+  assert.doesNotThrow(() => assertStripeCheckoutMatchesAttempt(checkout, attempt));
+  for (const change of [{ id: "different" }, { provider: "SYNTHETIC" }, { currency: "USD" }, { cents: 2400 }, { checkoutSessionId: null }, { checkoutSessionId: "cs_test_Other" }]) {
+    assert.throws(() => assertStripeCheckoutMatchesAttempt(checkout, { ...attempt, ...change }), /does not match/);
+  }
 });
