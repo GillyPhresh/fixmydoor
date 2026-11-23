@@ -66,3 +66,7 @@
 - Phase 5.9 confines synthetic EU acceptance to the explicitly approved bucket and `staging/` object prefix. The legacy app runs Prisma and compatibility changes during startup. Validate schema and migration metadata before authorizing an exact production restart. Keep the unrelated UniEco token unchanged until its consumers are identified and a scoped transition is separately approved.
 - Required release gate: typecheck, all Node tests, Prisma generate/validate, disposable SQLite migrations/recovery, clean Docker build/image inspection, desktop/phone/tablet Playwright, staged booking/admin/private attachments/tracking/SEO/messaging checks and restart persistence.
 - Vite must proxy to Express; never reintroduce duplicate authentication or booking handlers. Local APIs listen on loopback. Use synthetic credentials/data and no outbound providers.
+
+## Visual feature verification
+
+- Every substantial FixMyDoor feature must be demonstrated in the actual running application. Start or maintain a local preview where practical, share accessible routes, and provide genuine desktop and mobile screenshots after major milestones. Verify desktop and mobile usability and demonstrate significant workflows before completion. After successful isolated Railway staging deployment, provide its protected preview URL and verify the deployed interface. Use synthetic records and never expose credentials in screenshots or artifacts.
