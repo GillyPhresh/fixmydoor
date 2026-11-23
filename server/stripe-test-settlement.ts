@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
-import { assertStripeCheckoutMatchesAttempt, verifyStripeTestEvent } from "./stripe-test-events";
+import { assertStripeCheckoutMatchesAttempt, type VerifiedStripeEvent } from "./stripe-test-events";
 
-type CheckoutEvent = NonNullable<ReturnType<typeof verifyStripeTestEvent>>;
+type CheckoutEvent = Exclude<VerifiedStripeEvent, { kind: "REFUND" }>;
 
 export async function settleVerifiedStripeCheckout(event: CheckoutEvent) {
   return prisma.$transaction(async tx => {
@@ -52,5 +52,44 @@ export async function settleVerifiedStripeCheckout(event: CheckoutEvent) {
       data: { id: event.eventId, attemptId: attempt.id, kind: event.kind, cents: event.cents },
     });
     return "recorded";
+  });
+}
+
+export async function reconcileStripeTestRefund(event: Extract<VerifiedStripeEvent, { kind: "REFUND" }>) {
+  return prisma.$transaction(async tx => {
+    const attempt = await tx.paymentAttempt.findUniqueOrThrow({
+      where: { paymentIntentId: event.paymentIntentId },
+      include: { invoice: true },
+    });
+    const invoice = attempt.invoice;
+    if (attempt.provider !== "STRIPE_TEST" || attempt.status !== "SUCCEEDED" || attempt.currency !== "CAD" || invoice.currency !== "CAD" ||
+        attempt.cents !== event.cents || event.cumulativeRefundCents > attempt.cents) {
+      throw new Error("Stripe refund does not match the settled payment.");
+    }
+    const previous = await tx.paymentEvent.findUnique({ where: { id: event.eventId } });
+    if (previous) {
+      if (previous.attemptId !== attempt.id || previous.kind !== "REFUND" || previous.cents !== event.cumulativeRefundCents) {
+        throw new Error("Stripe refund contradicts an existing event.");
+      }
+      return;
+    }
+    const delta = event.cumulativeRefundCents - attempt.refundedCents;
+    if (delta > 0) {
+      const paidCents = invoice.paidCents - delta;
+      if (paidCents < 0 || !["ISSUED", "PARTIALLY_PAID", "PAID"].includes(invoice.status)) {
+        throw new Error("Stripe refund requires manual reconciliation.");
+      }
+      await tx.invoice.update({
+        where: { id: invoice.id },
+        data: { paidCents, status: paidCents ? "PARTIALLY_PAID" : "ISSUED" },
+      });
+      await tx.invoicePayment.create({
+        data: { invoiceId: invoice.id, method: "STRIPE_TEST_REFUND", reference: event.eventId, cents: -delta, actor: "stripe-test-webhook" },
+      });
+      await tx.paymentAttempt.update({ where: { id: attempt.id }, data: { refundedCents: event.cumulativeRefundCents } });
+    }
+    await tx.paymentEvent.create({
+      data: { id: event.eventId, attemptId: attempt.id, kind: "REFUND", cents: event.cumulativeRefundCents },
+    });
   });
 }

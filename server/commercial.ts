@@ -474,6 +474,7 @@ export function registerCommercial(app: express.Express, auth: RequestHandler) {
           },
         });
         if (prior) return prior;
+        if (await tx.paymentAttempt.count({ where: { invoiceId: invoice.id, provider: "STRIPE_TEST", status: "PENDING" } })) throw new Conflict("A Stripe test checkout is in progress.");
         const cents = invoice.totalCents - invoice.paidCents;
         if (
           !["ISSUED", "PARTIALLY_PAID"].includes(invoice.status) ||
@@ -612,6 +613,7 @@ export function registerCommercial(app: express.Express, auth: RequestHandler) {
           status: { in: ["DRAFT", "ISSUED"] },
           paidCents: 0,
           payments: { none: {} },
+          attempts: { none: { provider: "STRIPE_TEST", status: "PENDING" } },
         },
         data: { status: "VOIDED" },
       });
@@ -806,6 +808,9 @@ export function registerCommercial(app: express.Express, auth: RequestHandler) {
           throw new Conflict(
             "Payment exceeds the open balance or invoice is closed."
           );
+        if (await tx.paymentAttempt.count({ where: { invoiceId: invoice.id, provider: "STRIPE_TEST", status: "PENDING" } })) {
+          throw new Conflict("A Stripe test checkout is in progress for this invoice.");
+        }
         const paidCents = invoice.paidCents + input.cents;
         const saved = await tx.invoice.updateMany({
           where: {

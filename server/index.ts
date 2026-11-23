@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import { randomBytes, randomUUID } from "crypto";
 import { registerCommercial } from "./commercial";
 import { registerSandboxWebhook } from "./payment-sandbox";
+import { registerStripeTestWebhook } from "./stripe-test-webhook";
 import { AttachmentError, saveWithAttachments, registerAttachmentRoutes, startAttachmentCleanup } from "./attachments";
 import { createBackupWindow, scheduleStagingBackupDrill, stagingBackupDrillEnabled } from "./backup-window";
 import compression from "compression";
@@ -1522,6 +1523,7 @@ async function startServer() {
   app.use("/api/media", uploadLimiter, express.json({ limit: "7200kb" }));
   app.use("/api/admin/media", uploadLimiter);
   registerSandboxWebhook(app);
+  registerStripeTestWebhook(app);
   app.use(express.json({ limit: "30mb" }));
   registerCommercial(app, requireAuth);
   registerAttachmentRoutes(app, requireAuth, uploadDir);

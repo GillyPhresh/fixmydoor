@@ -1,3 +1,5 @@
+import { createStripeTestCheckout } from "./stripe-test-checkout";
+import { stripeTestWebhookSecret } from "./stripe-test-config";
 import express, { type Request, type RequestHandler, type Response } from "express";
 import rateLimit from "express-rate-limit";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
@@ -276,8 +278,8 @@ export function registerPortal(
       scope.organizationId ? prisma.organization.findUnique({ where: { id: scope.organizationId }, select: { id: true, name: true, email: true, phone: true, status: true } }) : prisma.customer.findUnique({ where: { id: scope.customerId }, select: { id: true, name: true, email: true, phone: true, preferredContactMethod: true, category: true } }),
       billingOnly ? Promise.resolve([]) : prisma.property.findMany({ where: { customerId: scope.customerId }, select: { id: true, label: true, type: true, address: true, city: true, province: true, postalCode: true, country: true }, orderBy: { label: "asc" } }),
       billingOnly ? Promise.resolve([]) : prisma.booking.findMany({ where: bookingWhere, select: { id: true, visitMode: true, name: true, repairType: true, status: true, preferredDate: true, appointmentTime: true, createdAt: true, propertyId: true }, orderBy: { createdAt: "desc" } }),
-      prisma.quotation.findMany({ where: quotationWhere, select: { id: true, bookingId: true, propertyId: true, description: true, status: true, currency: true, expiresOn: true, subtotalCents: true, taxLabel: true, taxCents: true, totalCents: true, version: true, depositRequest: { select: { amountCents: true, dueOn: true } }, lines: { orderBy: { position: "asc" }, select: { id: true, kind: true, description: true, quantity: true, unitCents: true } }, job: { select: { id: true, reference: true, status: true, startsAt: true, endsAt: true, customerSummary: true, photos: { select: { id: true, kind: true } } } } }, orderBy: { createdAt: "desc" } }),
-      prisma.invoice.findMany({ where: { quote: quotationWhere }, select: { id: true, number: true, description: true, lines: true, subtotalCents: true, taxLabel: true, taxCents: true, gstCents: true, qstCents: true, totalCents: true, paidCents: true, currency: true, status: true, dueOn: true, issuedAt: true, updatedAt: true, payments: { where: { method: { in: ["CASH", "CHEQUE", "BANK_TRANSFER"] }, cents: { gt: 0 } }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], select: { id: true, cents: true, method: true, reference: true, createdAt: true } } }, orderBy: { createdAt: "desc" } }),
+      prisma.quotation.findMany({ where: quotationWhere, select: { id: true, bookingId: true, propertyId: true, description: true, status: true, currency: true, expiresOn: true, subtotalCents: true, taxLabel: true, taxCents: true, totalCents: true, version: true, depositRequest: { select: { amountCents: true, dueOn: true } }, invoice: { select: { status: true, paidCents: true } }, lines: { orderBy: { position: "asc" }, select: { id: true, kind: true, description: true, quantity: true, unitCents: true } }, job: { select: { id: true, reference: true, status: true, startsAt: true, endsAt: true, customerSummary: true, photos: { select: { id: true, kind: true } } } } }, orderBy: { createdAt: "desc" } }),
+      prisma.invoice.findMany({ where: { quote: quotationWhere }, select: { id: true, number: true, description: true, lines: true, subtotalCents: true, taxLabel: true, taxCents: true, gstCents: true, qstCents: true, totalCents: true, paidCents: true, currency: true, status: true, dueOn: true, issuedAt: true, updatedAt: true, payments: { where: { method: { in: ["CASH", "CHEQUE", "BANK_TRANSFER", "STRIPE_TEST", "STRIPE_TEST_REFUND"] } }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], select: { id: true, cents: true, method: true, reference: true, createdAt: true } } }, orderBy: { createdAt: "desc" } }),
       billingOnly ? Promise.resolve([]) : prisma.job.findMany({ where: { quote: { customerId: scope.customerId, ...(requesterOnly ? { booking: { requestedByPortalAccountId: account.id } } : {}) } }, select: { id: true, reference: true, category: true, status: true, startsAt: true, endsAt: true, customerSummary: true, photos: { select: { id: true, kind: true } } }, orderBy: { createdAt: "desc" } }),
       billingOnly || requesterOnly ? Promise.resolve([]) : prisma.maintenanceAgreement.findMany({ where: { property: { customerId: scope.customerId } }, select: { id: true, propertyId: true, scope: true, startOn: true, endOn: true, months: true, cents: true, status: true, occurrences: { select: { period: true, dueOn: true, quote: { select: { status: true } } }, orderBy: { dueOn: "asc" } } }, orderBy: { createdAt: "desc" } }),
       scope.organizationId ? Promise.resolve([]) : prisma.communicationConsent.findMany({ where: { customerId: scope.customerId, purpose: "MARKETING" }, orderBy: { capturedAt: "desc" }, select: { channel: true, granted: true, capturedAt: true } }),
@@ -285,7 +287,48 @@ export function registerPortal(
     if (!customer) { res.sendStatus(404); return; }
     const currentConsent: Record<string, { granted: boolean; capturedAt: Date }> = {};
     for (const consent of consents) if (!currentConsent[consent.channel]) currentConsent[consent.channel] = { granted: consent.granted, capturedAt: consent.capturedAt };
-    res.json({ kind: account.kind, scope, customer, properties, bookings, quotations, invoices: invoices.map(i => ({ ...i, payments: i.issuedAt && ["ISSUED", "PARTIALLY_PAID", "PAID"].includes(i.status) ? i.payments : [], balanceCents: Math.max(0, i.totalCents - i.paidCents), onlinePaymentAvailable: false })), jobs, agreements, communicationPreferences: currentConsent, memberships: account.organizationMemberships.map(m => ({ id: m.organization.id, name: m.organization.name, role: m.role })) });
+    res.json({ kind: account.kind, scope, customer, properties, bookings, quotations: quotations.map(({ invoice, ...quote }) => ({ ...quote, testCheckoutAvailable: Boolean(isStagingMode && stripeTestWebhookSecret() && /^(?:sk|rk)_test_[a-zA-Z0-9]+$/.test(process.env.FMD_STRIPE_TEST_SECRET_KEY ?? "") && ["CUSTOMER", "ORG_ADMIN", "BILLING"].includes(scope.role) && quote.status === "ACCEPTED" && quote.currency === "CAD" && quote.depositRequest && quote.depositRequest.amountCents >= 50 && quote.depositRequest.dueOn >= new Date().toISOString().slice(0, 10) && invoice?.status === "ISSUED" && invoice.paidCents === 0) })), invoices: invoices.map(i => ({ ...i, payments: i.issuedAt && ["ISSUED", "PARTIALLY_PAID", "PAID"].includes(i.status) ? i.payments : [], balanceCents: Math.max(0, i.totalCents - i.paidCents), onlinePaymentAvailable: false })), jobs, agreements, communicationPreferences: currentConsent, memberships: account.organizationMemberships.map(m => ({ id: m.organization.id, name: m.organization.name, role: m.role })) });
+  }));
+
+  portal.post("/quotes/:id/deposit-checkout", authLimit, safeRoute(async (req, res) => {
+    const key = process.env.FMD_STRIPE_TEST_SECRET_KEY;
+    if (!stripeTestWebhookSecret() || !key || !isStagingMode) { res.sendStatus(404); return; }
+    const account = await accountFor(req);
+    if (!account) { res.sendStatus(401); return; }
+    const input = z.object({ organizationId: z.string().max(100).optional() }).strict().parse(req.body);
+    const scope = await activeScope(account, input.organizationId);
+    deny(["CUSTOMER", "ORG_ADMIN", "BILLING"].includes(scope.role), "Billing access is required.");
+    const checkout = createStripeTestCheckout(key);
+    const attempt = await prisma.$transaction(async tx => {
+      const quote = await tx.quotation.findFirst({
+        where: { id: req.params.id, customerId: scope.customerId, status: "ACCEPTED", currency: "CAD" },
+        include: { depositRequest: true, invoice: true },
+      });
+      const invoice = quote?.invoice;
+      const deposit = quote?.depositRequest;
+      deny(invoice && invoice.status === "ISSUED" && invoice.currency === "CAD" && invoice.paidCents === 0 &&
+        deposit && deposit.amountCents >= 50 && deposit.amountCents <= invoice.totalCents &&
+        deposit.dueOn >= new Date().toISOString().slice(0, 10), "A payable deposit and an issued invoice are required.");
+      const existing = await tx.paymentAttempt.findFirst({
+        where: { invoiceId: invoice.id, status: "PENDING", provider: { not: "STRIPE_TEST" } },
+        select: { id: true },
+      });
+      deny(!existing, "A different payment is already in progress.");
+      const record = await tx.paymentAttempt.upsert({
+        where: { invoiceId_requestKey: { invoiceId: invoice.id, requestKey: "stripe-test-deposit-v1" } },
+        update: {},
+        create: { invoiceId: invoice.id, requestKey: "stripe-test-deposit-v1", provider: "STRIPE_TEST", cents: deposit.amountCents },
+      });
+      deny(record.status === "PENDING" && record.provider === "STRIPE_TEST" && record.cents === deposit.amountCents, "This deposit checkout is no longer available.");
+      return record;
+    });
+    const session = await checkout({ attemptId: attempt.id, cents: attempt.cents, portalUrl: new URL("/portal", portalBaseUrl()).href });
+    const saved = await prisma.paymentAttempt.updateMany({
+      where: { id: attempt.id, status: "PENDING", OR: [{ checkoutSessionId: null }, { checkoutSessionId: session.id }] },
+      data: { checkoutSessionId: session.id },
+    });
+    deny(saved.count === 1, "The deposit checkout changed. Refresh and try again.");
+    res.json({ url: session.url });
   }));
 
   portal.patch("/profile", safeRoute(async (req, res) => {

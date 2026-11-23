@@ -1,3 +1,4 @@
+import { stripeTestWebhookPath, stripeTestWebhookSecret } from "./stripe-test-config";
 import { timingSafeEqual } from "crypto";
 import type { NextFunction, Request, Response } from "express";
 
@@ -41,6 +42,7 @@ export function stagingAccessMiddleware(req: Request, res: Response, next: NextF
   // Railway needs a public health URL for deployment checks. It returns only
   // generic process/database health and remains explicitly noindex/no-store.
   if (req.path === "/api/health") return next();
+  if (req.method === "POST" && req.path === stripeTestWebhookPath && stripeTestWebhookSecret()) return next();
   if (hasValidStagingCredentials(req.get("authorization"))) return next();
 
   res.setHeader("WWW-Authenticate", 'Basic realm="FixMyDoor Staging", charset="UTF-8"');

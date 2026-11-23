@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
 import express from "express";
 import session from "express-session";
 import { DatabaseSync } from "node:sqlite";
@@ -81,6 +82,8 @@ const jobA = await prisma.job.create({ data: { id: "job-a", reference: "FMD-PORT
 const jobB = await prisma.job.create({ data: { id: "job-b", reference: "FMD-PORTAL-B", quoteId: technicianQuoteB.id, agreement: "{}", category: "MAINTENANCE", province: "QC", city: "MONTREAL", location: propertyB.address, description: "Another customer's work", internalNotes: "DO NOT DISCLOSE", status: "SCHEDULED", technicianId: technicianB.id, startsAt: futureStart, endsAt: futureEnd } });
 
 const app = express();
+const { registerStripeTestWebhook } = await import("../server/stripe-test-webhook.ts");
+registerStripeTestWebhook(app);
 app.use(express.json({ limit: "5mb" }));
 app.use(session({ name: "fixmydoor.sid", secret: "synthetic-test-session-secret-32-bytes", resave: false, saveUninitialized: false, cookie: { httpOnly: true, sameSite: "lax", secure: false } }));
 const staffAuth = (req, res, next) => {
@@ -252,19 +255,45 @@ test("customer, organization, technician, AI and membership portal workflows enf
   assert.equal((await prisma.portalAccount.findUnique({ where: { id: techBAccount.id } })).status, "ACTIVE", "technician status alone blocks the portal without changing account status");
 
   await t.test("verified Stripe payment settles once and leaves incorrect attempts untouched", async () => {
-    const { settleVerifiedStripeCheckout } = await import("../server/stripe-test-settlement.ts");
+    const { reconcileStripeTestRefund, settleVerifiedStripeCheckout } = await import("../server/stripe-test-settlement.ts");
     const attempt = await prisma.paymentAttempt.create({ data: {
       invoiceId: "invoice-business-a", requestKey: "synthetic-stripe-settlement",
       provider: "STRIPE_TEST", cents: 400, checkoutSessionId: "cs_test_Settlement",
     } });
     const event = { eventId: "evt_Settlement", attemptId: attempt.id, sessionId: "cs_test_Settlement", paymentIntentId: "pi_Settlement", cents: 400, kind: "SUCCEEDED" };
     await assert.rejects(settleVerifiedStripeCheckout({ ...event, cents: 399 }), /does not match/);
-    assert.equal(await settleVerifiedStripeCheckout(event), "recorded");
+    const path = base + "/api/payments/stripe-test/events";
+    assert.equal((await fetch(path, { method: "POST" })).status, 404);
+    process.env.STAGING_MODE = "true";
+    process.env.FMD_STRIPE_TEST_ENABLED = "true";
+    process.env.FMD_STRIPE_TEST_WEBHOOK_SECRET = "whsec_synthetic_fixture_secret";
+    try {
+      const body = JSON.stringify({
+        id: event.eventId, type: "checkout.session.completed", livemode: false,
+        data: { object: { id: event.sessionId, object: "checkout.session", livemode: false, currency: "cad", amount_total: event.cents, client_reference_id: event.attemptId, payment_status: "paid", payment_intent: event.paymentIntentId } },
+      });
+      const timestamp = Math.floor(Date.now() / 1000);
+      const digest = createHmac("sha256", process.env.FMD_STRIPE_TEST_WEBHOOK_SECRET).update(timestamp + "." + body).digest("hex");
+      const headers = { "content-type": "application/json", "stripe-signature": "t=" + timestamp + ",v1=" + digest };
+      assert.equal((await fetch(path, { method: "POST", headers, body: body + " " })).status, 400);
+      assert.equal((await fetch(path, { method: "POST", headers, body })).status, 204);
+      assert.equal((await fetch(path, { method: "POST", headers, body })).status, 204);
+    } finally {
+      delete process.env.STAGING_MODE;
+      delete process.env.FMD_STRIPE_TEST_ENABLED;
+      delete process.env.FMD_STRIPE_TEST_WEBHOOK_SECRET;
+    }
     assert.equal(await settleVerifiedStripeCheckout(event), "duplicate");
     assert.equal(await settleVerifiedStripeCheckout({ ...event, eventId: "evt_AnotherDelivery" }), "already-settled");
     assert.equal(await settleVerifiedStripeCheckout({ ...event, eventId: "evt_LateExpiry", kind: "EXPIRED", paymentIntentId: null }), "already-settled");
     assert.equal((await prisma.invoice.findUniqueOrThrow({ where: { id: "invoice-business-a" } })).paidCents, 650);
     assert.equal(await prisma.invoicePayment.count({ where: { method: "STRIPE_TEST", reference: "pi_Settlement" } }), 1);
+    const refund = { eventId: "evt_Refund", kind: "REFUND", paymentIntentId: "pi_Settlement", cents: 400, cumulativeRefundCents: 150 };
+    await reconcileStripeTestRefund(refund);
+    await reconcileStripeTestRefund(refund);
+    await reconcileStripeTestRefund({ ...refund, eventId: "evt_StaleRefund", cumulativeRefundCents: 50 });
+    assert.equal((await prisma.invoice.findUniqueOrThrow({ where: { id: "invoice-business-a" } })).paidCents, 500);
+    assert.equal(await prisma.invoicePayment.count({ where: { method: "STRIPE_TEST_REFUND" } }), 1);
   });
 
   await t.test("password recovery is enumerating-safe, one-time, expiring and revokes existing sessions", async () => {

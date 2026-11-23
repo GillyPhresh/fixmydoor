@@ -48,3 +48,11 @@ Railway is deprecating `railway.json`/`railway.toml` config-as-code: existing se
 ## Rollback
 
 Rollback only within the staging project to its prior image/deployment. Preserve the staging volume until test evidence is captured. Do not restore a production volume or database. Since migration history may have advanced, do not roll back by replacing the database with a production copy; rebuild an empty staging volume and replay migrations if a clean staging reset is needed.
+
+## Stripe Checkout staging test
+
+Checkout is disabled unless the isolated staging service has STAGING_MODE=true, FMD_STRIPE_TEST_ENABLED=true, a Stripe sandbox key in FMD_STRIPE_TEST_SECRET_KEY, and the matching endpoint secret in FMD_STRIPE_TEST_WEBHOOK_SECRET. Keep both secrets in Railway staging variables. Use card payments and synthetic portal records only.
+
+The webhook destination is https://fixmydoor-staging-staging.up.railway.app/api/payments/stripe-test/events. Subscribe to checkout.session.completed, checkout.session.expired, checkout.session.async_payment_succeeded, checkout.session.async_payment_failed, and charge.refunded in the same Stripe sandbox. The exact POST endpoint uses Stripe signature authentication in place of staging Basic Auth only while configured.
+
+Use an accepted CAD quotation with agreed deposit terms and an issued, unpaid invoice. Confirm a successful test payment in the portal ledger and print its receipt. Issue a refund in Stripe's sandbox and confirm a distinct negative entry and the restored balance. Verify duplicates do not alter the balance. One Checkout attempt is supported per invoice in this release. Expired, rejected or otherwise unresolved attempts require staff reconciliation before another payment is collected.

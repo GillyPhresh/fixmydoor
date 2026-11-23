@@ -40,6 +40,19 @@ export function verifyStripeTestEvent(
   if (!authenticated) throw new Error("Invalid Stripe signature.");
 
   const event = eventEnvelope.parse(JSON.parse(body.toString("utf8")));
+  if (event.type === "charge.refunded") {
+    const charge = z.object({
+      object: z.literal("charge"),
+      livemode: z.literal(false),
+      currency: z.literal("cad"),
+      paid: z.literal(true),
+      amount: z.number().int().positive(),
+      amount_refunded: z.number().int().positive(),
+      payment_intent: z.string().regex(/^pi_[a-zA-Z0-9]+$/),
+    }).parse(event.data.object);
+    if (charge.amount_refunded > charge.amount) throw new Error("Invalid refund amount.");
+    return { kind: "REFUND" as const, eventId: event.id, paymentIntentId: charge.payment_intent, cents: charge.amount, cumulativeRefundCents: charge.amount_refunded };
+  }
   if (!["checkout.session.completed", "checkout.session.expired", "checkout.session.async_payment_failed", "checkout.session.async_payment_succeeded"].includes(event.type)) {
     return null;
   }
@@ -57,7 +70,8 @@ export function verifyStripeTestEvent(
   };
 }
 
-type VerifiedCheckoutEvent = NonNullable<ReturnType<typeof verifyStripeTestEvent>>;
+export type VerifiedStripeEvent = NonNullable<ReturnType<typeof verifyStripeTestEvent>>;
+type VerifiedCheckoutEvent = Exclude<VerifiedStripeEvent, { kind: "REFUND" }>;
 
 export function assertStripeCheckoutMatchesAttempt(
   event: VerifiedCheckoutEvent,
