@@ -12,6 +12,7 @@ type Order = Job & {
   photos: { id: string; kind: string }[];
   history: JobEvent[];
   quote: {
+    invoice:{id:string}|null;
     customerId: string;
     bookingId: string | null;
     propertyId: string | null;
@@ -391,6 +392,7 @@ function JobDetail({
         {t("Customer", "Client")}
       </a>{" "}
       · <a href={"#quote/" + job.quoteId}>{t("Quotation", "Devis")}</a>{" "}
+      {job.quote.invoice&&<a href={"#invoice/"+job.quote.invoice.id}>{t("Invoice","Facture")}</a>}
       {job.quote.propertyId && (
         <a
           href={

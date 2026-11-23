@@ -8,6 +8,7 @@ datasource db {
 }
 
 model Booking {
+  consultation RemoteConsultation?
   id                 String      @id @default(cuid())
   visitMode          String      @default("ONSITE")
   customerId         String?
@@ -169,6 +170,7 @@ model Customer {
 }
 
 model Property {
+  agreements MaintenanceAgreement[]
   id String @id @default(cuid())
   customerId String
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
@@ -187,6 +189,9 @@ model Property {
 }
 
 model Quotation {
+  consultation RemoteConsultation?
+  occurrence MaintenanceOccurrence?
+  invoice Invoice?
   job Job?
   id String @id @default(cuid())
   customerId String
@@ -301,4 +306,109 @@ model JobEvent {
   actor String
   createdAt DateTime @default(now())
   @@index([jobId,createdAt])
+}
+
+model Invoice {
+  gstRegistration String @default("")
+  qstRegistration String @default("")
+  gstCents Int @default(0)
+  qstCents Int @default(0)
+  paidCents Int @default(0)
+  payments InvoicePayment[]
+  attempts PaymentAttempt[]
+  id String @id @default(cuid())
+  number String @unique
+  quoteId String @unique
+  quote Quotation @relation(fields:[quoteId],references:[id],onDelete:Restrict)
+  customerName String
+  description String
+  lines String
+  subtotalCents Int
+  taxLabel String
+  taxCents Int
+  totalCents Int
+  currency String @default("CAD")
+  status String @default("DRAFT")
+  dueOn String
+  issuedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String
+}
+
+model InvoicePayment {
+  id String @id @default(cuid())
+  invoiceId String
+  invoice Invoice @relation(fields:[invoiceId], references:[id], onDelete:Restrict)
+  method String
+  reference String
+  cents Int
+  actor String
+  createdAt DateTime @default(now())
+  @@unique([method, reference])
+  @@index([invoiceId])
+}
+
+model MaintenanceAgreement {
+  id String @id @default(cuid())
+  propertyId String
+  property Property @relation(fields:[propertyId],references:[id],onDelete:Restrict)
+  scope String
+  startOn String
+  endOn String
+  months Int
+  cents Int
+  status String @default("ACTIVE")
+  staff String
+  notes String
+  authorization String
+  createdAt DateTime @default(now())
+  occurrences MaintenanceOccurrence[]
+  @@index([propertyId,status])
+}
+model MaintenanceOccurrence {
+  id String @id @default(cuid())
+  agreementId String
+  agreement MaintenanceAgreement @relation(fields:[agreementId],references:[id],onDelete:Restrict)
+  period Int
+  dueOn String
+  quoteId String @unique
+  quote Quotation @relation(fields:[quoteId],references:[id],onDelete:Restrict)
+  @@unique([agreementId,period])
+}
+
+model PaymentAttempt {
+  id String @id @default(cuid())
+  invoiceId String
+  invoice Invoice @relation(fields:[invoiceId],references:[id],onDelete:Restrict)
+  requestKey String
+  provider String
+  cents Int
+  refundedCents Int @default(0)
+  currency String @default("CAD")
+  status String @default("PENDING")
+  events PaymentEvent[]
+  @@unique([invoiceId,requestKey])
+}
+model PaymentEvent {
+  id String @id
+  attemptId String
+  attempt PaymentAttempt @relation(fields:[attemptId],references:[id],onDelete:Restrict)
+  kind String
+  cents Int
+  createdAt DateTime @default(now())
+}
+
+model RemoteConsultation {
+  bookingId String @id
+  booking Booking @relation(fields:[bookingId],references:[id],onDelete:Restrict)
+  quoteId String @unique
+  quote Quotation @relation(fields:[quoteId],references:[id],onDelete:Restrict)
+  serviceType String
+  availability String
+  durationMinutes Int
+  requiresPayment Boolean
+  scheduledAt DateTime
+  outcome String @default("")
+  completedAt DateTime?
 }

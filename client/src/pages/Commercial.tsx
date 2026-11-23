@@ -28,7 +28,7 @@ type BookingSummary = Pick<
 type QuoteSummary = Pick<
   Quotation,
   "id" | "description" | "status" | "totalCents" | "customerId" | "propertyId"
->;
+> & {invoice:{id:string;status:string}|null};
 type Profile = Omit<Customer, "createdAt"> & {
   createdAt: string;
   properties: Property[];
@@ -50,7 +50,22 @@ type RequestDetail = BookingSummary &
     | "preferredContactMethod"
     | "message"
     | "adminNotes"
-  > & { photos: string[] };
+  > & {
+    photos: string[];
+    consultation: {
+      serviceType: string;
+      scheduledAt: string;
+      durationMinutes: number;
+      completedAt: string | null;
+      outcome: string;
+    } | null;
+    quotations: {
+      id: string;
+      description: string;
+      totalCents: number;
+      invoice: { id: string; status: string } | null;
+    }[];
+  };
 type Text = (en: string, fr: string) => string;
 const money = (n: number) =>
   new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(
@@ -472,6 +487,74 @@ export default function Commercial() {
     ["quote", "editQuote"].includes(view) ? "/quotes/" + id : null,
     rev
   );
+  const invoice = useRecord<{
+    number: string;
+    customerName: string;
+    description: string;
+    status: string;
+    dueOn: string;
+    subtotalCents: number;
+    gstRegistration: string;
+    qstRegistration: string;
+    gstCents: number;
+    qstCents: number;
+    issuedAt: string | null;
+    totalCents: number;
+    taxCents: number;
+    paidCents: number;
+    payments: {
+      id: string;
+      method: string;
+      reference: string;
+      cents: number;
+    }[];
+    taxLabel: string;
+    lines: string;
+  }>(view === "invoice" ? "/invoices/" + id : null, rev);
+  const [sharedInvoice, setSharedInvoice] = useState<{
+    id: string;
+    url: string;
+  } | null>(null);
+  const invoiceList = useRecord<
+    {
+      id: string;
+      number: string;
+      status: string;
+      customerName: string;
+      totalCents: number;
+      paidCents: number;
+    }[]
+  >(
+    view === "invoices"
+      ? "/invoices?" +
+          new URLSearchParams({
+            q,
+            page: String(page),
+            ...(category ? { status: category } : {}),
+          })
+      : null,
+    rev
+  );
+  const agreements = useRecord<
+    {
+      id: string;
+      scope: string;
+      status: string;
+      nextOn: string;
+      endOn: string;
+      cents: number;
+      occurrences: { id: string; dueOn: string; quoteId: string }[];
+    }[]
+  >(view === "property" ? "/properties/" + context + "/agreements" : null, rev);
+  const overview = useRecord<{
+    counts: number[];
+    upcoming: {
+      scope: string;
+      due: string;
+      customerId: string;
+      propertyId: string;
+    }[];
+  }>(view === "overview" ? "/overview" : null, rev);
   const profileId =
     view === "editQuote"
       ? quote.data?.customerId
@@ -542,6 +625,7 @@ export default function Commercial() {
               "quote",
               x.id
             )}
+            {x.invoice&&link(t("Invoice","Facture")+" · "+x.invoice.status,"invoice",x.invoice.id)}
           </div>
         ))
       ) : (
@@ -565,6 +649,7 @@ export default function Commercial() {
       </header>
       <h1>{t("Service management", "Gestion des services")}</h1>
       <nav aria-label={t("Service management", "Gestion des services")}>
+        <a href="#overview">{t("Overview", "Vue d’ensemble")}</a>
         {Object.entries(directories).map(([k, labels]) => (
           <a
             key={k}
@@ -575,6 +660,7 @@ export default function Commercial() {
           </a>
         ))}
         <a href="#delivery">{t("Service delivery", "Interventions")}</a>
+        <a href="#invoices">{t("Invoices", "Factures")}</a>
       </nav>
       {error && <p role="alert">{error}</p>}
       {[rows, request, profile, quote].some(s => s.failed) ? (
@@ -592,6 +678,336 @@ export default function Commercial() {
       ) : null}
       <fieldset className="cm-panel" disabled={busy} key={hash}>
         {view === "delivery" && <Delivery quoteId={id} t={t} />}
+        {view === "overview" && overview.data && (
+          <section>
+            <h2>{t("Commercial overview", "Vue d’ensemble commerciale")}</h2>
+            {[
+              ["bookings", "New requests", "Nouvelles demandes"],
+              [
+                "remote",
+                "Remote requests awaiting confirmation",
+                "Consultations à confirmer",
+              ],
+              ["quotes", "Pending quotations", "Devis en attente"],
+              ["quotes", "Accepted quotations", "Devis acceptés"],
+              [
+                "delivery",
+                "Jobs awaiting assignment",
+                "Interventions à attribuer",
+              ],
+              ["delivery", "Scheduled jobs", "Interventions planifiées"],
+              [
+                "delivery",
+                "Completed jobs awaiting invoice",
+                "Interventions à facturer",
+              ],
+              ["invoices", "Open invoices", "Factures ouvertes"],
+              ["invoices", "Paid invoices", "Factures payées"],
+            ].map(([path, en, fr], i) => (
+              <p key={en}>
+                <a href={"#" + path}>
+                  {t(en, fr)} · {overview.data!.counts[i]}
+                </a>
+              </p>
+            ))}
+            <h3>{t("Upcoming maintenance", "Entretien à venir")}</h3>
+            {overview.data.upcoming.map((a, i) => (
+              <p key={i}>
+                <a href={"#property/" + a.customerId + "/" + a.propertyId}>
+                  {a.scope} · {a.due}
+                </a>
+              </p>
+            ))}
+          </section>
+        )}
+        {view === "invoices" && (
+          <section>
+            <h2>{t("Invoices", "Factures")}</h2>
+            <Field
+              label={t(
+                "Invoice number or customer",
+                "Numéro de facture ou client"
+              )}
+            >
+              <Input
+                value={q}
+                onChange={e => {
+                  search(e.target.value);
+                  paginate(0);
+                }}
+              />
+            </Field>
+            <select
+              aria-label={t("Invoice status", "Statut de facture")}
+              value={category}
+              onChange={e => {
+                filter(e.target.value);
+                paginate(0);
+              }}
+            >
+              <option value="">{t("All statuses", "Tous les statuts")}</option>
+              {["DRAFT", "ISSUED", "PARTIALLY_PAID", "PAID"].map(s => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+            {invoiceList.failed && (
+              <p role="alert">
+                {t("Could not load invoices", "Chargement impossible")}
+              </p>
+            )}
+            {invoiceList.data?.map(i => (
+              <p key={i.id}>
+                <a href={"#invoice/" + i.id}>
+                  {i.number} · {i.customerName}
+                </a>{" "}
+                · {i.status} · {t("Balance", "Solde")}{" "}
+                {money(i.totalCents - i.paidCents)}
+              </p>
+            ))}
+            <button disabled={!page} onClick={() => paginate(page - 1)}>
+              {t("Previous", "Précédent")}
+            </button>
+            <button
+              disabled={invoiceList.data?.length !== 25}
+              onClick={() => paginate(page + 1)}
+            >
+              {t("Next", "Suivant")}
+            </button>
+          </section>
+        )}
+        {view === "invoice" && invoice.failed && (
+          <p role="alert">
+            {t("Could not load invoice", "Impossible de charger la facture")}
+          </p>
+        )}
+        {view === "invoice" && invoice.data && (
+          <>
+            <article className="cm-print">
+              <h2>
+                {t("Invoice", "Facture")} {invoice.data.number}
+              </h2>
+              <p>
+                {invoice.data.customerName} · {invoice.data.status}
+              </p>
+              <p>{invoice.data.description}</p>
+              <p>
+                {t("Due date", "Échéance")} {invoice.data.dueOn}
+              </p>
+              {(
+                JSON.parse(invoice.data.lines) as {
+                  description: string;
+                  quantity: number;
+                  unitCents: number;
+                }[]
+              ).map((line, i) => (
+                <p key={i}>
+                  {line.description} · {line.quantity} × {money(line.unitCents)}
+                </p>
+              ))}
+              <p>
+                {t("Subtotal", "Sous-total")}{" "}
+                {money(invoice.data.subtotalCents)}
+              </p>
+              <p>
+                {invoice.data.taxLabel} {money(invoice.data.taxCents)}
+              </p>
+              {invoice.data.issuedAt && (
+                <p>
+                  {t("Issued", "Émise")}{" "}
+                  {new Date(invoice.data.issuedAt).toLocaleDateString()}
+                </p>
+              )}
+              {invoice.data.gstRegistration && (
+                <p>
+                  GST / TPS {invoice.data.gstRegistration} ·{" "}
+                  {money(invoice.data.gstCents)}
+                </p>
+              )}
+              {invoice.data.qstRegistration && (
+                <p>
+                  QST / TVQ {invoice.data.qstRegistration} ·{" "}
+                  {money(invoice.data.qstCents)}
+                </p>
+              )}
+              {["ISSUED", "PARTIALLY_PAID"].includes(invoice.data.status) &&
+                invoice.data.dueOn < new Date().toLocaleDateString("en-CA") && (
+                  <strong>{t("Overdue", "En retard")}</strong>
+                )}
+              <strong>Total CAD {money(invoice.data.totalCents)}</strong>
+            </article>
+            <button onClick={() => window.print()}>
+              {t("Print", "Imprimer")}
+            </button>
+            {invoice.data.status === "DRAFT" && (
+              <form
+                onSubmit={event => {
+                  event.preventDefault();
+                  const data = Object.fromEntries(
+                    new FormData(event.currentTarget)
+                  );
+                  void save(() =>
+                    api.patch("/invoices/" + id + "/draft", {
+                      description: data.description,
+                      dueOn: data.dueOn,
+                      gstRegistration: data.gstRegistration,
+                      qstRegistration: data.qstRegistration,
+                      gstCents: cents(String(data.gstAmount)),
+                      qstCents: cents(String(data.qstAmount)),
+                    })
+                  );
+                }}
+              >
+                <Field
+                  label={t("Invoice description", "Description de la facture")}
+                >
+                  <input
+                    required
+                    name="description"
+                    defaultValue={invoice.data.description}
+                  />
+                </Field>
+                <Field label={t("Due date", "Échéance")}>
+                  <input
+                    required
+                    type="date"
+                    name="dueOn"
+                    defaultValue={invoice.data.dueOn}
+                  />
+                </Field>
+                <Field label="GST / TPS registration">
+                  <input
+                    name="gstRegistration"
+                    defaultValue={invoice.data.gstRegistration}
+                  />
+                </Field>
+                <Field label="GST / TPS (CAD)">
+                  <input
+                    name="gstAmount"
+                    defaultValue={(invoice.data.gstCents / 100).toFixed(2)}
+                  />
+                </Field>
+                <Field label="QST / TVQ registration">
+                  <input
+                    name="qstRegistration"
+                    defaultValue={invoice.data.qstRegistration}
+                  />
+                </Field>
+                <Field label="QST / TVQ (CAD)">
+                  <input
+                    name="qstAmount"
+                    defaultValue={(invoice.data.qstCents / 100).toFixed(2)}
+                  />
+                </Field>
+                <button>{t("Update draft", "Modifier le brouillon")}</button>
+              </form>
+            )}
+            {["DRAFT", "ISSUED"].includes(invoice.data.status) && (
+              <button
+                onClick={() => {
+                  if (
+                    confirm(t("Void this invoice?", "Annuler cette facture ?"))
+                  )
+                    void save(() => api.post("/invoices/" + id + "/void"));
+                }}
+              >
+                {t("Void invoice", "Annuler la facture")}
+              </button>
+            )}
+            {invoice.data.status === "DRAFT" && (
+              <button
+                onClick={() =>
+                  save(async () => {
+                    await api.post("/invoices/" + id + "/issue");
+                  })
+                }
+              >
+                {t("Issue invoice", "Émettre la facture")}
+              </button>
+            )}
+          </>
+        )}
+        {view === "invoice" && invoice.data && (
+          <section>
+            <h3>{t("Payment history", "Historique des paiements")}</h3>
+            <p>
+              {t("Balance", "Solde")}{" "}
+              {money(invoice.data.totalCents - invoice.data.paidCents)}
+            </p>
+            {invoice.data.payments.map(p => (
+              <p key={p.id}>
+                {p.method} · {p.reference} · {money(p.cents)}
+              </p>
+            ))}
+            {["ISSUED", "PARTIALLY_PAID"].includes(invoice.data.status) && (
+              <form
+                onSubmit={event => {
+                  event.preventDefault();
+                  const f = new FormData(event.currentTarget);
+                  void save(() =>
+                    api.post("/invoices/" + id + "/offline", {
+                      method: f.get("method"),
+                      reference: f.get("reference"),
+                      cents: cents(String(f.get("amount"))),
+                    })
+                  );
+                }}
+              >
+                <select name="method" aria-label="Payment method">
+                  <option>CASH</option>
+                  <option>CHEQUE</option>
+                  <option>BANK_TRANSFER</option>
+                </select>
+                <Field label={t("Receipt reference", "Référence du reçu")}>
+                  <input required name="reference" />
+                </Field>
+                <Field label={t("Amount received (CAD)", "Montant reçu (CAD)")}>
+                  <input required name="amount" inputMode="decimal" />
+                </Field>
+                <button>
+                  {t(
+                    "Record verified receipt",
+                    "Enregistrer le paiement vérifié"
+                  )}
+                </button>
+              </form>
+            )}
+          </section>
+        )}
+        {view === "invoice" &&
+          invoice.data &&
+          ["ISSUED", "PARTIALLY_PAID", "PAID"].includes(
+            invoice.data.status
+          ) && (
+            <>
+              <button
+                onClick={() =>
+                  save(async () => {
+                    const r = await api.post("/invoices/" + id + "/link");
+                    setSharedInvoice({
+                      id,
+                      url: new URL(r.data.path, location.origin).href,
+                    });
+                  })
+                }
+              >
+                {t(
+                  "Get seven-day customer link",
+                  "Obtenir le lien client de sept jours"
+                )}
+              </button>
+              {sharedInvoice?.id === id && (
+                <input
+                  aria-label={t(
+                    "Customer invoice link",
+                    "Lien de facture client"
+                  )}
+                  readOnly
+                  value={sharedInvoice.url}
+                  onFocus={event => event.target.select()}
+                />
+              )}
+            </>
+          )}
         {directory && (
           <>
             <h2>
@@ -780,6 +1196,120 @@ export default function Commercial() {
             />
           </>
         )}
+        {view === "property" && prop && (
+          <section>
+            <h2>{t("Maintenance agreements", "Ententes d’entretien")}</h2>
+            <form
+              onSubmit={event => {
+                event.preventDefault();
+                const f = Object.fromEntries(new FormData(event.currentTarget));
+                void save(() =>
+                  api.post("/properties/" + prop.id + "/agreements", {
+                    ...f,
+                    cents: cents(String(f.cents)),
+                    months: Number(f.months),
+                  })
+                );
+              }}
+            >
+              {[
+                ["scope", t("Scope of work", "Travaux convenus"), "text"],
+                ["startOn", t("Start date", "Début"), "date"],
+                ["endOn", t("End date", "Fin"), "date"],
+                [
+                  "cents",
+                  t("Charge per visit (CAD)", "Prix par visite (CAD)"),
+                  "text",
+                ],
+                [
+                  "authorization",
+                  t(
+                    "Agreement authorization reference",
+                    "Référence de l’autorisation"
+                  ),
+                  "text",
+                ],
+              ].map(([name, label, type]) => (
+                <Field key={name} label={label}>
+                  <input required name={name} type={type} />
+                </Field>
+              ))}
+              <Field label={t("Interval in months", "Intervalle en mois")}>
+                <select name="months">
+                  {[1, 3, 6, 12].map(m => (
+                    <option key={m}>{m}</option>
+                  ))}
+                </select>
+              </Field>
+              <button>{t("Create agreement", "Créer l’entente")}</button>
+            </form>
+            {agreements.data?.map(a => (
+              <article key={a.id}>
+                <h3>
+                  {a.scope} · {a.status}
+                </h3>
+                <p>
+                  {money(a.cents)} · {a.nextOn}
+                </p>
+                {a.status === "ACTIVE" && a.nextOn <= a.endOn && (
+                  <button
+                    onClick={() =>
+                      save(() =>
+                        api.post("/agreements/" + a.id + "/occurrences", {
+                          period: a.occurrences.length,
+                        })
+                      )
+                    }
+                  >
+                    {t("Generate scheduled work", "Générer l’intervention")}
+                  </button>
+                )}
+                {a.status !== "CANCELLED" && (
+                  <>
+                    <form onSubmit={event=>{event.preventDefault();const endOn=new FormData(event.currentTarget).get("endOn");void save(()=>api.patch("/agreements/"+a.id,{status:a.status,endOn}))}}><Field label={t("Renew through","Renouveler jusqu’au")}><input type="date" name="endOn" min={a.endOn} required/></Field><button>{t("Renew agreement","Renouveler l’entente")}</button></form>
+                    <button
+                      onClick={() =>
+                        save(() =>
+                          api.patch("/agreements/" + a.id, {
+                            status:
+                              a.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE",
+                          })
+                        )
+                      }
+                    >
+                      {a.status === "ACTIVE"
+                        ? t("Suspend", "Suspendre")
+                        : t("Resume", "Reprendre")}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            t("Cancel agreement?", "Annuler l’entente ?")
+                          )
+                        )
+                          void save(() =>
+                            api.patch("/agreements/" + a.id, {
+                              status: "CANCELLED",
+                            })
+                          );
+                      }}
+                    >
+                      {t("Cancel agreement", "Annuler l’entente")}
+                    </button>
+                  </>
+                )}
+                {a.occurrences.map(o => (
+                  <p key={o.id}>
+                    <a href={"#quote/" + o.quoteId}>
+                      {t("Service period", "Période de service")} {o.dueOn}
+                    </a>
+                  </p>
+                ))}
+              </article>
+            ))}
+          </section>
+        )}
         {view === "property" && p && prop && (
           <>
             <h2>{prop.label}</h2>
@@ -816,6 +1346,128 @@ export default function Commercial() {
               p.quotations.filter(x => x.propertyId === prop.id)
             )}
           </>
+        )}
+        {view === "booking" && b?.visitMode === "REMOTE" && (
+          <section>
+            <h2>
+              {t("Consultation appointment", "Rendez-vous de consultation")}
+            </h2>
+            {b.quotations.map(q => (
+              <p key={q.id}>
+                <a href={"#quote/" + q.id}>
+                  {q.description} · {money(q.totalCents)}
+                </a>{" "}
+                {q.invoice && (
+                  <a href={"#invoice/" + q.invoice.id}>{q.invoice.status}</a>
+                )}
+              </p>
+            ))}
+            {b.consultation ? (
+              <>
+                <p>
+                  {b.consultation.serviceType} ·{" "}
+                  {new Date(b.consultation.scheduledAt).toLocaleString()} ·{" "}
+                  {b.consultation.durationMinutes} min
+                </p>
+                {b.consultation.completedAt ? (
+                  <p>{b.consultation.outcome}</p>
+                ) : (
+                  <form
+                    onSubmit={event => {
+                      event.preventDefault();
+                      const outcome = new FormData(event.currentTarget).get(
+                        "outcome"
+                      );
+                      void save(() =>
+                        api.post("/bookings/" + id + "/consultation/complete", {
+                          outcome,
+                        })
+                      );
+                    }}
+                  >
+                    <Field
+                      label={t(
+                        "Consultation outcome",
+                        "Résultat de la consultation"
+                      )}
+                    >
+                      <textarea name="outcome" required />
+                    </Field>
+                    <button>
+                      {t("Complete consultation", "Terminer la consultation")}
+                    </button>
+                  </form>
+                )}
+              </>
+            ) : (
+              b.quotations.length > 0 && (
+                <form
+                  onSubmit={event => {
+                    event.preventDefault();
+                    const f = Object.fromEntries(
+                      new FormData(event.currentTarget)
+                    );
+                    void save(() =>
+                      api.post("/bookings/" + id + "/consultation", {
+                        ...f,
+                        durationMinutes: Number(f.durationMinutes),
+                        scheduledAt: new Date(
+                          String(f.scheduledAt)
+                        ).toISOString(),
+                        requiresPayment: f.requiresPayment === "on",
+                      })
+                    );
+                  }}
+                >
+                  <Field label={t("Accepted quotation", "Devis accepté")}>
+                    <select name="quoteId">
+                      {b.quotations.map(q => (
+                        <option key={q.id} value={q.id}>
+                          {q.description}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  {[
+                    [
+                      "serviceType",
+                      t("Consultation type", "Type de consultation"),
+                      "text",
+                    ],
+                    [
+                      "availability",
+                      t("Customer availability", "Disponibilité du client"),
+                      "text",
+                    ],
+                    [
+                      "durationMinutes",
+                      t("Duration in minutes", "Durée en minutes"),
+                      "number",
+                    ],
+                    [
+                      "scheduledAt",
+                      t(
+                        "Appointment (local time)",
+                        "Rendez-vous (heure locale)"
+                      ),
+                      "datetime-local",
+                    ],
+                  ].map(([name, label, type]) => (
+                    <Field key={name} label={label}>
+                      <input name={name} type={type} required />
+                    </Field>
+                  ))}
+                  <label>
+                    <input type="checkbox" name="requiresPayment" />
+                    {t("Require settled invoice", "Exiger le paiement complet")}
+                  </label>
+                  <button>
+                    {t("Confirm consultation", "Confirmer la consultation")}
+                  </button>
+                </form>
+              )
+            )}
+          </section>
         )}
         {view === "booking" && b && (
           <>
@@ -967,6 +1619,32 @@ export default function Commercial() {
             </article>
             <aside>
               <p>{est.notes}</p>
+              {est.status === "ACCEPTED" && (
+                <form
+                  onSubmit={event => {
+                    event.preventDefault();
+                    const dueOn = new FormData(event.currentTarget).get(
+                      "dueOn"
+                    );
+                    void save(async () => {
+                      const r = await api.post("/invoices", {
+                        quoteId: est.id,
+                        dueOn,
+                      });
+                      go("invoice", r.data.id);
+                    });
+                  }}
+                >
+                  <Field
+                    label={t("Invoice due date", "Échéance de la facture")}
+                  >
+                    <Input name="dueOn" type="date" required />
+                  </Field>
+                  <button>
+                    {t("Create or open invoice", "Créer ou ouvrir la facture")}
+                  </button>
+                </form>
+              )}
               {est.status === "ACCEPTED" &&
                 link(
                   t("Create or open job", "Créer ou ouvrir l’intervention"),

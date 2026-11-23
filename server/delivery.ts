@@ -246,7 +246,7 @@ export function deliveryRoutes() {
             photos: { select: { id: true, kind: true } },
             history: { orderBy: { createdAt: "asc" } },
             quote: {
-              select: { customerId: true, propertyId: true, bookingId: true },
+              select: { customerId: true, propertyId: true, bookingId: true, invoice:{select:{id:true}} },
             },
           },
           orderBy: { createdAt: "desc" },

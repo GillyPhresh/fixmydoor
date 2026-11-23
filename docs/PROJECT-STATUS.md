@@ -1,5 +1,13 @@
 # Engineering status
 
+## Revenue management · Phase 2B
+
+Staff open **Invoices** and **Overview** at `/admin/commercial`. An accepted quotation is the single billable source for a job, remote consultation or maintenance occurrence. The invoice freezes its CAD-cent totals, recipient and itemized prices. Staff can edit a draft, record verified GST/QST registration and allocations, issue or void an unpaid invoice, or record a referenced offline receipt. The ledger rejects overpayments and duplicate receipt references. A signed seven-day customer link carries its token in a URL fragment. The invoice page removes the fragment, fetches customer-visible fields and supports browser printing.
+
+A remote booking must have an accepted quotation before staff schedule it. Staff choose whether the invoice must be paid first. Property agreements store the approval reference, scope, interval, end date and agreed price. Generating one period creates its quotation and dispatch job in the same transaction. Recurrence stays anchored to the original day across short months. Open its quotation to invoice the occurrence. Staff initiate scheduling and billing.
+
+The payment adapter is synthetic and requires test runtime or isolated staging plus a dedicated signing secret. Its events use timestamped HMAC verification, unique event IDs and transactional balance updates. Stripe merchant onboarding, hosted Checkout and external provider verification remain outstanding. For staging acceptance, load only the isolated staging credentials into the process and run `node scripts/verify-revenue-staging.mjs`. This creates synthetic records and exercises provider simulation without moving money. Production release remains separately gated.
+
 ## Commercial expansion · 2026-11-23
 
 Phase 2 application commit `b5a457e1b0021f57ec73eeda08cff5e258e6d568` is running on isolated Railway staging, deployment `53248876-77fe-453d-b8d4-df125ed2bf96`. Live HTTPS tests verified that the Phase 1 synthetic quotation persisted after migration and that dispatch, eligibility, conflict rejection, suspension, private photo access and job completion passed. Local checks passed on Node 24.21.0, including TypeScript, Prisma validation, the production build and all 31 tests with desktop and phone browser coverage enabled. Production remains separately approval-gated.

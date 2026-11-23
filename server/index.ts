@@ -7,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, randomUUID } from "crypto";
 import { registerCommercial } from "./commercial";
+import { registerSandboxWebhook } from "./payment-sandbox";
 import { AttachmentError, saveWithAttachments, registerAttachmentRoutes, startAttachmentCleanup } from "./attachments";
 import { createBackupWindow, scheduleStagingBackupDrill, stagingBackupDrillEnabled } from "./backup-window";
 import compression from "compression";
@@ -1516,6 +1517,7 @@ async function startServer() {
 
   app.use("/api/media", uploadLimiter, express.json({ limit: "7200kb" }));
   app.use("/api/admin/media", uploadLimiter);
+  registerSandboxWebhook(app);
   app.use(express.json({ limit: "30mb" }));
   registerCommercial(app, requireAuth);
   registerAttachmentRoutes(app, requireAuth, uploadDir);
@@ -2152,6 +2154,7 @@ async function startServer() {
       const booking = await prisma.booking.findUnique({
         where: { customerToken: token },
         select: { repairType: true, preferredDate: true, status: true, appointmentTime: true, quoteAmount: true, invoiceStatus: true, paymentStatus: true, statusHistory: true,
+          consultation: { select: { scheduledAt: true } },
           quotations: { where: { job: { status: "COMPLETED" } }, orderBy: { createdAt: "asc" }, select: { job: { select: { customerSummary: true } } } } },
       });
 
@@ -2159,7 +2162,8 @@ async function startServer() {
         return res.status(404).json({ success: false, error: "Booking not found" });
       }
 
-      const { statusHistory, quotations, ...details } = booking;
+      const { statusHistory, quotations, consultation, ...details } = booking;
+      if (consultation) details.appointmentTime = consultation.scheduledAt.toISOString();
       const completionSummaries = quotations.flatMap(q => q.job?.customerSummary ? [q.job.customerSummary] : []);
       const history = parseStatusHistory(statusHistory).filter(entry => validateBookingStatus(entry.status) && Number.isFinite(Date.parse(entry.changedAt))).map(({ status, changedAt }) => ({ status, changedAt: new Date(changedAt).toISOString() }));
       return res.json({ booking: { ...details, statusHistory: history, ...(completionSummaries.length ? { completionSummaries } : {}) } });

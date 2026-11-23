@@ -94,6 +94,32 @@ export async function verifyCommercialBrowser(base, cookie, jobId) {
             name: "Browser Tech " + width + " · APPLICANT",
           })
         ).toBeVisible();
+        await page.getByRole("link", { name: "Overview", exact: true }).click();
+        await expect(
+          page.getByRole("heading", { name: "Commercial overview" })
+        ).toBeVisible();
+        await page.getByRole("link", { name: "Invoices", exact: true }).click();
+        await page
+          .getByRole("combobox", { name: "Invoice status" })
+          .selectOption("PAID");
+        await page.getByRole("link", { name: /^INV-/ }).first().click();
+        await expect(
+          page.getByRole("heading", { name: "Payment history" })
+        ).toBeVisible();
+        await page
+          .getByRole("button", { name: "Get seven-day customer link" })
+          .click();
+        const invoiceLink = page.getByRole("textbox", {
+          name: "Customer invoice link",
+        });
+        await expect(invoiceLink).toBeVisible();
+        const guest = await context.newPage();
+        await guest.goto(await invoiceLink.inputValue());
+        await expect(
+          guest.getByText("Balance / Solde $0.00", { exact: true })
+        ).toBeVisible();
+        await guest.close();
+        await page.getByRole("link", { name: "Overview", exact: true }).click();
         await page.getByRole("button", { name: "Français" }).click();
         await expect(
           page.getByRole("heading", { name: "Gestion des services" })
