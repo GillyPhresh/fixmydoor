@@ -23,6 +23,8 @@ const ServicePage = lazy(() => import("./pages/ServicePage"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const TermsConditions = lazy(() => import("./pages/TermsConditions"));
 const GhanaBranch = lazy(() => import("./pages/GhanaBranch"));
+const Portal = lazy(() => import("./pages/Portal"));
+const PortalAdmin = lazy(() => import("./pages/PortalAdmin"));
 
 function HomeRoute() {
   return <Home />;
@@ -54,7 +56,7 @@ function GhanaBranchRoute() {
 
 function GoogleAnalytics() {
   const [location] = useLocation();
-  const isPrivatePath = /^\/(?:track\/|admin(?:\/|$))/.test(location);
+  const isPrivatePath = /^\/(?:track\/|portal(?:\/|$)|admin(?:\/|$))/.test(location);
 
   useEffect(() => {
     if (ANALYTICS_DISABLED || isPrivatePath || !GA_MEASUREMENT_ID || !/^G-[A-Z0-9]+$/i.test(GA_MEASUREMENT_ID)) {
@@ -119,9 +121,13 @@ function Router() {
         <Route path={"/privacy-policy"} component={PrivacyPolicyRoute} />
         <Route path={"/terms-and-conditions"} component={TermsConditionsRoute} />
         <Route path={"/admin/commercial"} component={AdminRoute} />
+        <Route path={"/admin/portals"} component={PortalAdmin} />
         <Route path={"/admin"} component={AdminRoute} />
         <Route path={"/admin/notify"} component={AdminRoute} />
         <Route path={"/track/:token"} component={TrackBookingRoute} />
+        <Route path={"/portal/invite"} component={Portal} />
+        <Route path={"/portal/login"} component={Portal} />
+        <Route path={"/portal"} component={Portal} />
         <Route path={"/404"} component={NotFound} />
         {/* Final fallback route */}
         <Route component={NotFound} />

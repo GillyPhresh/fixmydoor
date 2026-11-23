@@ -12,6 +12,8 @@ model Booking {
   id                 String      @id @default(cuid())
   visitMode          String      @default("ONSITE")
   customerId         String?
+  requestedByPortalAccountId String?
+  requestedByPortalAccount PortalAccount? @relation(fields: [requestedByPortalAccountId], references: [id], onDelete: SetNull)
   customer           Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
   propertyId         String?
   property           Property? @relation(fields: [propertyId], references: [id], onDelete: Restrict)
@@ -71,6 +73,7 @@ model Booking {
   @@index([phone])
   @@index([clientId])
   @@index([customerToken])
+  @@index([requestedByPortalAccountId])
 }
 
 model SmsDraft {
@@ -166,6 +169,10 @@ model Customer {
   bookings Booking[]
   properties Property[]
   quotations Quotation[]
+  organization Organization?
+  portalAccounts PortalAccount[]
+  invitations PortalInvitation[]
+  consents CommunicationConsent[]
   @@index([name])
 }
 
@@ -243,6 +250,9 @@ model Technician {
   updatedAt DateTime @updatedAt
   grants ServiceGrant[]
   jobs Job[]
+  portalAccount PortalAccount?
+  invitations PortalInvitation[]
+  membership TechnicianMembership?
 }
 model ServiceGrant {
   id String @id @default(cuid())
@@ -283,6 +293,8 @@ model Job {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   version Int @default(1)
+  technicianResponse String @default("PENDING")
+  technicianResponseAt DateTime?
   history JobEvent[]
   @@index([technicianId,status,startsAt])
 }
@@ -411,4 +423,143 @@ model RemoteConsultation {
   scheduledAt DateTime
   outcome String @default("")
   completedAt DateTime?
+}
+
+// Portal identities are separate from customer records and admin credentials.
+// A customer or technician may access only the records linked to that identity.
+model PortalAccount {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  passwordHash String
+  kind String
+  status String @default("ACTIVE")
+  customerId String?
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  technicianId String? @unique
+  technician Technician? @relation(fields: [technicianId], references: [id], onDelete: Restrict)
+  organizationMemberships OrganizationMembership[]
+  requestedBookings Booking[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLoginAt DateTime?
+  @@index([customerId, status])
+  @@index([kind, status])
+}
+
+model Organization {
+  id String @id @default(cuid())
+  customerId String @unique
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  externalId String? @unique
+  name String
+  email String
+  phone String
+  status String @default("ACTIVE")
+  memberships OrganizationMembership[]
+  invitations PortalInvitation[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrganizationMembership {
+  id String @id @default(cuid())
+  accountId String
+  account PortalAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  role String
+  status String @default("ACTIVE")
+  invitedBy String
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+  @@unique([accountId, organizationId])
+  @@index([organizationId, status, role])
+}
+
+model PortalInvitation {
+  id String @id @default(cuid())
+  email String
+  kind String
+  customerId String?
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  technicianId String?
+  technician Technician? @relation(fields: [technicianId], references: [id], onDelete: Restrict)
+  organizationId String?
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organizationRole String?
+  tokenHash String @unique
+  expiresAt DateTime
+  acceptedAt DateTime?
+  revokedAt DateTime?
+  createdBy String
+  createdAt DateTime @default(now())
+  @@index([email, expiresAt])
+  @@index([customerId, acceptedAt])
+  @@index([technicianId, acceptedAt])
+  @@index([organizationId, acceptedAt])
+}
+
+model CommunicationConsent {
+  id String @id @default(cuid())
+  customerId String
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  channel String
+  purpose String
+  granted Boolean
+  source String
+  capturedAt DateTime @default(now())
+  @@index([customerId, purpose, channel, capturedAt])
+}
+
+model AuditEvent {
+  id String @id @default(cuid())
+  actorType String
+  actorId String
+  action String
+  entityType String
+  entityId String
+  metadata String @default("{}")
+  createdAt DateTime @default(now())
+  @@index([entityType, entityId, createdAt])
+  @@index([actorType, actorId, createdAt])
+}
+
+model AIInteraction {
+  id String @id @default(cuid())
+  purpose String
+  entityType String
+  entityId String
+  provider String
+  output String
+  reviewedAt DateTime?
+  reviewedBy String?
+  createdAt DateTime @default(now())
+  @@index([entityType, entityId, createdAt])
+}
+
+model TechnicianMembership {
+  id String @id @default(cuid())
+  technicianId String @unique
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: Restrict)
+  plan String
+  status String @default("INACTIVE")
+  billingPeriod String @default("NONE")
+  startsOn String?
+  renewsOn String?
+  includedBenefits String @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events TechnicianMembershipEvent[]
+}
+
+model TechnicianMembershipEvent {
+  id String @id
+  membershipId String
+  membership TechnicianMembership @relation(fields: [membershipId], references: [id], onDelete: Restrict)
+  action String
+  actor String
+  details String @default("")
+  createdAt DateTime @default(now())
+  @@index([membershipId, createdAt])
 }

@@ -425,6 +425,9 @@ export function deliveryRoutes() {
             startsAt,
             endsAt,
             version: { increment: 1 },
+            ...(a.status === "ASSIGNED"
+              ? { technicianResponse: "PENDING", technicianResponseAt: null }
+              : {}),
             ...(done
               ? {
                   completedAt: new Date(),

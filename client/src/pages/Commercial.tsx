@@ -661,6 +661,7 @@ export default function Commercial() {
         ))}
         <a href="#delivery">{t("Service delivery", "Interventions")}</a>
         <a href="#invoices">{t("Invoices", "Factures")}</a>
+        <a href="/admin/portals">{t("Portal access", "Accès au portail")}</a>
       </nav>
       {error && <p role="alert">{error}</p>}
       {[rows, request, profile, quote].some(s => s.failed) ? (

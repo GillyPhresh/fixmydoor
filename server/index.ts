@@ -25,11 +25,14 @@ import { serviceCatalog } from "@shared/services";
 import { ghanaBranchSeoPage, normalizeSeoPath, resolveSeoPage, seoRouteAliases, serviceSeoPages, sitemapRoutes } from "@shared/seo";
 import { assertStagingConfiguration, isStagingMode, markHtmlNoIndex, stagingAccessMiddleware, stagingRobotsTxt } from "./staging";
 import { runStartupMigrations } from "./startup";
+import { registerPortal } from "./portal";
 
 declare module "express-session" {
   interface SessionData {
     adminId?: string;
     uploadOwner?: string;
+    portalAccountId?: string;
+    portalKind?: "CUSTOMER" | "TECHNICIAN" | "ORGANIZATION";
   }
 }
 
@@ -62,7 +65,7 @@ const mediaTypes: Record<string, { extension: string; kind: "image" | "video" | 
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": { extension: "docx", kind: "document" },
 };
 const ADMIN_SESSION_MAX_AGE_MS = 8 * 60 * 60 * 1000;
-const ADMIN_SENSITIVE_PATH_PATTERN = /^\/(?:admin(?:\/|$)|api\/admin(?:\/|$)|api\/auth(?:\/|$)|api\/bookings(?:\/|$))/i;
+const ADMIN_SENSITIVE_PATH_PATTERN = /^\/(?:admin(?:\/|$)|portal(?:\/|$)|api\/portal(?:\/|$)|api\/admin(?:\/|$)|api\/auth(?:\/|$)|api\/bookings(?:\/|$))/i;
 
 function isStrongAdminPassword(password: string) {
   return (
@@ -1521,6 +1524,7 @@ async function startServer() {
   app.use(express.json({ limit: "30mb" }));
   registerCommercial(app, requireAuth);
   registerAttachmentRoutes(app, requireAuth, uploadDir);
+  registerPortal(app, requireAuth);
 
   // Auth middleware
   function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -1658,6 +1662,8 @@ async function startServer() {
         }
 
         req.session.adminId = admin.id;
+        delete req.session.portalAccountId;
+        delete req.session.portalKind;
         req.session.save((saveError) => {
           if (saveError) {
             console.error("Session save error:", saveError);
@@ -2586,7 +2592,11 @@ async function startServer() {
       if (/^\/track\//i.test(pagePath)) {
         return res.type("html").send(replaceMetaContent(replacePublicUrlTokens(html), "name", "robots", "noindex, nofollow, noarchive"));
       }
-      res.type("html").send(renderIndexHtmlForPath(html, pagePath));
+      const rendered = renderIndexHtmlForPath(html, pagePath);
+      if (/^\/(?:portal(?:\/|$)|admin\/portals$)/i.test(pagePath)) {
+        return res.type("html").send(replaceMetaContent(rendered, "name", "robots", "noindex, nofollow, noarchive"));
+      }
+      res.type("html").send(rendered);
     } catch (error) {
       console.error("Failed to render index.html:", error);
       res.status(500).send("Failed to load application");
@@ -2600,6 +2610,10 @@ async function startServer() {
       normalizedPath === "/admin" ||
       normalizedPath === "/admin/notify" ||
       normalizedPath === "/admin/commercial" ||
+      normalizedPath === "/admin/portals" ||
+      normalizedPath === "/portal" ||
+      normalizedPath === "/portal/login" ||
+      normalizedPath === "/portal/invite" ||
       normalizedPath === "/privacy-policy" ||
       normalizedPath === "/terms-and-conditions" ||
       normalizedPath === ghanaBranchSeoPage.path ||
@@ -2613,6 +2627,8 @@ async function startServer() {
     if (
       req.path === "/admin" ||
       req.path.startsWith("/admin/") ||
+      req.path === "/portal" ||
+      req.path.startsWith("/portal/") ||
       req.path.startsWith("/api/admin/") ||
       req.path === "/api/bookings" ||
       req.path.startsWith("/api/bookings/")

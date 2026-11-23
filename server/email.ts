@@ -664,6 +664,27 @@ class EmailService {
     return sendMailWithRetry(this.transporter, options, label, onError);
   }
 
+  async sendPortalInvitation(to: string, invitationUrl: string, kind: "CUSTOMER" | "TECHNICIAN" | "ORGANIZATION") {
+    if (!this.canSendEmail()) return false;
+    let link: URL;
+    try {
+      link = new URL(invitationUrl);
+      if (link.origin !== getPublicBaseUrl() || link.pathname !== "/portal/invite" || !/^[A-Za-z0-9_-]{40,100}$/.test(link.hash.slice(1))) return false;
+    } catch {
+      return false;
+    }
+    const roleName = kind === "TECHNICIAN" ? "technician" : kind === "ORGANIZATION" ? "business" : "customer";
+    const safeUrl = link.toString().replace(/&/g, "&amp;").replace(/\"/g, "&quot;");
+    const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#392c23"><h1>FixMyDoor Services portal</h1><p>You have been invited to activate your ${roleName} portal access.</p><p>This single-use link expires in 48 hours. If you were not expecting it, you can ignore this email.</p><p><a href="${safeUrl}" style="display:inline-block;padding:12px 18px;background:#654526;color:#fff;border-radius:8px;text-decoration:none">Activate portal access</a></p><p>If the button does not work, open the link directly in your browser.</p></div>`;
+    return this.sendEmail({
+      to,
+      from: getOutboundFromEmail(),
+      subject: "Activate your FixMyDoor Services portal access",
+      text: `You have been invited to activate your FixMyDoor Services ${roleName} portal. This single-use link expires in 48 hours: ${link.toString()}`,
+      html,
+    }, "Portal invitation");
+  }
+
   async sendBookingConfirmation(booking: Booking) {
     if (!this.canSendEmail()) {
       console.warn("Email service not initialized");
