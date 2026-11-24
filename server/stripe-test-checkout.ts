@@ -33,7 +33,7 @@ export function createStripeTestCheckout(secret: string, request: typeof fetch =
       success_url: returnUrl.href,
       cancel_url: returnUrl.href,
       client_reference_id: attemptId,
-      "payment_method_types[0]": "card",
+      "allowed_payment_method_types[0]": "card",
       "line_items[0][quantity]": "1",
       "line_items[0][price_data][currency]": "cad",
       "line_items[0][price_data][unit_amount]": String(cents),

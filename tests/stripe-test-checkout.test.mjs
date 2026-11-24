@@ -12,6 +12,8 @@ test("Stripe test checkout submits CAD cents and reuses the attempt idempotency 
     assert.equal(options.headers["Idempotency-Key"], "fixmydoor-deposit-synthetic_attempt");
     assert.equal(options.body.get("line_items[0][price_data][unit_amount]"), "2500");
     assert.equal(options.body.get("line_items[0][price_data][currency]"), "cad");
+    assert.equal(options.body.get("allowed_payment_method_types[0]"), "card");
+    assert.equal(options.body.has("payment_method_types[0]"), false);
     calls++;
     return Response.json(result);
   });
