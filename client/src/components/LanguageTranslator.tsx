@@ -221,6 +221,7 @@ export default function LanguageTranslator({ className = "" }: LanguageTranslato
   const chooseLanguage = async (language: "en" | "fr") => {
     setActiveLanguage(language);
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    window.dispatchEvent(new Event("fixmydoor-language-change"));
 
     if (language === "en") {
       activeLocaleRef.current = null;
@@ -240,6 +241,7 @@ export default function LanguageTranslator({ className = "" }: LanguageTranslato
       activeLocaleRef.current = null;
       setActiveLanguage("en");
       window.localStorage.setItem(LANGUAGE_STORAGE_KEY, "en");
+    window.dispatchEvent(new Event("fixmydoor-language-change"));
     } finally {
       setIsLoading(false);
     }

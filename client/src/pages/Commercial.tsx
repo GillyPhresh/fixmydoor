@@ -1,3 +1,4 @@
+import { useDesignLanguage } from "@/components/language";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import axios from "axios";
 import Delivery from "./Delivery";
@@ -440,9 +441,8 @@ type Row = {
 };
 export default function Commercial() {
   const [hash, setHash] = useState(location.hash);
-  const [fr, setFr] = useState(
-    localStorage.getItem("fixmydoor-language") === "fr"
-  );
+  const { language, setLanguage } = useDesignLanguage();
+  const fr = language === "fr";
   const [q, search] = useState(""),
     [category, filter] = useState(""),
     [page, paginate] = useState(0);
@@ -642,10 +642,10 @@ export default function Commercial() {
       (["quote", "editQuote"].includes(view) && !est)
   );
   return (
-    <main className="cm-shell" data-no-translate>
+    <main className="cm-shell" lang={language} data-no-translate>
       <header>
         <a href="/admin">← {t("Admin dashboard", "Tableau de bord")}</a>
-        <button onClick={() => setFr(!fr)}>
+        <button onClick={() => setLanguage(fr ? "en" : "fr")}>
           {fr ? "English" : "Français"}
         </button>
       </header>
@@ -664,6 +664,7 @@ export default function Commercial() {
         <a href="#delivery">{t("Service delivery", "Interventions")}</a>
         <a href="#invoices">{t("Invoices", "Factures")}</a>
         <a href="/admin/portals">{t("Portal access", "Accès au portail")}</a>
+        <a href="/admin/recruitment">{t("Technician applications", "Candidatures de techniciens")}</a>
       </nav>
       {error && <p role="alert">{error}</p>}
       {[rows, request, profile, quote].some(s => s.failed) ? (
@@ -679,7 +680,7 @@ export default function Commercial() {
       ) : loading ? (
         <p role="status">{t("Loading…", "Chargement…")}</p>
       ) : null}
-      <p><a href="/admin/recruitment">{t("Technician applications", "Candidatures de techniciens")}</a></p>
+
       <fieldset className="cm-panel" disabled={busy} key={hash}>
         {view === "delivery" && <Delivery quoteId={id} t={t} />}
         {view === "overview" && overview.data && (

@@ -77,3 +77,10 @@
 ## Visual feature verification
 
 - Every substantial FixMyDoor feature must be demonstrated in the actual running application. Start or maintain a local preview where practical, share accessible routes, and provide genuine desktop and mobile screenshots after major milestones. Verify desktop and mobile usability and demonstrate significant workflows before completion. After successful isolated Railway staging deployment, provide its protected preview URL and verify the deployed interface. Use synthetic records and never expose credentials in screenshots or artifacts.
+
+## Product design standard
+
+- Use the shared product tokens and interaction patterns in the client design stylesheet for new substantial interfaces. Extend the existing React, Tailwind and Radix components when a pattern is reusable.
+- Design for narrow screens first. Check keyboard focus, reduced motion, touch targets, overflow, validation, loading and empty states. Keep financial figures and meaningful statuses visible without displaying unnecessary identifiers.
+- Reuse the shared language preference and write English and French copy for newly introduced flows. Review important commercial and legal wording before release.
+- Demonstrate major changes in the running application with comparable mobile and desktop screenshots. Verify the workflow and relevant accessibility and performance measures before staging.

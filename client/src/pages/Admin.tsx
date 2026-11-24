@@ -1972,7 +1972,7 @@ export default function Admin() {
     .join("|");
   const showReminderWatch = reminderWatchBookings.length > 0 && reminderWatchKey !== dismissedReminderWatchKey;
   const managerContentItems = contentItems.filter((item) => item.category !== "ownerProfile");
-  const mobileSectionClass = (section: MobileAdminSection) => activeMobileSection === section ? "" : "max-md:hidden";
+  const mobileSectionClass = (section: MobileAdminSection) => activeMobileSection === section ? "" : "max-xl:hidden";
   const showMobileSection = (section: MobileAdminSection, target: string) => {
     setActiveMobileSection(section);
     window.setTimeout(() => {
@@ -1985,7 +1985,7 @@ export default function Admin() {
   return (
     <div className="admin-dashboard-shell min-h-screen max-w-full overflow-x-hidden bg-[#f7efe4]">
       <div className="container mx-auto w-full max-w-[1320px] min-w-0 overflow-x-hidden px-3 py-4 sm:px-4 md:py-8">
-        <div className="relative mb-4 overflow-hidden rounded-[24px] border border-[#ead8bf] bg-white/90 p-4 text-center shadow-[0_24px_70px_rgba(66,40,18,0.10)] md:mb-6 md:rounded-3xl md:p-6">
+        <div className="fd-admin-header relative mb-4 overflow-hidden rounded-[24px] border border-[#ead8bf] bg-white/90 p-4 text-center shadow-[0_24px_70px_rgba(66,40,18,0.10)] md:mb-6 md:rounded-3xl md:p-6">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#6B4423] via-[#D4A574] to-[#6B4423]" />
           <div className="mx-auto flex max-w-xl flex-col items-center gap-2.5 md:gap-3">
             <div className="relative overflow-hidden rounded-[22px] border border-[#d6b88c] bg-[#FAF6F0] px-4 py-3 shadow-[0_18px_42px_rgba(66,40,18,0.14)] ring-1 ring-white/80 md:px-6 md:py-4">
@@ -1993,7 +1993,7 @@ export default function Admin() {
               <img
                 src="/img5150-transparent.png"
                 alt="FixMyDoor logo"
-                className="relative h-auto w-[230px] max-w-[76vw] object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.16)] md:w-[280px]"
+                className="relative h-auto w-[100px] max-w-[44vw] object-contain drop-shadow-[0_10px_18px_rgba(66,40,18,0.16)] md:w-[145px]"
               />
             </div>
             <div>
@@ -2035,7 +2035,7 @@ export default function Admin() {
           </div>
         </div>
 
-        <div className="sticky top-2 z-20 mb-4 grid grid-cols-3 gap-1.5 rounded-2xl border border-[#ead8bf] bg-white/95 p-1.5 shadow-[0_14px_35px_rgba(66,40,18,0.12)] backdrop-blur md:hidden">
+        <div className="sticky top-2 z-20 mb-4 grid grid-cols-3 gap-1.5 rounded-2xl border border-[#ead8bf] bg-white/95 p-1.5 shadow-[0_14px_35px_rgba(66,40,18,0.12)] backdrop-blur xl:hidden">
           {mobileAdminSections.map(({ label, value, target }) => (
             <button
               key={value}
@@ -2944,7 +2944,7 @@ export default function Admin() {
               </p>
             ) : (
               <>
-                <div className="space-y-3 md:hidden">
+                <div className="space-y-3 xl:hidden">
                 {bookings.map((booking) => (
                   <article key={`mobile-${booking.id}`} className="rounded-2xl border border-[#ead8bf] bg-[#fffaf2] p-3 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
@@ -3408,7 +3408,7 @@ export default function Admin() {
                   </article>
                 ))}
               </div>
-              <div className="hidden overflow-x-auto md:block">
+              <div className="fd-admin-table hidden overflow-x-auto xl:block">
               <Table>
                 <TableHeader>
                   <TableRow>

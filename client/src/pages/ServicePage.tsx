@@ -326,9 +326,9 @@ export default function ServicePage() {
   }, [page]);
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(135deg,_#f8f1e7,_#ffffff_55%,_#f4e2ca)] text-foreground">
+    <main className="fd-public min-h-screen text-foreground">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceStructuredData) }} />
-      <nav className="border-b border-primary/10 bg-[#f7efe4]/95 backdrop-blur">
+      <nav className="fd-site-nav border-b" aria-label="Main navigation">
         <div className="container flex max-w-[1180px] items-center justify-between gap-2 py-2 sm:gap-4 sm:py-3">
           <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <img src="/img5150-transparent.png" alt="FixMyDoor" className="h-12 w-auto shrink-0 object-contain sm:h-14" />
@@ -350,20 +350,20 @@ export default function ServicePage() {
         </div>
       </nav>
 
-      <section className="container grid max-w-[1180px] gap-8 py-10 md:grid-cols-[1fr_0.8fr] md:items-center md:py-16">
+      <section className="fd-service-hero container grid max-w-[1180px] gap-8 py-10 md:grid-cols-[1fr_0.8fr] md:items-center md:py-16">
         <div>
           <p className="inline-flex rounded-full bg-primary/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.26em] text-primary">{page.eyebrow}</p>
           <h1 className="mt-5 font-display text-4xl font-bold leading-tight text-secondary md:text-6xl">{page.title}</h1>
           <p className="mt-5 max-w-2xl text-base leading-relaxed text-foreground/72 md:text-lg">{page.description}</p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <a
-              href="/#contact"
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white shadow-[0_14px_34px_rgba(180,101,50,0.22)] transition hover:-translate-y-0.5"
+              href="/#booking-form"
+              className="fd-button fd-button-primary"
             >
               {page.cta}
               <ArrowRight className="h-4 w-4" />
             </a>
-            <a href="/#shop" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-secondary shadow-sm transition hover:-translate-y-0.5">
+            <a href="/#shop" className="fd-button fd-button-outline">
               <ShoppingBag className="h-4 w-4" />
               View Products
             </a>

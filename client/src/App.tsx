@@ -1,4 +1,4 @@
-import { RecruitmentReviewPage, TechnicianApplicationPage } from "@/pages/Recruitment";
+import "./design.css";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense, useEffect } from "react";
@@ -17,6 +17,8 @@ declare global {
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
 const ANALYTICS_DISABLED = import.meta.env.VITE_DISABLE_ANALYTICS === "true";
 
+const RecruitmentReviewPage = lazy(() => import("./pages/Recruitment").then(module => ({ default: module.RecruitmentReviewPage })));
+const TechnicianApplicationPage = lazy(() => import("./pages/Recruitment").then(module => ({ default: module.TechnicianApplicationPage })));
 const Home = lazy(() => import("./pages/Home"));
 const Admin = lazy(() => import("./pages/Admin"));
 const TrackBooking = lazy(() => import("./pages/TrackBooking"));

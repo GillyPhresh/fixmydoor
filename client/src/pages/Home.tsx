@@ -1,3 +1,4 @@
+import ServiceHero from "@/components/ServiceHero";
 import axios from "axios";
 import { createElement, type ChangeEvent, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent, useCallback, useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft,
   ArrowRight,
+  ClipboardList,
   Bell,
   Building2,
   CheckCircle2,
@@ -52,7 +54,7 @@ import {
   featuredServiceCollage,
   hardwareProducts,
   heroImage,
-  heroImageMobile,
+
   productCategories,
   projectGallery,
   quickHighlights,
@@ -219,6 +221,7 @@ const navLinks = [
   { href: "#testimonials", label: "Reviews" },
   { href: "/ghana-branch", label: "Ghana Branch" },
   { href: "#contact", label: "Contact" },
+  { href: "/portal/login", label: "Client portal" },
 ];
 
 const BUSINESS_WHATSAPP_NUMBER = "233242011305";
@@ -1742,7 +1745,7 @@ export default function Home() {
   }, [displayedServiceShowcase.length, displayedProductCategories.length, displayedDoorProducts.length, displayedHardwareProducts.length, displayedProjectGallery.length, featuredReviews.length]);
 
   const scrollToContactForm = useCallback(() => {
-    document.getElementById("booking-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("booking-form")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
     window.setTimeout(() => {
       document.querySelector<HTMLInputElement>("#booking-form input[name='name']")?.focus({ preventScroll: true });
     }, 500);
@@ -1970,7 +1973,7 @@ export default function Home() {
   const openReviewForm = () => {
     setReviewFormOpen(true);
     window.setTimeout(() => {
-      document.getElementById("write-review")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("write-review")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
     }, 80);
   };
 
@@ -2098,9 +2101,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="fd-public min-h-screen bg-background text-foreground">
+      <a className="fd-skip" href="#main-content">Skip to content</a>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
-      <nav className={`sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/96 shadow-[0_8px_28px_rgba(47,36,28,0.06)] backdrop-blur transition-all duration-300 ${headerCompact ? "shadow-[0_12px_32px_rgba(47,36,28,0.12)]" : ""}`}>
+      <nav aria-label="Main navigation" className={`fd-site-nav sticky top-0 z-50 border-b border-primary/15 bg-[#f7efe4]/96 shadow-[0_8px_28px_rgba(47,36,28,0.06)] backdrop-blur transition-all duration-300 ${headerCompact ? "shadow-[0_12px_32px_rgba(47,36,28,0.12)]" : ""}`}>
         <div className={`container flex max-w-[1180px] items-center justify-between gap-2 transition-all duration-300 sm:gap-4 md:py-2.5 ${headerCompact ? "py-1" : "py-1.5"}`}>
           <div className="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
             <a href="/" className="group flex shrink-0 items-center" aria-label="FixMyDoor Services homepage">
@@ -2115,10 +2119,10 @@ export default function Home() {
             </a>
             <div className="hidden min-w-0 max-w-[13.5rem] min-[430px]:block sm:max-w-[20rem] md:max-w-[28rem] lg:max-w-[23rem] xl:max-w-[30rem]">
               <p className="truncate font-display text-[0.82rem] font-bold leading-tight text-secondary sm:text-base md:text-lg">
-                FixMyDoor Services | Door & Furniture Repairs
+                FixMyDoor Services
               </p>
               <p className="mt-0.5 truncate text-[0.56rem] font-semibold uppercase leading-tight tracking-[0.08em] text-secondary/65 sm:text-[0.63rem] sm:tracking-[0.12em] md:text-[0.68rem]">
-                Repairs, installations, doors, furniture, and hardware sourcing.
+                Repairs &amp; maintenance
               </p>
             </div>
           </div>
@@ -2149,7 +2153,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen((open) => !open)}
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border text-secondary shadow-[0_10px_22px_rgba(47,36,28,0.10)] ring-1 ring-white/70 transition-all duration-300 lg:hidden ${mobileMenuOpen ? "border-primary bg-secondary text-white" : "border-primary/15 bg-white hover:bg-primary/10"}`}
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border text-secondary shadow-[0_10px_22px_rgba(47,36,28,0.10)] ring-1 ring-white/70 transition-all duration-300 xl:hidden ${mobileMenuOpen ? "border-primary bg-secondary text-white" : "border-primary/15 bg-white hover:bg-primary/10"}`}
               aria-label="Toggle navigation menu"
               aria-expanded={mobileMenuOpen}
             >
@@ -2159,14 +2163,14 @@ export default function Home() {
         </div>
         <div className={`border-t border-primary/10 bg-white/62 px-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] transition-all duration-300 min-[430px]:hidden ${headerCompact ? "py-1" : "py-1.5"}`}>
           <p className="font-display text-[0.82rem] font-bold leading-tight text-secondary">
-            FixMyDoor Services | Door & Furniture Repairs
+            FixMyDoor Services
           </p>
           <p className="mt-0.5 text-[0.62rem] font-semibold uppercase leading-tight tracking-[0.08em] text-secondary/65">
-            Repairs, installations, doors, furniture, and hardware sourcing.
+            Repairs &amp; maintenance
           </p>
         </div>
         {mobileMenuOpen && (
-          <div className="border-t border-primary/10 bg-white lg:hidden">
+          <div className="border-t border-primary/10 bg-white xl:hidden">
             <div className="container grid max-w-[1180px] gap-2 py-3">
               {navLinks.map((link) => (
                 <a
@@ -2183,113 +2187,12 @@ export default function Home() {
         )}
       </nav>
 
-      <section className="relative overflow-hidden bg-[linear-gradient(180deg,_#f8f3ea,_#ffffff)]">
-        <div className="container grid max-w-[1180px] items-center gap-4 py-4 sm:py-7 md:grid-cols-[0.9fr_1fr] md:py-8 lg:gap-8">
-          <div className="max-w-lg">
-            <div className="mb-2 inline-flex items-center gap-2 rounded-2xl border border-primary/18 bg-white px-3.5 py-1.5 text-[0.64rem] font-semibold uppercase tracking-[0.18em] text-secondary shadow-sm">
-              <Globe2 className="h-4 w-4 text-primary" />
-              Montreal-based. 24/7 requests welcome.
-            </div>
-            <h1 className="font-display text-[1.9rem] font-bold leading-[1.06] text-secondary sm:text-4xl md:text-[3.05rem] xl:text-[3.25rem]">
-              Door, lock, furniture, or hardware problem?
-            </h1>
-            <p className="mt-3 max-w-[32rem] text-[0.94rem] leading-relaxed text-foreground/75 md:text-[1.03rem]">
-              Send a photo or short note. FixMyDoor Services will review it and guide you to the right repair, installation, or product.
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              <button type="button" onClick={scrollToContactForm} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-3.5 py-2.5 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(180,101,50,0.24)] ring-1 ring-white/50 transition hover:-translate-y-0.5 hover:bg-primary/90 sm:px-4">
-                <span className="sm:hidden">Book Repair</span>
-                <span className="hidden sm:inline">Book a Repair</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-              <a href="#shop" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-secondary/15 bg-white px-3.5 py-2.5 text-sm font-extrabold text-secondary shadow-[0_10px_24px_rgba(47,36,28,0.08)] transition hover:-translate-y-0.5 hover:border-primary hover:text-primary sm:px-4">
-                <ShoppingBag className="h-4 w-4" />
-                <span className="sm:hidden">Shop Parts</span>
-                <span className="hidden sm:inline">Shop Doors & Hardware</span>
-              </a>
-              <a href="tel:+14383471823" className="col-span-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-secondary px-3.5 py-2.5 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(47,36,28,0.18)] transition hover:-translate-y-0.5 hover:bg-secondary/90 sm:col-span-1 sm:px-4">
-                <Phone className="h-4 w-4" />
-                <span className="sm:hidden">Call +1 (438) 347-1823</span>
-                <span className="hidden sm:inline">Call +1 (438) 347-1823</span>
-              </a>
-            </div>
-            <div className="mt-4 grid gap-2 sm:grid-cols-3 sm:gap-2.5">
-              <div className="flex items-start gap-2.5 rounded-[18px] border border-primary/10 bg-white p-3 shadow-[0_12px_28px_rgba(47,36,28,0.06)] sm:block sm:p-3.5">
-                <Zap className="mt-0.5 h-4 w-4 shrink-0 text-primary sm:mt-0 sm:mb-2 sm:h-5 sm:w-5" />
-                <div>
-                  <p className="text-[0.78rem] font-extrabold leading-tight text-secondary sm:text-sm">Quick Reply</p>
-                  <p className="mt-0.5 text-[0.72rem] leading-snug text-foreground/65 sm:mt-1 sm:text-xs sm:leading-relaxed">Tell us the issue. We will guide you from there.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5 rounded-[18px] border border-primary/10 bg-white p-3 shadow-[0_12px_28px_rgba(47,36,28,0.06)] sm:block sm:p-3.5">
-                <div className="mt-0.5 text-base font-black leading-none text-primary sm:mt-0 sm:mb-2 sm:text-xl">C$</div>
-                <div>
-                  <p className="text-[0.78rem] font-extrabold leading-tight text-secondary sm:text-sm">Fair C$ Pricing</p>
-                  <p className="mt-0.5 text-[0.72rem] leading-snug text-foreground/65 sm:mt-1 sm:text-xs sm:leading-relaxed">Clear answers before any work starts.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5 rounded-[18px] border border-primary/10 bg-white p-3 shadow-[0_12px_28px_rgba(47,36,28,0.06)] sm:block sm:p-3.5">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary sm:mt-0 sm:mb-2 sm:h-5 sm:w-5" />
-                <div>
-                  <p className="text-[0.78rem] font-extrabold leading-tight text-secondary sm:text-sm">Neat Finish</p>
-                  <p className="mt-0.5 text-[0.72rem] leading-snug text-foreground/65 sm:mt-1 sm:text-xs sm:leading-relaxed">Careful work without messy shortcuts.</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      <ServiceHero onBook={scrollToContactForm} onRemote={() => {
+        form.setValue("visitMode", "REMOTE", { shouldValidate: true });
+        scrollToContactForm();
+      }} />
 
-          <div className="relative">
-            <div className="relative overflow-hidden rounded-[28px] border border-white/70 bg-white p-2 shadow-[0_24px_70px_rgba(66,40,18,0.16)] md:rounded-[32px] md:p-3 md:shadow-[0_30px_90px_rgba(66,40,18,0.18)]">
-              <picture>
-                <source media="(max-width: 640px)" srcSet={heroImageMobile} />
-                <img
-                  src={heroImage}
-                  alt="Front door lock rekeying service"
-                  loading="eager"
-                  fetchPriority="high"
-                  decoding="async"
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 520px"
-                  className="h-[235px] w-full rounded-[22px] object-cover object-center sm:h-[320px] md:h-[430px] md:rounded-[24px]"
-                />
-              </picture>
-              <div className="absolute bottom-4 left-4 right-4 rounded-[20px] border border-white/70 bg-white/94 p-3 shadow-[0_14px_30px_rgba(47,36,28,0.16)] md:bottom-7 md:left-7 md:right-7 md:max-w-sm md:rounded-[24px] md:p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Featured Service</p>
-                <h2 className="mt-1 text-lg font-bold text-secondary md:mt-2 md:text-2xl">Rekeying & Entry Security</h2>
-                <p className="mt-1 text-xs leading-relaxed text-foreground/70 md:mt-2 md:text-sm">
-                  Lost key, tenant change, or loose handle? We can rekey, adjust, or recommend secure hardware.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <section aria-labelledby="branches-heading" className="bg-white py-4 sm:py-6">
-        <div className="container max-w-[1180px]">
-          <div className="grid gap-3 rounded-[26px] border border-primary/12 bg-[#fff8ef] p-4 shadow-[0_16px_44px_rgba(66,40,18,0.08)] sm:grid-cols-[1fr_auto] sm:items-center sm:p-5">
-            <div className="flex gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-secondary text-white shadow-sm">
-                <Flag className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[0.64rem] font-black uppercase tracking-[0.22em] text-primary">Our Branches</p>
-                <h2 id="branches-heading" className="mt-1 font-display text-xl font-bold leading-tight text-secondary sm:text-2xl">We are now in Ghana</h2>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-foreground/70">
-                  FixMyDoor Services Ghana is based in Kumasi for doors, furniture, sales, installations, and repair support.
-                </p>
-              </div>
-            </div>
-            <a
-              href="/ghana-branch"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-black text-white shadow-[0_12px_28px_rgba(180,101,50,0.22)] transition hover:-translate-y-0.5 hover:bg-primary/90"
-            >
-              <Building2 className="h-4 w-4" />
-              View Ghana Branch
-              <ArrowRight className="h-4 w-4" />
-            </a>
-          </div>
-        </div>
-      </section>
 
       {notificationPromptOpen && notificationSupported && !notificationsEnabled && (
         <aside className="fixed bottom-4 left-3 right-3 z-50 sm:left-auto sm:right-5 sm:max-w-[24rem]" aria-live="polite">
@@ -2969,6 +2872,33 @@ export default function Home() {
         </div>
       </section>
 
+      <section aria-labelledby="branches-heading" className="bg-white py-4 sm:py-6">
+        <div className="container max-w-[1180px]">
+          <div className="grid gap-3 rounded-[26px] border border-primary/12 bg-[#fff8ef] p-4 shadow-[0_16px_44px_rgba(66,40,18,0.08)] sm:grid-cols-[1fr_auto] sm:items-center sm:p-5">
+            <div className="flex gap-3">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-secondary text-white shadow-sm">
+                <Flag className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[0.64rem] font-black uppercase tracking-[0.22em] text-primary">Our Branches</p>
+                <h2 id="branches-heading" className="mt-1 font-display text-xl font-bold leading-tight text-secondary sm:text-2xl">We are now in Ghana</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-foreground/70">
+                  FixMyDoor Services Ghana is based in Kumasi for doors, furniture, sales, installations, and repair support.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/ghana-branch"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-2.5 text-sm font-black text-white shadow-[0_12px_28px_rgba(180,101,50,0.22)] transition hover:-translate-y-0.5 hover:bg-primary/90"
+            >
+              <Building2 className="h-4 w-4" />
+              View Ghana Branch
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </section>
+
       <section id="about" className="bg-white py-8 md:py-10">
         <div className="container grid max-w-[1180px] gap-6 md:grid-cols-[0.58fr_1.42fr] md:items-start">
           <div className="relative order-2 md:order-1">
@@ -3400,11 +3330,16 @@ export default function Home() {
             </div>
           </div>
 
-          <div id="booking-form" className="scroll-mt-28 rounded-[26px] border border-primary/12 bg-white p-5 shadow-[0_16px_42px_rgba(0,0,0,0.055)] sm:scroll-mt-32 sm:p-6 md:scroll-mt-28">
-            <h3 className="text-2xl font-semibold text-secondary">Tell Us What You Need</h3>
-            <p className="mt-2 text-sm leading-relaxed text-foreground/68">Tell us what is happening. A short note, your location, and a photo are enough to start.</p>
+          <div id="booking-form" className="fd-booking scroll-mt-28 rounded-[26px] border border-primary/12 bg-white p-5 shadow-[0_16px_42px_rgba(0,0,0,0.055)] sm:scroll-mt-32 sm:p-6 md:scroll-mt-28">
+            <h3 className="text-2xl font-semibold text-secondary">Request a service</h3>
+            <p className="mt-2 text-sm leading-relaxed text-foreground/68">Describe the work and choose an on-site visit or remote consultation. We will review your request and contact you to confirm availability.</p>
+            <ol className="fd-request-process" aria-label="What happens after you submit">
+              <li><ClipboardList aria-hidden="true" /> Send your details</li>
+              <li><MessageCircle aria-hidden="true" /> We review your request</li>
+              <li><CheckCircle2 aria-hidden="true" /> Confirm next steps</li>
+            </ol>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="mt-5 grid gap-4 sm:grid-cols-2">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="fd-booking-fields mt-5 grid gap-4 sm:grid-cols-2">
                 <input
                   type="text"
                   name="website"

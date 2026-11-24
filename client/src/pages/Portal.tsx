@@ -1,9 +1,11 @@
+import { CalendarDays, ClipboardList, FileText, Printer, Wrench } from "lucide-react";
+import { useDesignLanguage } from "@/components/language";
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import axios from "axios";
 import { useLocation } from "wouter";
 import "./portal.css";
 
-type Language = "EN" | "FR";
+
 type Kind = "CUSTOMER" | "TECHNICIAN" | "ORGANIZATION";
 type Account = { id: string; name: string; email: string; kind: Kind; organizations: { id: string; name: string; role: string }[] };
 type Property = { id: string; label: string; type: string; address: string; city: string; province: string; postalCode: string; country: string };
@@ -11,7 +13,7 @@ type Booking = { id: string; visitMode: string; repairType: string; status: stri
 type QuoteLine = { id: string; kind: string; description: string; quantity: number; unitCents: number };
 type Quote = { id: string; description: string; status: string; currency: string; expiresOn: string; subtotalCents: number; taxLabel: string; taxCents: number; totalCents: number; version: number; lines: QuoteLine[]; testCheckoutAvailable?: boolean; depositRequest?: { amountCents: number; dueOn: string } | null; job?: { id: string; status: string } | null };
 type InvoicePayment = { id: string; cents: number; method: string; reference: string; createdAt: string };
-type Invoice = { id: string; number: string; description: string; totalCents: number; paidCents: number; balanceCents: number; currency: string; status: string; dueOn: string; onlinePaymentAvailable: boolean; payments: InvoicePayment[] };
+type Invoice = { id: string; number: string; description: string; totalCents: number; paidCents: number; balanceCents: number; currency: string; status: string; dueOn: string; lines?: string; onlinePaymentAvailable: boolean; payments: InvoicePayment[] };
 function printRecordedPayment(invoice: Invoice, payment: InvoicePayment, customer: string, translate: (label: string) => string) {
   const receipt = window.open("", "_blank", "popup,width=620,height=650");
   if (!receipt) return false;
@@ -59,9 +61,9 @@ type Dashboard = {
 };
 
 const fr: Record<string, string> = {
-  "Pay deposit (test mode)": "Payer en mode test", "Stripe test refund": "Remboursement de test Stripe", "Stripe test card": "Carte de test Stripe", "Unable to start test checkout.": "Impossible de lancer le paiement test.", "Requested deposit": "Acompte demandé", "Deposit due": "Date limite de paiement", "Payment receipt": "Reçu de paiement", "Receipt number": "Numéro de reçu", "Print receipt": "Imprimer le reçu", "Allow pop-ups to print the receipt.": "Autorisez les fenêtres contextuelles pour imprimer le reçu.", "Payment history": "Historique des paiements", Cash: "Espèces", Cheque: "Chèque", "Bank transfer": "Virement bancaire", "Customer portal": "Portail client", "Technician portal": "Portail technicien", "Business portal": "Portail entreprise", "Sign in": "Connexion", "Email address": "Adresse courriel", Password: "Mot de passe", "Full name": "Nom complet", "Create account": "Créer un compte", "Activate your access": "Activer votre accès", "Return to sign in": "Retour à la connexion", "Sign out": "Déconnexion", "English": "English", "Français": "Français", "Welcome back": "Bon retour", "Your services, organized": "Vos services, organisés", "Active services": "Services actifs", "Quotes to review": "Devis à examiner", "Balance due": "Solde dû", Properties: "Propriétés", "Service requests": "Demandes de service", "Request a service": "Demander un service", "Service type": "Type de service", "Visit type": "Type de visite", "On-site service": "Service sur place", "Remote consultation": "Consultation à distance", "Preferred date": "Date souhaitée", "Describe the work": "Décrivez le travail", Submit: "Envoyer", "Your request is in your portal.": "Votre demande est dans votre portail.", Quotations: "Devis", Accept: "Accepter", Decline: "Refuser", Invoices: "Factures", "Online payment is unavailable for this invoice. Contact FixMyDoor to arrange payment.": "Le paiement en ligne n’est pas disponible. Communiquez avec FixMyDoor pour organiser le paiement.", "Service history": "Historique des services", "Communication preferences": "Préférences de communication", "Promotional messages are optional and currently disabled by the business.": "Les communications promotionnelles sont facultatives et désactivées par l’entreprise.", "Save preferences": "Enregistrer les préférences", "Save profile": "Enregistrer le profil", Phone: "Téléphone", "Preferred contact": "Contact préféré", "Choose a property": "Choisir une propriété", "No properties are linked to this account yet.": "Aucune propriété n’est liée à ce compte.", "Contact FixMyDoor to add a property before requesting service.": "Communiquez avec FixMyDoor pour ajouter une propriété avant de demander un service.", "Assigned work": "Travaux assignés", Availability: "Disponibilité", Available: "Disponible", Unavailable: "Indisponible", "Membership foundation": "Adhésion", "No billing is active. Membership plans are records only.": "Aucune facturation n’est active. Les adhésions sont uniquement des dossiers.", "Accept assignment": "Accepter le mandat", "Decline assignment": "Refuser le mandat", "Start work": "Commencer le travail", "Submit completion report": "Envoyer le rapport de fin", "Work performed": "Travaux effectués", Materials: "Matériaux", "Customer summary": "Résumé client", "Labour minutes": "Minutes de travail", "Upload work photo": "Téléverser une photo du travail", "Before photo": "Photo avant", "After photo": "Photo après", "No assigned work right now.": "Aucun travail assigné pour le moment.", "No requests yet.": "Aucune demande pour le moment.", "No quotations to display.": "Aucun devis à afficher.", "No invoices to display.": "Aucune facture à afficher.", "Request additional work": "Demander un autre service", "Update organization profile": "Mettre à jour le profil de l’entreprise", "Organization": "Entreprise", "Membership role": "Rôle", "Upcoming appointment": "Prochain rendez-vous", "Completed": "Terminé", "Pending": "En attente", "In progress": "En cours", "Contact email changes require staff verification.": "Le changement de courriel nécessite une vérification par le personnel.", "Forgot password?": "Mot de passe oublié?", "Recover account": "Récupérer le compte", "Send recovery instructions": "Envoyer les instructions de récupération", "Set a new password": "Définir un nouveau mot de passe", "Complete password reset": "Terminer la réinitialisation", "Recovery link": "Lien de récupération", "Enter the email address linked to your portal account. If eligible, we will provide a recovery link.": "Saisissez l’adresse courriel associée à votre compte. Si celui-ci est admissible, un lien de récupération vous sera fourni.", "Use the verified recovery link sent for your portal account.": "Utilisez le lien de récupération vérifié envoyé pour votre compte.",
+  "Pay deposit (test mode)": "Payer en mode test", "Stripe test refund": "Remboursement de test Stripe", "Stripe test card": "Carte de test Stripe", "Unable to start test checkout.": "Impossible de lancer le paiement test.", "Requested deposit": "Acompte demandé", "Deposit due": "Date limite de paiement", "Payment receipt": "Reçu de paiement", "Receipt number": "Numéro de reçu", "Print receipt": "Imprimer le reçu", "Allow pop-ups to print the receipt.": "Autorisez les fenêtres contextuelles pour imprimer le reçu.", "Payment history": "Historique des paiements", Cash: "Espèces", Cheque: "Chèque", "Bank transfer": "Virement bancaire", "Invoice total": "Total de la facture", "Amount paid": "Montant payé", "Invoice details": "Détails de la facture", "Due date": "Échéance", "Payment reference": "Référence de paiement", "Issued": "Émise", "Partially paid": "Partiellement payée", "Paid": "Payée", "Voided": "Annulée", "Draft": "Brouillon", "Your approved assignments, availability and work reports.": "Vos mandats approuvés, vos disponibilités et vos rapports de travail.", "Customer portal": "Portail client", "Technician portal": "Portail technicien", "Business portal": "Portail entreprise", "Sign in": "Connexion", "Email address": "Adresse courriel", Password: "Mot de passe", "Full name": "Nom complet", "Create account": "Créer un compte", "Activate your access": "Activer votre accès", "Return to sign in": "Retour à la connexion", "Sign out": "Déconnexion", "English": "English", "Français": "Français", "Welcome back": "Bon retour", "Your services, organized": "Vos services, organisés", "Active services": "Services actifs", "Quotes to review": "Devis à examiner", "Balance due": "Solde dû", Properties: "Propriétés", "Service requests": "Demandes de service", "Request a service": "Demander un service", "Service type": "Type de service", "Visit type": "Type de visite", "On-site service": "Service sur place", "Remote consultation": "Consultation à distance", "Preferred date": "Date souhaitée", "Describe the work": "Décrivez le travail", Submit: "Envoyer", "Your request is in your portal.": "Votre demande est dans votre portail.", Quotations: "Devis", Accept: "Accepter", Decline: "Refuser", Invoices: "Factures", "Online payment is unavailable for this invoice. Contact FixMyDoor to arrange payment.": "Le paiement en ligne n’est pas disponible. Communiquez avec FixMyDoor pour organiser le paiement.", "Service history": "Historique des services", "Communication preferences": "Préférences de communication", "Promotional messages are optional and currently disabled by the business.": "Les communications promotionnelles sont facultatives et désactivées par l’entreprise.", "Save preferences": "Enregistrer les préférences", "Save profile": "Enregistrer le profil", Phone: "Téléphone", "Preferred contact": "Contact préféré", "Choose a property": "Choisir une propriété", "No properties are linked to this account yet.": "Aucune propriété n’est liée à ce compte.", "Contact FixMyDoor to add a property before requesting service.": "Communiquez avec FixMyDoor pour ajouter une propriété avant de demander un service.", "Assigned work": "Travaux assignés", Availability: "Disponibilité", Available: "Disponible", Unavailable: "Indisponible", "Membership foundation": "Adhésion", "No billing is active. Membership plans are records only.": "Aucune facturation n’est active. Les adhésions sont uniquement des dossiers.", "Accept assignment": "Accepter le mandat", "Decline assignment": "Refuser le mandat", "Start work": "Commencer le travail", "Submit completion report": "Envoyer le rapport de fin", "Work performed": "Travaux effectués", Materials: "Matériaux", "Customer summary": "Résumé client", "Labour minutes": "Minutes de travail", "Upload work photo": "Téléverser une photo du travail", "Before photo": "Photo avant", "After photo": "Photo après", "No assigned work right now.": "Aucun travail assigné pour le moment.", "No requests yet.": "Aucune demande pour le moment.", "No quotations to display.": "Aucun devis à afficher.", "No invoices to display.": "Aucune facture à afficher.", "Request additional work": "Demander un autre service", "Update organization profile": "Mettre à jour le profil de l’entreprise", "Organization": "Entreprise", "Membership role": "Rôle", "Upcoming appointment": "Prochain rendez-vous", "Completed": "Terminé", "Pending": "En attente", "In progress": "En cours", "Contact email changes require staff verification.": "Le changement de courriel nécessite une vérification par le personnel.", "Forgot password?": "Mot de passe oublié?", "Recover account": "Récupérer le compte", "Send recovery instructions": "Envoyer les instructions de récupération", "Set a new password": "Définir un nouveau mot de passe", "Complete password reset": "Terminer la réinitialisation", "Recovery link": "Lien de récupération", "Enter the email address linked to your portal account. If eligible, we will provide a recovery link.": "Saisissez l’adresse courriel associée à votre compte. Si celui-ci est admissible, un lien de récupération vous sera fourni.", "Use the verified recovery link sent for your portal account.": "Utilisez le lien de récupération vérifié envoyé pour votre compte.",
 };
-const translate = (language: Language, value: string) => language === "FR" ? fr[value] ?? value : value;
+const translate = (language: "EN" | "FR", value: string) => language === "FR" ? fr[value] ?? value : value;
 const money = (cents: number, currency = "CAD") => new Intl.NumberFormat(undefined, { style: "currency", currency }).format(cents / 100);
 const api = async <T,>(path: string, method = "GET", data?: unknown): Promise<T> => (await axios.request<T>({ url: path, method, data, withCredentials: true, headers: { "Cache-Control": "no-store" } })).data;
 
@@ -73,13 +75,14 @@ function Badge({ children }: { children: ReactNode }) {
   const state = /complete|accepted|active|approved/i.test(value) ? "good" : /declin|cancel|suspend|overdue|reject/i.test(value) ? "bad" : "warm";
   return <span className={`portal-badge ${state}`}>{value.replaceAll("_", " ")}</span>;
 }
-function Card({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
-  return <section className="portal-card"><div className="portal-card-head"><h2>{title}</h2>{action}</div>{children}</section>;
+function Card({ title, children, action, id }: { title: string; children: ReactNode; action?: ReactNode; id?: string }) {
+  return <section className="portal-card" id={id}><div className="portal-card-head"><h2>{title}</h2>{action}</div>{children}</section>;
 }
 
 export default function Portal() {
   const [location, setLocation] = useLocation();
-  const [language, setLanguage] = useState<Language>("EN");
+  const { language: locale, setLanguage } = useDesignLanguage();
+  const language = locale === "fr" ? "FR" : "EN";
   const [account, setAccount] = useState<Account | null>(null);
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [organizationId, setOrganizationId] = useState("");
@@ -197,7 +200,7 @@ export default function Portal() {
     const inviteMode = location === "/portal/invite";
     const recoveryMode = location === "/portal/recover";
     return <main className="portal-page" lang={language === "FR" ? "fr" : "en"}>
-      <div className="portal-topline"><a className="portal-brand" href="/">FIXMYDOOR <span>SERVICES</span></a><button className="portal-quiet" onClick={() => setLanguage(language === "EN" ? "FR" : "EN")}>{t(language === "EN" ? "Français" : "English")}</button></div>
+      <div className="portal-topline"><a className="portal-brand" href="/">FIXMYDOOR <span>SERVICES</span></a><button className="portal-quiet" onClick={() => setLanguage(locale === "en" ? "fr" : "en")}>{t(language === "EN" ? "Français" : "English")}</button></div>
       <section className="portal-auth-card">
         <div className="portal-eyebrow">FIXMYDOOR SERVICES</div>
         <h1>{inviteMode ? t("Activate your access") : recoveryMode ? recoveryToken ? t("Set a new password") : t("Recover account") : t("Your services, organized")}</h1>
@@ -261,14 +264,21 @@ export default function Portal() {
       <a className="portal-brand" href="/">FIXMYDOOR <span>SERVICES</span></a>
       <div className="portal-header-actions">
         {account.organizations.length > 0 && <label className="portal-org-select"><span>{t("Organization")}</span><select value={organizationId} onChange={event => void switchOrganization(event.target.value)}>{account.kind === "CUSTOMER" && <option value="">Personal account</option>}{account.organizations.map(org => <option key={org.id} value={org.id}>{org.name} · {t(org.role)}</option>)}</select></label>}
-        <button className="portal-quiet" onClick={() => setLanguage(language === "EN" ? "FR" : "EN")}>{t(language === "EN" ? "Français" : "English")}</button>
+        <button className="portal-quiet" onClick={() => setLanguage(locale === "en" ? "fr" : "en")}>{t(language === "EN" ? "Français" : "English")}</button>
         <button className="portal-quiet" onClick={() => void logout()}>{t("Sign out")}</button>
       </div>
     </header>
     <section className="portal-hero">
-      <div><div className="portal-eyebrow">{technician ? t("Technician portal") : account.kind === "ORGANIZATION" || organizationId ? t("Business portal") : t("Customer portal")}</div><h1>{t("Welcome back")}, {technician ? dashboard.profile?.name : dashboard.customer?.name || account.name}</h1><p>{technician ? "Your approved assignments, availability and work reports." : t("Your services, organized")}</p></div>
-      <div className="portal-hero-mark">FM<span>D</span></div>
+      <div><div className="portal-eyebrow">{technician ? t("Technician portal") : account.kind === "ORGANIZATION" || organizationId ? t("Business portal") : t("Customer portal")}</div><h1>{t("Welcome back")}, {technician ? dashboard.profile?.name : dashboard.customer?.name || account.name}</h1><p>{technician ? t("Your approved assignments, availability and work reports.") : t("Your services, organized")}</p></div>
+      <div className="portal-hero-mark" aria-hidden="true">{technician ? <Wrench /> : <ClipboardList />}</div>
     </section>
+    <nav className="fd-work-nav" aria-label={t("Your services, organized")}>
+      {technician ? <a href="#portal-work"><Wrench aria-hidden="true" />{t("Assigned work")}</a> : <>
+        <a href="#portal-requests"><CalendarDays aria-hidden="true" />{t("Request a service")}</a>
+        <a href="#portal-quotes"><ClipboardList aria-hidden="true" />{t("Quotations")}</a>
+        <a href="#portal-invoices"><FileText aria-hidden="true" />{t("Invoices")}</a>
+      </>}
+    </nav>
     {notice && <div className="portal-notice" role="status">{notice}</div>}{error && <div className="portal-error" role="alert">{error}</div>}
 
     {technician ? <>
@@ -280,7 +290,7 @@ export default function Portal() {
           </form>
           <div className="portal-membership"><h3>{t("Membership foundation")}</h3>{dashboard.membership ? <><strong>{dashboard.membership.plan}</strong><p><Badge>{dashboard.membership.status}</Badge> · {dashboard.membership.billingPeriod}</p><p>{safeBenefits(dashboard.membership.includedBenefits).join(" · ")}</p></> : <p>{t("No billing is active. Membership plans are records only.")}</p>}</div>
         </Card>
-        <Card title={t("Assigned work")}>
+        <Card id="portal-work" title={t("Assigned work")}>
           {(dashboard.jobs || []).length === 0 ? <p className="portal-empty">{t("No assigned work right now.")}</p> : <div className="portal-stack">{dashboard.jobs?.map(job => <article className="portal-job" key={job.id}>
             <div className="portal-card-head"><div><div className="portal-eyebrow">{job.reference || job.category}</div><h3>{job.description || job.category}</h3></div><Badge>{job.status}</Badge></div>
             <p>{job.property?.address || job.location}{job.property?.city ? ` · ${job.property.city}, ${job.property.province}` : ""}</p><p>{job.customer?.name} · {job.customer?.phone}</p>
@@ -299,7 +309,7 @@ export default function Portal() {
     </> : <>
       <div className="portal-metrics"><div><span>{t("Active services")}</span><strong>{activeCount}</strong></div><div><span>{t("Quotes to review")}</span><strong>{dashboard.quotations?.filter(q => q.status === "SENT").length ?? 0}</strong></div><div><span>{t("Balance due")}</span><strong>{money(balance)}</strong></div><div><span>{t("Properties")}</span><strong>{properties.length}</strong></div></div>
       <div className="portal-grid">
-        <Card title={t("Request a service")}>
+        <Card id="portal-requests" title={t("Request a service")}>
           {properties.length === 0 ? <p className="portal-empty">{t("No properties are linked to this account yet.")} {t("Contact FixMyDoor to add a property before requesting service.")}</p> : canRequest ? <form className="portal-form" onSubmit={submitRequest}>
             <Field label={t("Choose a property")}><select name="propertyId" required defaultValue=""><option value="" disabled>{t("Choose a property")}</option>{properties.map(property => <option key={property.id} value={property.id}>{property.label} · {property.address}</option>)}</select></Field>
             <Field label={t("Service type")}><input name="service" required minLength={2} maxLength={160} list="portal-services" placeholder="e.g. Door adjustment" /><datalist id="portal-services"><option>Door repair</option><option>Furniture assembly</option><option>Property maintenance</option><option>Remote consultation</option></datalist></Field>
@@ -312,7 +322,7 @@ export default function Portal() {
         <Card title={t("Service requests")}>
           {(dashboard.bookings || []).length ? <div className="portal-stack">{dashboard.bookings?.map(booking => <article className="portal-list-row" key={booking.id}><div><strong>{booking.repairType}</strong><small>{new Date(booking.createdAt).toLocaleDateString()} · {booking.visitMode === "REMOTE" ? t("Remote consultation") : t("On-site service")}{booking.preferredDate ? ` · ${booking.preferredDate}` : ""}</small></div><Badge>{booking.status}</Badge></article>)}</div> : <p className="portal-empty">{t("No requests yet.")}</p>}
         </Card>
-        <Card title={t("Quotations")}>
+        <Card id="portal-quotes" title={t("Quotations")}>
           {(dashboard.quotations || []).length ? <div className="portal-stack">{dashboard.quotations?.map(quote => <article className="portal-job" key={quote.id}><div className="portal-card-head"><h3>{quote.description}</h3><Badge>{quote.status}</Badge></div><p>Valid through {quote.expiresOn} · {money(quote.totalCents, quote.currency)}</p>{quote.depositRequest && quote.status === "ACCEPTED" && <p>{t("Requested deposit")}: {money(quote.depositRequest.amountCents, quote.currency)} · {t("Deposit due")}: {quote.depositRequest.dueOn}</p>}<ul className="portal-lines">{quote.lines.map(line => <li key={line.id}>{line.description} · {line.quantity} × {money(line.unitCents, quote.currency)}</li>)}</ul>{quote.testCheckoutAvailable && <button type="button" className="portal-primary" disabled={busy} onClick={async () => {
                   setBusy(true);
                   setError("");
@@ -327,16 +337,10 @@ export default function Portal() {
                   }
                 }}>{t("Pay deposit (test mode)")}</button>}{quote.status === "SENT" && <div className="portal-actions"><button className="portal-primary" disabled={busy} onClick={() => void mutate("/api/portal/quotations/" + quote.id + "/decision", { decision: "ACCEPTED", version: quote.version, ...(organizationId ? { organizationId } : {}) }, "Quotation accepted.")}>{t("Accept")}</button><button className="portal-secondary" disabled={busy} onClick={() => void mutate("/api/portal/quotations/" + quote.id + "/decision", { decision: "DECLINED", version: quote.version, ...(organizationId ? { organizationId } : {}) }, "Quotation declined.")}>{t("Decline")}</button></div>}</article>)}</div> : <p className="portal-empty">{t("No quotations to display.")}</p>}
         </Card>
-        <Card title={t("Invoices")}>
-          {(dashboard.invoices || []).length ? <div className="portal-stack">{dashboard.invoices?.map(invoice => <article className="portal-list-row" key={invoice.id}><div><strong>{invoice.number} · {invoice.description}</strong><small>Due {invoice.dueOn} · {t("Balance due")}: {money(invoice.balanceCents, invoice.currency)}</small><small>{t("Online payment is unavailable for this invoice. Contact FixMyDoor to arrange payment.")}</small>
-              {invoice.payments?.length > 0 && <details>
-                <summary>{t("Payment history")}</summary>
-                <ul>{invoice.payments.map(payment => <li key={payment.id}>
-                  <time dateTime={payment.createdAt}>{payment.createdAt.slice(0, 10)}</time>
-                  {" · "}{money(payment.cents, invoice.currency)}
-                  {" · "}{t(payment.method === "STRIPE_TEST_REFUND" ? "Stripe test refund" : payment.method === "STRIPE_TEST" ? "Stripe test card" : payment.method === "BANK_TRANSFER" ? "Bank transfer" : payment.method === "CHEQUE" ? "Cheque" : "Cash")}{" · "}{payment.reference} {payment.cents > 0 && <button type="button" className="portal-quiet" onClick={() => { if (!printRecordedPayment(invoice, payment, dashboard.customer?.name ?? "", t)) window.alert(t("Allow pop-ups to print the receipt.")); }}>{t("Print receipt")}</button>}
-                </li>)}</ul>
-              </details>}</div><Badge>{invoice.status}</Badge></article>)}</div> : <p className="portal-empty">{t("No invoices to display.")}</p>}
+        <Card id="portal-invoices" title={t("Invoices")}>
+          {(dashboard.invoices || []).length ? <div className="portal-stack">
+            {dashboard.invoices?.map(invoice => <InvoiceCard key={invoice.id} invoice={invoice} t={t} customer={dashboard.customer?.name ?? ""} />)}
+          </div> : <p className="portal-empty">{t("No invoices to display.")}</p>}
         </Card>
         <Card title={t("Service history")}>
           {(dashboard.jobs || []).length ? <div className="portal-stack">{dashboard.jobs?.map(job => <article className="portal-list-row" key={job.id}><div><strong>{job.reference || job.category}</strong><small>{job.category} · {job.startsAt ? new Date(job.startsAt).toLocaleString() : ""}</small>{job.customerSummary && <small>{job.customerSummary}</small>}{job.photos.map(photo => <a className="portal-photo" key={photo.id} href={`/api/portal/jobs/${job.id}/photos/${photo.id}${organizationId ? `?organizationId=${organizationId}` : ""}`} target="_blank" rel="noreferrer">{photo.kind} photo</a>)}</div><Badge>{job.status}</Badge></article>)}</div> : <p className="portal-empty">{t("No requests yet.")}</p>}
@@ -357,6 +361,64 @@ export default function Portal() {
     </>}
     <footer className="portal-footer">FixMyDoor Services · Montréal, Québec · <a href="/privacy-policy">Privacy</a> · <a href="/terms-and-conditions">Terms</a></footer>
   </main>;
+}
+
+function invoiceLines(serialized: string | undefined) {
+  if (!serialized) return [];
+  try {
+    const data: unknown = JSON.parse(serialized);
+    if (!Array.isArray(data)) return [];
+    return data.flatMap((entry: unknown) => {
+      if (typeof entry !== "object" || !entry ||
+        !("description" in entry) || typeof entry.description !== "string" ||
+        !("quantity" in entry) || typeof entry.quantity !== "number" ||
+        !("unitCents" in entry) || typeof entry.unitCents !== "number") return [];
+      return [{ description: entry.description, quantity: entry.quantity, cents: entry.unitCents }];
+    });
+  } catch {
+    return [];
+  }
+}
+
+const invoiceStatuses: Record<string, string> = {
+  ISSUED: "Issued", PAID: "Paid", PARTIALLY_PAID: "Partially paid", VOIDED: "Voided", DRAFT: "Draft",
+};
+
+const paymentMethods: Record<string, string> = {
+  STRIPE_TEST_REFUND: "Stripe test refund", STRIPE_TEST: "Stripe test card",
+  BANK_TRANSFER: "Bank transfer", CHEQUE: "Cheque", CASH: "Cash",
+};
+
+function InvoiceCard({ invoice, t, customer }: { invoice: Invoice; t: (label: string) => string; customer: string }) {
+  const lines = invoiceLines(invoice.lines);
+  return <article className="fd-invoice">
+    <div className="fd-invoice-heading">
+      <div><small>{t("Invoices")}</small><h3>{invoice.description}</h3></div>
+      <span className="fd-status" data-state={invoice.status}>{t(invoiceStatuses[invoice.status] ?? invoice.status)}</span>
+    </div>
+    <dl className="fd-invoice-totals">
+      <div><dt>{t("Invoice total")}</dt><dd>{money(invoice.totalCents, invoice.currency)}</dd></div>
+      <div><dt>{t("Amount paid")}</dt><dd>{money(invoice.paidCents, invoice.currency)}</dd></div>
+      <div><dt>{t("Balance due")}</dt><dd>{money(invoice.balanceCents, invoice.currency)}</dd></div>
+    </dl>
+    <details className="fd-disclosure">
+      <summary>{t("Invoice details")}</summary>
+      <p className="fd-reference">{invoice.number}</p>
+      <p>{t("Due date")}: <time dateTime={invoice.dueOn}>{invoice.dueOn}</time></p>
+      {lines.length > 0 && <ul className="fd-invoice-lines">{lines.map((line, i) =>
+        <li key={i}><span>{line.description}</span><span>{line.quantity} × {money(line.cents, invoice.currency)}</span></li>)}</ul>}
+    </details>
+    {invoice.payments?.length > 0 && <details className="fd-disclosure">
+      <summary>{t("Payment history")}</summary>
+      <ul className="fd-payment-list">{invoice.payments.map(payment => <li key={payment.id}>
+        <div><strong>{t(paymentMethods[payment.method] ?? payment.method)}</strong><time dateTime={payment.createdAt}>{payment.createdAt.slice(0, 10)}</time></div>
+        <strong>{money(payment.cents, invoice.currency)}</strong>
+        {payment.cents > 0 && <button type="button" className="fd-button fd-button-outline" onClick={() => {
+          if (!printRecordedPayment(invoice, payment, customer, t)) window.alert(t("Allow pop-ups to print the receipt."));
+        }}><Printer aria-hidden="true" />{t("Print receipt")}</button>}
+      </li>)}</ul>
+    </details>}
+  </article>;
 }
 
 function safeBenefits(value: string) {

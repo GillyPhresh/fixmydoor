@@ -1,3 +1,4 @@
+@layer legacy {
 .cm-shell {
   max-width: 62rem;
   margin: auto;
@@ -114,4 +115,5 @@
   .cm-print .cm-row {
     break-inside: avoid;
   }
+}
 }
