@@ -679,6 +679,7 @@ export default function Commercial() {
       ) : loading ? (
         <p role="status">{t("Loading…", "Chargement…")}</p>
       ) : null}
+      <p><a href="/admin/recruitment">{t("Technician applications", "Candidatures de techniciens")}</a></p>
       <fieldset className="cm-panel" disabled={busy} key={hash}>
         {view === "delivery" && <Delivery quoteId={id} t={t} />}
         {view === "overview" && overview.data && (

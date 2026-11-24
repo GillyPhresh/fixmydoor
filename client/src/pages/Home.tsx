@@ -3858,6 +3858,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <div className="pb-6 text-center"><a className="text-sm underline underline-offset-4" href="/technician-application">Technician applications · Candidatures de techniciens</a></div>
       </footer>
 
       {cookieBannerOpen && (

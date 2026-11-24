@@ -591,3 +591,17 @@ model QuotationDeposit {
   createdBy String
   createdAt DateTime @default(now())
 }
+
+model TechnicianApplication {
+  id String @id @default(cuid())
+  name String
+  email String @unique
+  city String
+  province String
+  experience String
+  status String @default("NEW")
+  reviewNote String @default("")
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  @@index([status, createdAt])
+}

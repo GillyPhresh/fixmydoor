@@ -92,6 +92,8 @@ const staffAuth = (req, res, next) => {
   next();
 };
 registerCommercial(app, staffAuth);
+const { registerRecruitment } = await import("../server/recruitment.ts");
+registerRecruitment(app, staffAuth);
 const recoveryLinks = new Map();
 registerPortal(app, staffAuth, undefined, async (email, url) => { recoveryLinks.set(email, url); return true; });
 const server = app.listen(0, "127.0.0.1");
@@ -253,6 +255,27 @@ test("customer, organization, technician, AI and membership portal workflows enf
   await prisma.technician.update({ where: { id: technicianB.id }, data: { status: "SUSPENDED" } });
   assert.equal((await call("/api/portal/me", { cookie: techBCookie })).status, 401);
   assert.equal((await prisma.portalAccount.findUnique({ where: { id: techBAccount.id } })).status, "ACTIVE", "technician status alone blocks the portal without changing account status");
+
+  await t.test("technician recruitment protects application data and rejects stale reviews", async () => {
+    const root = "/api/technician-applications";
+    const admin = "/api/admin/technician-applications";
+    const data = { name: "Synthetic Recruiting Applicant", email: "recruitment@example.invalid", city: "Montréal", province: "QC", experience: "Synthetic furniture assembly experience." };
+    assert.equal((await call(admin)).status, 401);
+    assert.equal((await call(root, { method: "POST", body: { ...data, status: "APPROVED" } })).status, 400);
+    assert.equal((await call(root, { method: "POST", body: data })).status, 202);
+    assert.equal((await call(root, { method: "POST", body: { ...data, email: data.email.toUpperCase(), name: "Replacement" } })).status, 202);
+    const { records } = (await call(admin, { staff: true })).data;
+    assert.equal(records.length, 1);
+    assert.equal(records[0].name, data.name);
+    const path = admin + "/" + records[0].id;
+    const review = { status: "INTERVIEW", note: "Review qualifications in interview.", version: 1 };
+    assert.equal((await call(path, { method: "PATCH", body: review })).status, 401);
+    assert.equal((await call(path, { method: "PATCH", body: review, staff: true })).status, 204);
+    assert.equal((await call(path, { method: "PATCH", body: review, staff: true })).status, 409);
+    assert.equal((await call(admin + "?status=INTERVIEW", { staff: true })).data.records[0].status, "INTERVIEW");
+    assert.equal(await prisma.auditEvent.count({ where: { entityType: "technician_application", entityId: records[0].id } }), 1);
+    assert.equal(await prisma.technician.count({ where: { email: data.email } }), 0);
+  });
 
   await t.test("verified Stripe payment settles once and leaves incorrect attempts untouched", async () => {
     const { reconcileStripeTestRefund, settleVerifiedStripeCheckout } = await import("../server/stripe-test-settlement.ts");

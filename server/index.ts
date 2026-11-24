@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { randomBytes, randomUUID } from "crypto";
+import { registerRecruitment } from "./recruitment";
 import { registerCommercial } from "./commercial";
 import { registerSandboxWebhook } from "./payment-sandbox";
 import { registerStripeTestWebhook } from "./stripe-test-webhook";
@@ -1526,6 +1527,7 @@ async function startServer() {
   registerStripeTestWebhook(app);
   app.use(express.json({ limit: "30mb" }));
   registerCommercial(app, requireAuth);
+  registerRecruitment(app, requireAuth);
   registerAttachmentRoutes(app, requireAuth, uploadDir);
   registerPortal(app, requireAuth);
 
@@ -2613,6 +2615,8 @@ async function startServer() {
       normalizedPath === "/admin" ||
       normalizedPath === "/admin/notify" ||
       normalizedPath === "/admin/commercial" ||
+      normalizedPath === "/admin/recruitment" ||
+      normalizedPath === "/technician-application" ||
       normalizedPath === "/admin/portals" ||
       normalizedPath === "/portal" ||
       normalizedPath === "/portal/login" ||

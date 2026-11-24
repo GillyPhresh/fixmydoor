@@ -1,3 +1,4 @@
+import { RecruitmentReviewPage, TechnicianApplicationPage } from "@/pages/Recruitment";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense, useEffect } from "react";
@@ -129,6 +130,8 @@ function Router() {
         <Route path={"/portal/recover"} component={Portal} />
         <Route path={"/portal/login"} component={Portal} />
         <Route path={"/portal"} component={Portal} />
+        <Route path="/technician-application" component={TechnicianApplicationPage} />
+        <Route path="/admin/recruitment" component={RecruitmentReviewPage} />
         <Route path={"/404"} component={NotFound} />
         {/* Final fallback route */}
         <Route component={NotFound} />

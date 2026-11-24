@@ -107,3 +107,7 @@ Commit `cf062f7046a080eeaf9762842f9acef1d4023d86` adds invitation-account passwo
 The final checks passed: Prisma generation/validation, TypeScript, 37/37 tests and the production build. Playwright confirmed the actual local customer login, recovery request screen and mobile layout with no client errors or horizontal overflow. The updated Docker image (`sha256:4dd6bf7a0827e82f64cf4eabd7cfc87fda775e8db6653a499be46c75a8e79399`) contains zero scanned env/database/WAL/backup files. Its default startup applied all 20 migrations to disposable tmpfs, then returned 200 for health, homepage, `/portal/recover` and `/admin/portals`; private portal routes returned noindex headers.
 
 Railway staging deployment is still pending the dashboard approval described above; the live deployment and production remain unchanged. The running owner preview uses only synthetic records at `http://localhost:4173`.
+
+### Technician recruitment intake
+
+The applicant form at /technician-application collects contact details, location and a qualifications summary. Staff review applications at /admin/recruitment. Review changes are recorded in the audit log. Intake and review do not create technician profiles, grant trade qualifications, send messages or expand service availability. Use the existing technician review and eligibility process for dispatch.
